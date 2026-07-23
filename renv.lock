@@ -1,0 +1,846 @@
+{
+  "R": {
+    "Version": "4.4.3",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://packagemanager.posit.co/cran/__linux__/noble/latest"
+      },
+      {
+        "Name": "SWS",
+        "URL": "https://qa-sws-rcranrepo.s3.eu-west-1.amazonaws.com/__linux__/noble/latest"
+      }
+    ]
+  },
+  "Packages": {
+    "DBI": {
+      "Package": "DBI",
+      "Version": "1.3.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "DT": {
+      "Package": "DT",
+      "Version": "0.34.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "crosstalk",
+        "htmltools",
+        "htmlwidgets",
+        "jquerylib",
+        "jsonlite",
+        "magrittr",
+        "promises"
+      ]
+    },
+    "R6": {
+      "Package": "R6",
+      "Version": "2.6.1",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "RColorBrewer": {
+      "Package": "RColorBrewer",
+      "Version": "1.1-3",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "Rcpp": {
+      "Package": "Rcpp",
+      "Version": "1.1.1-1.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods",
+        "utils"
+      ]
+    },
+    "S7": {
+      "Package": "S7",
+      "Version": "0.2.1-1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "utils"
+      ]
+    },
+    "SwsApiClient": {
+      "Package": "SwsApiClient",
+      "Version": "0.24.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "DBI",
+        "R6",
+        "cli",
+        "data.table",
+        "glue",
+        "httr",
+        "jsonlite",
+        "logger",
+        "lubridate",
+        "utils",
+        "yaml",
+        "zip"
+      ]
+    },
+    "askpass": {
+      "Package": "askpass",
+      "Version": "1.2.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "sys"
+      ]
+    },
+    "base64enc": {
+      "Package": "base64enc",
+      "Version": "0.1-6",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "bslib": {
+      "Package": "bslib",
+      "Version": "0.10.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "base64enc",
+        "cachem",
+        "fastmap",
+        "grDevices",
+        "htmltools",
+        "jquerylib",
+        "jsonlite",
+        "lifecycle",
+        "memoise",
+        "mime",
+        "rlang",
+        "sass"
+      ]
+    },
+    "cachem": {
+      "Package": "cachem",
+      "Version": "1.1.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "fastmap",
+        "rlang"
+      ]
+    },
+    "cli": {
+      "Package": "cli",
+      "Version": "3.6.6",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "utils"
+      ]
+    },
+    "commonmark": {
+      "Package": "commonmark",
+      "Version": "2.0.0",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "cpp11": {
+      "Package": "cpp11",
+      "Version": "0.5.4",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "crosstalk": {
+      "Package": "crosstalk",
+      "Version": "1.2.2",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "htmltools",
+        "jsonlite",
+        "lazyeval"
+      ]
+    },
+    "curl": {
+      "Package": "curl",
+      "Version": "7.1.0",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "data.table": {
+      "Package": "data.table",
+      "Version": "1.18.2.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "digest": {
+      "Package": "digest",
+      "Version": "0.6.39",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "utils"
+      ]
+    },
+    "entropy": {
+      "Package": "entropy",
+      "Version": "1.3.2",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "evaluate": {
+      "Package": "evaluate",
+      "Version": "1.0.5",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "faoswsFlag": {
+      "Package": "faoswsFlag",
+      "Version": "0.5.9",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "data.table",
+        "entropy"
+      ]
+    },
+    "farver": {
+      "Package": "farver",
+      "Version": "2.1.2",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "fastmap": {
+      "Package": "fastmap",
+      "Version": "1.2.0",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "fontawesome": {
+      "Package": "fontawesome",
+      "Version": "0.5.3",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "htmltools",
+        "rlang"
+      ]
+    },
+    "fs": {
+      "Package": "fs",
+      "Version": "2.1.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "generics": {
+      "Package": "generics",
+      "Version": "0.1.4",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "ggfittext": {
+      "Package": "ggfittext",
+      "Version": "0.10.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "cli",
+        "ggplot2",
+        "grid",
+        "gridtext",
+        "shades",
+        "stringi"
+      ]
+    },
+    "ggplot2": {
+      "Package": "ggplot2",
+      "Version": "4.0.2",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "S7",
+        "cli",
+        "grDevices",
+        "grid",
+        "gtable",
+        "isoband",
+        "lifecycle",
+        "rlang",
+        "scales",
+        "stats",
+        "vctrs",
+        "withr"
+      ]
+    },
+    "glue": {
+      "Package": "glue",
+      "Version": "1.8.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "gridtext": {
+      "Package": "gridtext",
+      "Version": "0.1.6",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Rcpp",
+        "curl",
+        "grDevices",
+        "grid",
+        "jpeg",
+        "markdown",
+        "png",
+        "rlang",
+        "stringr",
+        "xml2"
+      ]
+    },
+    "gtable": {
+      "Package": "gtable",
+      "Version": "0.3.6",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "glue",
+        "grid",
+        "lifecycle",
+        "rlang",
+        "stats"
+      ]
+    },
+    "highr": {
+      "Package": "highr",
+      "Version": "0.12",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "xfun"
+      ]
+    },
+    "htmltools": {
+      "Package": "htmltools",
+      "Version": "0.5.9",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "base64enc",
+        "digest",
+        "fastmap",
+        "grDevices",
+        "rlang",
+        "utils"
+      ]
+    },
+    "htmlwidgets": {
+      "Package": "htmlwidgets",
+      "Version": "1.6.4",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "grDevices",
+        "htmltools",
+        "jsonlite",
+        "knitr",
+        "rmarkdown",
+        "yaml"
+      ]
+    },
+    "httpuv": {
+      "Package": "httpuv",
+      "Version": "1.6.17",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "Rcpp",
+        "later",
+        "promises",
+        "utils"
+      ]
+    },
+    "httr": {
+      "Package": "httr",
+      "Version": "1.4.8",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "curl",
+        "jsonlite",
+        "mime",
+        "openssl"
+      ]
+    },
+    "isoband": {
+      "Package": "isoband",
+      "Version": "0.3.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "cpp11",
+        "grid",
+        "rlang",
+        "utils"
+      ]
+    },
+    "jpeg": {
+      "Package": "jpeg",
+      "Version": "0.1-11",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "jquerylib": {
+      "Package": "jquerylib",
+      "Version": "0.1.4",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "htmltools"
+      ]
+    },
+    "jsonlite": {
+      "Package": "jsonlite",
+      "Version": "2.0.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods"
+      ]
+    },
+    "knitr": {
+      "Package": "knitr",
+      "Version": "1.51",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "evaluate",
+        "highr",
+        "methods",
+        "tools",
+        "xfun",
+        "yaml"
+      ]
+    },
+    "labeling": {
+      "Package": "labeling",
+      "Version": "0.4.3",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "graphics",
+        "stats"
+      ]
+    },
+    "later": {
+      "Package": "later",
+      "Version": "1.4.8",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "Rcpp",
+        "rlang"
+      ]
+    },
+    "lazyeval": {
+      "Package": "lazyeval",
+      "Version": "0.2.3",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "rlang"
+      ]
+    },
+    "lifecycle": {
+      "Package": "lifecycle",
+      "Version": "1.0.5",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "rlang"
+      ]
+    },
+    "litedown": {
+      "Package": "litedown",
+      "Version": "0.10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "commonmark",
+        "utils",
+        "xfun"
+      ]
+    },
+    "logger": {
+      "Package": "logger",
+      "Version": "0.4.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "utils"
+      ]
+    },
+    "lubridate": {
+      "Package": "lubridate",
+      "Version": "1.9.5",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "generics",
+        "methods",
+        "timechange"
+      ]
+    },
+    "magrittr": {
+      "Package": "magrittr",
+      "Version": "2.0.5",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "markdown": {
+      "Package": "markdown",
+      "Version": "2.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "litedown",
+        "utils",
+        "xfun"
+      ]
+    },
+    "memoise": {
+      "Package": "memoise",
+      "Version": "2.0.1",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cachem",
+        "rlang"
+      ]
+    },
+    "mime": {
+      "Package": "mime",
+      "Version": "0.13",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "tools"
+      ]
+    },
+    "openssl": {
+      "Package": "openssl",
+      "Version": "2.4.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "askpass"
+      ]
+    },
+    "otel": {
+      "Package": "otel",
+      "Version": "0.2.0",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "png": {
+      "Package": "png",
+      "Version": "0.1-9",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "promises": {
+      "Package": "promises",
+      "Version": "1.5.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "fastmap",
+        "later",
+        "lifecycle",
+        "magrittr",
+        "otel",
+        "rlang"
+      ]
+    },
+    "rappdirs": {
+      "Package": "rappdirs",
+      "Version": "0.3.4",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "rlang": {
+      "Package": "rlang",
+      "Version": "1.2.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "utils"
+      ]
+    },
+    "rmarkdown": {
+      "Package": "rmarkdown",
+      "Version": "2.31",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "bslib",
+        "evaluate",
+        "fontawesome",
+        "htmltools",
+        "jquerylib",
+        "jsonlite",
+        "knitr",
+        "methods",
+        "tinytex",
+        "tools",
+        "utils",
+        "xfun",
+        "yaml"
+      ]
+    },
+    "sass": {
+      "Package": "sass",
+      "Version": "0.4.10",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "fs",
+        "htmltools",
+        "rappdirs",
+        "rlang"
+      ]
+    },
+    "scales": {
+      "Package": "scales",
+      "Version": "1.4.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "RColorBrewer",
+        "cli",
+        "farver",
+        "glue",
+        "labeling",
+        "lifecycle",
+        "rlang",
+        "viridisLite"
+      ]
+    },
+    "shades": {
+      "Package": "shades",
+      "Version": "1.5.0",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
+    "shiny": {
+      "Package": "shiny",
+      "Version": "1.13.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "R6",
+        "bslib",
+        "cachem",
+        "cli",
+        "commonmark",
+        "fastmap",
+        "fontawesome",
+        "glue",
+        "grDevices",
+        "htmltools",
+        "httpuv",
+        "jsonlite",
+        "later",
+        "lifecycle",
+        "methods",
+        "mime",
+        "otel",
+        "promises",
+        "rlang",
+        "sourcetools",
+        "tools",
+        "utils",
+        "withr",
+        "xtable"
+      ]
+    },
+    "shinyTree": {
+      "Package": "shinyTree",
+      "Version": "0.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "htmlwidgets",
+        "jsonlite",
+        "methods",
+        "promises",
+        "shiny",
+        "stringr"
+      ]
+    },
+    "sourcetools": {
+      "Package": "sourcetools",
+      "Version": "0.1.7-2",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "stringi": {
+      "Package": "stringi",
+      "Version": "1.8.7",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "stats",
+        "tools",
+        "utils"
+      ]
+    },
+    "stringr": {
+      "Package": "stringr",
+      "Version": "1.6.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "glue",
+        "lifecycle",
+        "magrittr",
+        "rlang",
+        "stringi",
+        "vctrs"
+      ]
+    },
+    "sys": {
+      "Package": "sys",
+      "Version": "3.4.3",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "timechange": {
+      "Package": "timechange",
+      "Version": "0.4.0",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cpp11"
+      ]
+    },
+    "tinytex": {
+      "Package": "tinytex",
+      "Version": "0.59",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "xfun"
+      ]
+    },
+    "treemapify": {
+      "Package": "treemapify",
+      "Version": "2.6.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "cli",
+        "ggfittext",
+        "ggplot2",
+        "grid"
+      ]
+    },
+    "vctrs": {
+      "Package": "vctrs",
+      "Version": "0.7.3",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "glue",
+        "lifecycle",
+        "rlang"
+      ]
+    },
+    "viridisLite": {
+      "Package": "viridisLite",
+      "Version": "0.4.3",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "withr": {
+      "Package": "withr",
+      "Version": "3.0.2",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "grDevices",
+        "graphics"
+      ]
+    },
+    "xfun": {
+      "Package": "xfun",
+      "Version": "0.57",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "grDevices",
+        "stats",
+        "tools"
+      ]
+    },
+    "xml2": {
+      "Package": "xml2",
+      "Version": "1.5.2",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "cli",
+        "methods",
+        "rlang"
+      ]
+    },
+    "xtable": {
+      "Package": "xtable",
+      "Version": "1.8-8",
+      "Source": "Repository",
+      "Repository": "SWS",
+      "Requirements": [
+        "methods",
+        "stats",
+        "utils"
+      ]
+    },
+    "yaml": {
+      "Package": "yaml",
+      "Version": "2.3.12",
+      "Source": "Repository",
+      "Repository": "SWS"
+    },
+    "zip": {
+      "Package": "zip",
+      "Version": "2.3.3",
+      "Source": "Repository",
+      "Repository": "SWS"
+    }
+  }
+}

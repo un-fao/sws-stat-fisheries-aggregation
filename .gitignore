@@ -1,0 +1,14 @@
+# renv library (only the lockfile is tracked)
+renv/library/
+renv/staging/
+
+# R / RStudio artifacts
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# SWS client credentials — never commit
+client.json
+
+.DS_Store

@@ -5804,7 +5804,8 @@ server <- function(input, output, session) {
         
         initialiseClient(
           session = session,
-          sws_endpoint = "https://sws.qa.fao.org"
+          # injected by the plugin runtime (QA in QA, prod in prod); fallback for local/debug
+          sws_endpoint = Sys.getenv("SWS_ENDPOINT", unset = "https://sws.qa.fao.org")
         )
         
         user(getCurrentUser())
