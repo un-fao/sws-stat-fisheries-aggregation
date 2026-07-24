@@ -389,6 +389,210 @@ validate_dataset_columns <- function(data, dataset_id) {
 # Fisheries source values contain at most four decimal places.
 VALUE_DECIMAL_DIGITS <- 4L
 
+clean_code_vector <- function(x) {
+  
+  if (is.null(x)) {
+    return(character(0))
+  }
+  
+  x <- unique(
+    trimws(
+      as.character(x)
+    )
+  )
+  
+  x[
+    !is.na(x) &
+      nzchar(x)
+  ]
+}
+
+format_aggregation_context <- function(
+    dimension_id,
+    label,
+    dataset_column,
+    codelist = NULL,
+    selected_codes = NULL,
+    stage = NULL
+) {
+  
+  label <- clean_code_vector(label)
+  dimension_id <- clean_code_vector(dimension_id)
+  dataset_column <- clean_code_vector(dataset_column)
+  codelist <- clean_code_vector(codelist)
+  selected_codes <- clean_code_vector(selected_codes)
+  stage <- clean_code_vector(stage)
+  
+  label_text <- if (length(label) > 0L) {
+    label[1L]
+  } else {
+    "Unknown aggregation dimension"
+  }
+  
+  details <- character(0)
+  
+  if (length(dimension_id) > 0L) {
+    details <- c(
+      details,
+      paste0(
+        "dimension ID: ",
+        dimension_id[1L]
+      )
+    )
+  }
+  
+  if (length(dataset_column) > 0L) {
+    details <- c(
+      details,
+      paste0(
+        "dataset column: ",
+        dataset_column[1L]
+      )
+    )
+  }
+  
+  if (length(codelist) > 0L) {
+    details <- c(
+      details,
+      paste0(
+        "codelist: ",
+        codelist[1L]
+      )
+    )
+  }
+  
+  if (length(selected_codes) > 0L) {
+    details <- c(
+      details,
+      paste0(
+        "selected code(s): ",
+        paste(
+          selected_codes,
+          collapse = ", "
+        )
+      )
+    )
+  }
+  
+  if (length(stage) > 0L) {
+    details <- c(
+      details,
+      paste0(
+        "stage: ",
+        stage[1L]
+      )
+    )
+  }
+  
+  paste0(
+    label_text,
+    " [",
+    paste(
+      details,
+      collapse = "; "
+    ),
+    "]"
+  )
+}
+
+
+with_aggregation_context <- function(
+    expression,
+    dimension_id,
+    label,
+    dataset_column,
+    codelist = NULL,
+    selected_codes = NULL,
+    stage = NULL
+) {
+  
+  context <- format_aggregation_context(
+    dimension_id = dimension_id,
+    label = label,
+    dataset_column = dataset_column,
+    codelist = codelist,
+    selected_codes = selected_codes,
+    stage = stage
+  )
+  
+  tryCatch(
+    force(expression),
+    
+    error = function(e) {
+      stop(
+        paste0(
+          context,
+          ": ",
+          conditionMessage(e)
+        ),
+        call. = FALSE
+      )
+    }
+  )
+}
+
+
+normalise_and_drop_empty_values <- function(
+    data,
+    value_col = "Value"
+) {
+  
+  dt <- copy(
+    as.data.table(data)
+  )
+  
+  # Tagged datasets may return lowercase "value".
+  if (
+    "value" %in% names(dt) &&
+    !value_col %in% names(dt)
+  ) {
+    setnames(
+      dt,
+      "value",
+      value_col
+    )
+  }
+  
+  if (!value_col %in% names(dt)) {
+    stop(
+      paste0(
+        "Value column '",
+        value_col,
+        "' was not found."
+      )
+    )
+  }
+  
+  value_character <- trimws(
+    as.character(
+      dt[[value_col]]
+    )
+  )
+  
+  # Empty and whitespace-only values become NA.
+  value_character[
+    is.na(value_character) |
+      !nzchar(value_character)
+  ] <- NA_character_
+  
+  # Nonnumeric values also become NA.
+  value_numeric <- suppressWarnings(
+    as.numeric(value_character)
+  )
+  
+  dt[
+    ,
+    (value_col) := value_numeric
+  ]
+  
+  # Zero remains valid. Only NA rows are discarded.
+  dt <- dt[
+    !is.na(get(value_col))
+  ]
+  
+  dt[]
+}
+
 uses_filter <- function(action) {
   action %in% c("filter", "filter_aggregate")
 }
@@ -1210,17 +1414,17 @@ get_direct_children_from_shallowest_tree_level <- function(
 ) {
   tree_dt <- as.data.table(tree_dt)
   id_cols <- get_tree_id_cols(tree_dt)
-
+  
   parent_code <- trimws(as.character(parent_code))[1L]
-
+  
   if (
     length(id_cols) < 2L ||
-      is.na(parent_code) ||
-      !nzchar(parent_code)
+    is.na(parent_code) ||
+    !nzchar(parent_code)
   ) {
     return(character(0))
   }
-
+  
   parent_levels <- which(
     vapply(
       id_cols,
@@ -1235,35 +1439,35 @@ get_direct_children_from_shallowest_tree_level <- function(
       logical(1)
     )
   )
-
+  
   parent_levels <- parent_levels[
     parent_levels < length(id_cols)
   ]
-
+  
   if (length(parent_levels) == 0L) {
     return(character(0))
   }
-
+  
   parent_level <- min(parent_levels)
   parent_col <- id_cols[parent_level]
   child_col <- id_cols[parent_level + 1L]
-
+  
   rows_i <- tree_dt[
     trimws(as.character(get(parent_col))) == parent_code
   ]
-
+  
   children <- trimws(
     as.character(
       rows_i[[child_col]]
     )
   )
-
+  
   children <- children[
     !is.na(children) &
       nzchar(children) &
       children != parent_code
   ]
-
+  
   unique(children)
 }
 
@@ -1348,6 +1552,164 @@ keep_top_selected_codes_from_codelist_tree <- function(selected_codes, tree_dt) 
   
   selected_codes[keep]
 }
+
+
+get_hierarchy_branch_codes <- function(
+    tree_dt,
+    root_code,
+    codelist_id = NULL
+) {
+  
+  tree_dt <- as.data.table(
+    tree_dt
+  )
+  
+  root_code <- clean_code_vector(
+    root_code
+  )
+  
+  if (length(root_code) == 0L) {
+    return(character(0))
+  }
+  
+  root_code <- root_code[1L]
+  
+  # ------------------------------------------------------------
+  # Fishing areas can contain the same code at multiple levels.
+  # Use the shallowest occurrence, consistently with the existing
+  # direct-child fishing-area logic.
+  # ------------------------------------------------------------
+  if (identical(
+    codelist_id,
+    "fisheriesCatchArea"
+  )) {
+    
+    id_cols <- get_tree_id_cols(
+      tree_dt
+    )
+    
+    if (length(id_cols) == 0L) {
+      return(root_code)
+    }
+    
+    root_levels <- which(
+      vapply(
+        id_cols,
+        function(column_i) {
+          
+          values_i <- trimws(
+            as.character(
+              tree_dt[[column_i]]
+            )
+          )
+          
+          any(
+            !is.na(values_i) &
+              nzchar(values_i) &
+              values_i == root_code
+          )
+        },
+        logical(1)
+      )
+    )
+    
+    if (length(root_levels) == 0L) {
+      return(root_code)
+    }
+    
+    root_level <- min(
+      root_levels
+    )
+    
+    root_column <- id_cols[
+      root_level
+    ]
+    
+    branch_rows <- tree_dt[
+      trimws(
+        as.character(
+          get(root_column)
+        )
+      ) == root_code
+    ]
+    
+    branch_columns <- id_cols[
+      root_level:length(id_cols)
+    ]
+    
+    branch_codes <- unlist(
+      branch_rows[
+        ,
+        ..branch_columns
+      ],
+      recursive = TRUE,
+      use.names = FALSE
+    )
+    
+  } else {
+    
+    # ASFIS, geographical area and production source.
+    branch_codes <- c(
+      root_code,
+      
+      get_descendants_from_codelist_tree(
+        tree_dt = tree_dt,
+        parent_code = root_code
+      )
+    )
+  }
+  
+  clean_code_vector(
+    branch_codes
+  )
+}
+
+
+keep_most_specific_selected_codes_from_codelist_tree <-
+  function(
+    selected_codes,
+    tree_dt,
+    codelist_id = NULL
+  ) {
+    
+    selected_codes <- clean_code_vector(
+      selected_codes
+    )
+    
+    if (length(selected_codes) <= 1L) {
+      return(selected_codes)
+    }
+    
+    selected_set <- selected_codes
+    
+    keep <- vapply(
+      selected_codes,
+      function(code_i) {
+        
+        descendants_i <- setdiff(
+          get_hierarchy_branch_codes(
+            tree_dt = tree_dt,
+            root_code = code_i,
+            codelist_id = codelist_id
+          ),
+          code_i
+        )
+        
+        # Remove code_i when another selected code is
+        # more specific and belongs to its branch.
+        !any(
+          descendants_i %in%
+            setdiff(
+              selected_set,
+              code_i
+            )
+        )
+      },
+      logical(1)
+    )
+    
+    selected_codes[keep]
+  }
 
 
 get_sws_tree_root_codes_from_codelist_tree <- function(tree_dt, codes = NULL) {
@@ -1669,15 +2031,25 @@ get_selected_codes_from_tree <- function(
     tree_input,
     codes = NULL,
     tree_dt = NULL,
-    expand_descendants = TRUE
+    expand_descendants = TRUE,
+    selection_rule = c(
+      "top",
+      "most_specific",
+      "none"
+    ),
+    codelist_id = NULL
 ) {
+  
+  selection_rule <- match.arg(
+    selection_rule
+  )
   
   selected_labels <- shinyTree::get_selected(
     tree_input,
     format = "names"
   )
   
-  if (length(selected_labels) == 0) {
+  if (length(selected_labels) == 0L) {
     return(character(0))
   }
   
@@ -1686,26 +2058,40 @@ get_selected_codes_from_tree <- function(
     codes = codes
   )
   
-  selected_codes <- unique(
-    trimws(
-      as.character(selected_codes)
-    )
+  selected_codes <- clean_code_vector(
+    selected_codes
   )
   
-  selected_codes <- selected_codes[
-    !is.na(selected_codes) &
-      nzchar(selected_codes)
-  ]
-  
-  if (length(selected_codes) == 0) {
+  if (length(selected_codes) == 0L) {
     return(character(0))
   }
   
   if (!is.null(tree_dt)) {
-    selected_codes <- keep_top_selected_codes_from_codelist_tree(
-      selected_codes = selected_codes,
-      tree_dt = tree_dt
-    )
+    
+    if (identical(
+      selection_rule,
+      "top"
+    )) {
+      
+      selected_codes <-
+        keep_top_selected_codes_from_codelist_tree(
+          selected_codes = selected_codes,
+          tree_dt = tree_dt
+        )
+    }
+    
+    if (identical(
+      selection_rule,
+      "most_specific"
+    )) {
+      
+      selected_codes <-
+        keep_most_specific_selected_codes_from_codelist_tree(
+          selected_codes = selected_codes,
+          tree_dt = tree_dt,
+          codelist_id = codelist_id
+        )
+    }
   }
   
   if (
@@ -1713,17 +2099,16 @@ get_selected_codes_from_tree <- function(
     isTRUE(expand_descendants)
   ) {
     
-    expanded <- unique(
+    expanded_codes <- unique(
       unlist(
         lapply(
           selected_codes,
           function(code_i) {
-            c(
-              code_i,
-              get_descendants_from_codelist_tree(
-                tree_dt = tree_dt,
-                parent_code = code_i
-              )
+            
+            get_hierarchy_branch_codes(
+              tree_dt = tree_dt,
+              root_code = code_i,
+              codelist_id = codelist_id
             )
           }
         ),
@@ -1731,16 +2116,11 @@ get_selected_codes_from_tree <- function(
       )
     )
     
-    expanded <- trimws(
-      as.character(expanded)
+    return(
+      clean_code_vector(
+        expanded_codes
+      )
     )
-    
-    expanded <- expanded[
-      !is.na(expanded) &
-        nzchar(expanded)
-    ]
-    
-    return(unique(expanded))
   }
   
   selected_codes
@@ -1767,51 +2147,147 @@ get_aggregate_codes_under_root <- function(codes, root_code) {
 
 build_classification_map_with_remainder <- function(
     tree_dt,
-    selected_parent,
+    selected_parents,
     filtered_raw_codes,
     codes = NULL,
     remainder_label = "Other filtered records",
     allow_remainder_only = FALSE
 ) {
   
-  filtered_raw_codes <- unique(
-    trimws(
-      as.character(filtered_raw_codes)
-    )
+  tree_dt <- as.data.table(
+    tree_dt
   )
   
-  filtered_raw_codes <- filtered_raw_codes[
-    !is.na(filtered_raw_codes) &
-      nzchar(filtered_raw_codes)
-  ]
+  selected_parents <- clean_code_vector(
+    selected_parents
+  )
   
-  if (length(filtered_raw_codes) == 0) {
+  filtered_raw_codes <- clean_code_vector(
+    filtered_raw_codes
+  )
+  
+  if (length(selected_parents) == 0L) {
+    stop(
+      "No hierarchy parents were selected for direct-child aggregation."
+    )
+  }
+  
+  if (length(filtered_raw_codes) == 0L) {
     stop(
       "No filtered codes are available for classification aggregation."
     )
   }
   
-  # Map the selected parent's direct children and all descendants.
-  selected_parent_map <- build_direct_child_aggregation_map(
-    tree_dt = tree_dt,
-    root_code = selected_parent,
-    codes = codes
+  # Build one direct-child map for every selected parent.
+  selected_parent_map <- rbindlist(
+    lapply(
+      selected_parents,
+      function(parent_code_i) {
+        
+        map_i <- tryCatch(
+          build_direct_child_aggregation_map(
+            tree_dt = tree_dt,
+            root_code = parent_code_i,
+            codes = codes
+          ),
+          error = function(e) {
+            stop(
+              paste0(
+                "Direct-child aggregation failed for hierarchy parent '",
+                parent_code_i,
+                "': ",
+                e$message
+              ),
+              call. = FALSE
+            )
+          }
+        )
+        
+        map_i[
+          ,
+          selected_parent_code := as.character(
+            parent_code_i
+          )
+        ]
+        
+        map_i
+      }
+    ),
+    use.names = TRUE,
+    fill = TRUE
   )
   
-  # Keep only records actually present after filtering.
+  # Keep only codes that are present after filtering.
   selected_parent_map <- selected_parent_map[
     raw_code %in% filtered_raw_codes
   ]
   
   if (
-    nrow(selected_parent_map) == 0 &&
+    nrow(selected_parent_map) == 0L &&
     !isTRUE(allow_remainder_only)
   ) {
     stop(
       paste0(
-        "The selected hierarchy parent '",
-        selected_parent,
-        "' has no records in the filtered data."
+        "The selected hierarchy parents contain no records ",
+        "in the filtered data."
+      )
+    )
+  }
+  
+  # The same direct-child output must not belong to two
+  # different selected parents.
+  duplicated_output_groups <- unique(
+    selected_parent_map[
+      ,
+      .(
+        selected_parent_code,
+        group_code
+      )
+    ]
+  )[
+    ,
+    .(
+      number_of_parents = uniqueN(
+        selected_parent_code
+      ),
+      
+      parent_codes = paste(
+        sort(
+          unique(
+            selected_parent_code
+          )
+        ),
+        collapse = ", "
+      )
+    ),
+    by = group_code
+  ][number_of_parents > 1L]
+  
+  if (nrow(duplicated_output_groups) > 0L) {
+    stop(
+      paste0(
+        "At least one direct-child output belongs to more than one ",
+        "selected hierarchy parent. Select non-overlapping parents."
+      )
+    )
+  }
+  
+  # Every raw filtered code must belong to only one output.
+  ambiguous_codes <- selected_parent_map[
+    ,
+    .(
+      number_of_groups = uniqueN(
+        group_code
+      )
+    ),
+    by = raw_code
+  ][number_of_groups > 1L]
+  
+  if (nrow(ambiguous_codes) > 0L) {
+    stop(
+      paste0(
+        "Some filtered codes belong to direct-child outputs under more ",
+        "than one selected hierarchy parent. Select non-overlapping parents."
       )
     )
   }
@@ -1822,7 +2298,13 @@ build_classification_map_with_remainder <- function(
     )
   )
   
-  # Everything outside the selected parent's classification.
+  selected_parent_map[
+    ,
+    selected_parent_code := NULL
+  ]
+  
+  # Everything outside all selected parent classifications
+  # is assigned to one dimension-specific Other output.
   remainder_codes <- setdiff(
     filtered_raw_codes,
     classified_codes
@@ -1833,10 +2315,12 @@ build_classification_map_with_remainder <- function(
     group_code = character(0)
   )
   
-  if (length(remainder_codes) > 0) {
+  if (length(remainder_codes) > 0L) {
     remainder_map <- data.table(
       raw_code = remainder_codes,
-      group_code = as.character(remainder_label)
+      group_code = as.character(
+        remainder_label
+      )
     )
   }
   
@@ -1849,26 +2333,13 @@ build_classification_map_with_remainder <- function(
     fill = TRUE
   )
   
-  # Each raw code must belong to exactly one output group.
-  ambiguous_codes <- aggregation_map[
-    ,
-    .(
-      number_of_groups = uniqueN(group_code)
-    ),
-    by = raw_code
-  ][number_of_groups > 1]
-  
-  if (nrow(ambiguous_codes) > 0) {
-    stop(
-      paste0(
-        "Some filtered codes were assigned to more than one ",
-        "classification output."
-      )
-    )
-  }
-  
   unique(
-    aggregation_map,
+    aggregation_map[
+      !is.na(raw_code) &
+        nzchar(raw_code) &
+        !is.na(group_code) &
+        nzchar(group_code)
+    ],
     by = "raw_code"
   )
 }
@@ -1882,26 +2353,26 @@ build_direct_child_aggregation_map <- function(
     root_code,
     codes = NULL
 ) {
-
+  
   tree_dt <- as.data.table(tree_dt)
-
+  
   root_code <- trimws(
     as.character(root_code)
   )[1L]
-
+  
   if (
     is.na(root_code) ||
-      !nzchar(root_code)
+    !nzchar(root_code)
   ) {
     stop("The aggregation root code is missing.")
   }
-
+  
   if (!is.null(codes)) {
-
+    
     # Fishing area: use only the shallowest occurrence of the
     # selected parent, then keep every child tied to that exact path.
     id_cols <- get_tree_id_cols(tree_dt)
-
+    
     parent_levels <- which(
       vapply(
         id_cols,
@@ -1911,7 +2382,7 @@ build_direct_child_aggregation_map <- function(
               tree_dt[[column_i]]
             )
           )
-
+          
           any(
             !is.na(values_i) &
               nzchar(values_i) &
@@ -1921,11 +2392,11 @@ build_direct_child_aggregation_map <- function(
         logical(1)
       )
     )
-
+    
     parent_levels <- parent_levels[
       parent_levels < length(id_cols)
     ]
-
+    
     if (length(parent_levels) == 0L) {
       stop(
         paste0(
@@ -1935,11 +2406,11 @@ build_direct_child_aggregation_map <- function(
         )
       )
     }
-
+    
     parent_level <- min(parent_levels)
     parent_col <- id_cols[parent_level]
     child_col <- id_cols[parent_level + 1L]
-
+    
     parent_rows <- tree_dt[
       trimws(
         as.character(
@@ -1947,13 +2418,13 @@ build_direct_child_aggregation_map <- function(
         )
       ) == root_code
     ]
-
+    
     direct_groups <- trimws(
       as.character(
         parent_rows[[child_col]]
       )
     )
-
+    
     direct_groups <- unique(
       direct_groups[
         !is.na(direct_groups) &
@@ -1961,9 +2432,9 @@ build_direct_child_aggregation_map <- function(
           direct_groups != root_code
       ]
     )
-
+    
     get_group_members <- function(group_code_i) {
-
+      
       group_rows <- parent_rows[
         trimws(
           as.character(
@@ -1971,21 +2442,21 @@ build_direct_child_aggregation_map <- function(
           )
         ) == group_code_i
       ]
-
+      
       member_cols <- id_cols[
         (parent_level + 1L):length(id_cols)
       ]
-
+      
       member_codes <- unlist(
         group_rows[, ..member_cols],
         recursive = TRUE,
         use.names = FALSE
       )
-
+      
       member_codes <- trimws(
         as.character(member_codes)
       )
-
+      
       unique(
         member_codes[
           !is.na(member_codes) &
@@ -1993,9 +2464,9 @@ build_direct_child_aggregation_map <- function(
         ]
       )
     }
-
+    
   } else {
-
+    
     # Existing behaviour for ASFIS, geographical area
     # and production source.
     direct_groups <-
@@ -2003,9 +2474,9 @@ build_direct_child_aggregation_map <- function(
         tree_dt = tree_dt,
         parent_code = root_code
       )
-
+    
     get_group_members <- function(group_code_i) {
-
+      
       unique(
         c(
           group_code_i,
@@ -2017,18 +2488,18 @@ build_direct_child_aggregation_map <- function(
       )
     }
   }
-
+  
   direct_groups <- unique(
     trimws(
       as.character(direct_groups)
     )
   )
-
+  
   direct_groups <- direct_groups[
     !is.na(direct_groups) &
       nzchar(direct_groups)
   ]
-
+  
   if (length(direct_groups) == 0L) {
     stop(
       paste0(
@@ -2038,16 +2509,16 @@ build_direct_child_aggregation_map <- function(
       )
     )
   }
-
+  
   aggregation_map <- rbindlist(
     lapply(
       direct_groups,
       function(group_code_i) {
-
+        
         member_codes <- get_group_members(
           group_code_i
         )
-
+        
         data.table(
           raw_code = as.character(member_codes),
           group_code = as.character(group_code_i)
@@ -2057,7 +2528,7 @@ build_direct_child_aggregation_map <- function(
     use.names = TRUE,
     fill = TRUE
   )
-
+  
   aggregation_map <- unique(
     aggregation_map[
       !is.na(raw_code) &
@@ -2066,7 +2537,7 @@ build_direct_child_aggregation_map <- function(
         nzchar(group_code)
     ]
   )
-
+  
   ambiguous_codes <- aggregation_map[
     ,
     .(
@@ -2074,9 +2545,9 @@ build_direct_child_aggregation_map <- function(
     ),
     by = raw_code
   ][number_of_groups > 1L]
-
+  
   if (nrow(ambiguous_codes) > 0L) {
-
+    
     ambiguous_details <- aggregation_map[
       raw_code %in% ambiguous_codes$raw_code,
       .(
@@ -2087,14 +2558,14 @@ build_direct_child_aggregation_map <- function(
       ),
       by = raw_code
     ][order(raw_code)]
-
+    
     print(
       list(
         aggregation_root = root_code,
         ambiguous_details = ambiguous_details
       )
     )
-
+    
     stop(
       paste0(
         "Some codes belong to more than one direct child ",
@@ -2104,37 +2575,32 @@ build_direct_child_aggregation_map <- function(
       )
     )
   }
-
+  
   aggregation_map[]
 }
 
 
 build_selected_groups_aggregation_map <- function(
     tree_dt,
-    selected_codes
+    selected_codes,
+    codelist_id = NULL
 ) {
   
   tree_dt <- as.data.table(
     tree_dt
   )
   
-  selected_codes <- unique(
-    trimws(
-      as.character(selected_codes)
+  selected_codes <- clean_code_vector(
+    selected_codes
+  )
+  
+  selected_codes <-
+    keep_top_selected_codes_from_codelist_tree(
+      selected_codes = selected_codes,
+      tree_dt = tree_dt
     )
-  )
   
-  selected_codes <- selected_codes[
-    !is.na(selected_codes) &
-      nzchar(selected_codes)
-  ]
-  
-  selected_codes <- keep_top_selected_codes_from_codelist_tree(
-    selected_codes = selected_codes,
-    tree_dt = tree_dt
-  )
-  
-  if (length(selected_codes) == 0) {
+  if (length(selected_codes) == 0L) {
     stop(
       "No filter groups were selected."
     )
@@ -2145,28 +2611,23 @@ build_selected_groups_aggregation_map <- function(
       selected_codes,
       function(group_code_i) {
         
-        member_codes <- unique(
-          c(
-            group_code_i,
-            
-            get_descendants_from_codelist_tree(
-              tree_dt = tree_dt,
-              parent_code = group_code_i
-            )
-          )
+        member_codes <- get_hierarchy_branch_codes(
+          tree_dt = tree_dt,
+          root_code = group_code_i,
+          codelist_id = codelist_id
         )
         
         data.table(
           raw_code = as.character(
             member_codes
           ),
-          
           group_code = as.character(
             group_code_i
           )
         )
       }
     ),
+    use.names = TRUE,
     fill = TRUE
   )
   
@@ -2187,9 +2648,9 @@ build_selected_groups_aggregation_map <- function(
       )
     ),
     by = raw_code
-  ][number_of_groups > 1]
+  ][number_of_groups > 1L]
   
-  if (nrow(ambiguous_codes) > 0) {
+  if (nrow(ambiguous_codes) > 0L) {
     stop(
       paste0(
         "Some selected groups overlap. ",
@@ -2205,46 +2666,40 @@ build_selected_groups_aggregation_map <- function(
 build_custom_aggregation_map <- function(
     tree_dt,
     selected_codes,
-    aggregate_code
+    aggregate_code,
+    codelist_id = NULL
 ) {
   
-  tree_dt <- as.data.table(tree_dt)
-  
-  selected_codes <- unique(
-    as.character(selected_codes)
+  tree_dt <- as.data.table(
+    tree_dt
   )
   
-  selected_codes <- selected_codes[
-    !is.na(selected_codes) &
-      nzchar(selected_codes)
-  ]
-  
-  # If both a parent and one of its descendants are selected,
-  # retain only the parent.
-  selected_codes <- keep_top_selected_codes_from_codelist_tree(
-    selected_codes = selected_codes,
-    tree_dt = tree_dt
+  selected_codes <- clean_code_vector(
+    selected_codes
   )
   
-  if (length(selected_codes) == 0) {
+  selected_codes <-
+    keep_top_selected_codes_from_codelist_tree(
+      selected_codes = selected_codes,
+      tree_dt = tree_dt
+    )
+  
+  if (length(selected_codes) == 0L) {
     stop(
       "No nodes were selected for the custom aggregation."
     )
   }
   
-  # Restore the old behaviour:
-  # every selected node includes itself and all descendants.
-  child_codes <- unique(
+  member_codes <- unique(
     unlist(
       lapply(
         selected_codes,
         function(code_i) {
-          c(
-            code_i,
-            get_descendants_from_codelist_tree(
-              tree_dt = tree_dt,
-              parent_code = code_i
-            )
+          
+          get_hierarchy_branch_codes(
+            tree_dt = tree_dt,
+            root_code = code_i,
+            codelist_id = codelist_id
           )
         }
       ),
@@ -2252,24 +2707,156 @@ build_custom_aggregation_map <- function(
     )
   )
   
-  child_codes <- as.character(child_codes)
+  member_codes <- clean_code_vector(
+    member_codes
+  )
   
-  child_codes <- child_codes[
-    !is.na(child_codes) &
-      nzchar(child_codes)
+  data.table(
+    raw_code = member_codes,
+    group_code = as.character(
+      aggregate_code
+    )
+  )
+}
+
+
+build_selected_groups_map_with_remainder <- function(
+    tree_dt,
+    selected_codes,
+    filtered_raw_codes,
+    codelist_id = NULL,
+    remainder_label = "Other filtered records"
+) {
+  
+  filtered_raw_codes <- clean_code_vector(
+    filtered_raw_codes
+  )
+  
+  aggregation_map <-
+    build_selected_groups_aggregation_map(
+      tree_dt = tree_dt,
+      selected_codes = selected_codes,
+      codelist_id = codelist_id
+    )
+  
+  aggregation_map <- aggregation_map[
+    raw_code %in% filtered_raw_codes
   ]
   
-  if (length(child_codes) == 0) {
-    stop(
-      "No codes were found under the selected custom-aggregation nodes."
+  mapped_codes <- unique(
+    as.character(
+      aggregation_map$raw_code
+    )
+  )
+  
+  remainder_codes <- setdiff(
+    filtered_raw_codes,
+    mapped_codes
+  )
+  
+  if (length(remainder_codes) > 0L) {
+    
+    aggregation_map <- rbindlist(
+      list(
+        aggregation_map,
+        
+        data.table(
+          raw_code = remainder_codes,
+          group_code = as.character(
+            remainder_label
+          )
+        )
+      ),
+      use.names = TRUE,
+      fill = TRUE
     )
   }
   
-  data.table(
-    raw_code = child_codes,
-    group_code = as.character(aggregate_code)
+  unique(
+    aggregation_map[
+      !is.na(raw_code) &
+        nzchar(raw_code) &
+        !is.na(group_code) &
+        nzchar(group_code)
+    ],
+    by = "raw_code"
   )
 }
+
+
+build_custom_map_with_remainder <- function(
+    tree_dt,
+    selected_codes,
+    aggregate_code,
+    filtered_raw_codes,
+    codelist_id = NULL,
+    remainder_label = "Other filtered records",
+    allow_remainder_only = FALSE
+) {
+  
+  filtered_raw_codes <- clean_code_vector(
+    filtered_raw_codes
+  )
+  
+  custom_map <- build_custom_aggregation_map(
+    tree_dt = tree_dt,
+    selected_codes = selected_codes,
+    aggregate_code = aggregate_code,
+    codelist_id = codelist_id
+  )
+  
+  custom_map <- custom_map[
+    raw_code %in% filtered_raw_codes
+  ]
+  
+  if (
+    nrow(custom_map) == 0L &&
+    !isTRUE(allow_remainder_only)
+  ) {
+    stop(
+      "None of the selected custom-aggregation nodes is present in the filtered data."
+    )
+  }
+  
+  custom_codes <- unique(
+    as.character(
+      custom_map$raw_code
+    )
+  )
+  
+  remainder_codes <- setdiff(
+    filtered_raw_codes,
+    custom_codes
+  )
+  
+  remainder_map <- data.table(
+    raw_code = character(0),
+    group_code = character(0)
+  )
+  
+  if (length(remainder_codes) > 0L) {
+    
+    remainder_map <- data.table(
+      raw_code = remainder_codes,
+      group_code = as.character(
+        remainder_label
+      )
+    )
+  }
+  
+  unique(
+    rbindlist(
+      list(
+        custom_map,
+        remainder_map
+      ),
+      use.names = TRUE,
+      fill = TRUE
+    ),
+    by = "raw_code"
+  )
+}
+
 
 aggregate_by_codelist <- function(
     data,
@@ -2963,15 +3550,42 @@ aggregate_by_multiple_dimensions <- function(
       )
     }
     
-    dt <- aggregate_by_codelist(
-      data = dt,
-      key_dim_name = spec$key_dim_name,
-      aggregation_map = aggregation_map_i,
-      value_col = value_col,
-      observation_flag = observation_flag,
-      method_flag = method_flag,
-      group_by_observation_flag =
-        group_by_observation_flag
+    dt <- with_aggregation_context(
+      
+      aggregate_by_codelist(
+        data = dt,
+        key_dim_name = spec$key_dim_name,
+        aggregation_map = aggregation_map_i,
+        value_col = value_col,
+        observation_flag = observation_flag,
+        method_flag = method_flag,
+        group_by_observation_flag =
+          group_by_observation_flag
+      ),
+      
+      dimension_id =
+        spec$dimension %||%
+        dim_id,
+      
+      label =
+        spec$label %||%
+        dim_id,
+      
+      dataset_column =
+        spec$key_dim_name,
+      
+      codelist =
+        spec$codelist,
+      
+      selected_codes =
+        spec$selected_codes %||%
+        spec$aggregate_code %||%
+        spec$root_code,
+      
+      stage = paste0(
+        spec$aggregation_mode,
+        " aggregation execution"
+      )
     )
   }
   
@@ -5804,8 +6418,7 @@ server <- function(input, output, session) {
         
         initialiseClient(
           session = session,
-          # injected by the plugin runtime (QA in QA, prod in prod); fallback for local/debug
-          sws_endpoint = Sys.getenv("SWS_ENDPOINT", unset = "https://sws.qa.fao.org")
+          sws_endpoint = "https://sws.qa.fao.org"
         )
         
         user(getCurrentUser())
@@ -5857,6 +6470,10 @@ server <- function(input, output, session) {
     
     tryCatch(
       {
+        current_cfg <- get_dataset_config(
+          input$dataset_id
+        )
+        
         if (identical(input$comparison_source, "disseminated")) {
           req(input$comparison_dataset_id)
           
@@ -5865,8 +6482,16 @@ server <- function(input, output, session) {
             type = "default"
           )
           
-          dt <- readDataset(dataset_id = input$comparison_dataset_id)
-          dt <- as.data.table(dt)
+          dt <- as.data.table(
+            readDataset(
+              dataset_id = input$comparison_dataset_id
+            )
+          )
+          
+          dt <- normalise_and_drop_empty_values(
+            data = dt,
+            value_col = current_cfg$value_col
+          )
           
           comparison_data(dt)
           comparison_metadata(
@@ -5887,12 +6512,16 @@ server <- function(input, output, session) {
             type = "default"
           )
           
-          dt <- getTagData(as.character(input$comparison_tag_id))
-          dt <- as.data.table(dt)
+          dt <- as.data.table(
+            getTagData(
+              as.character(input$comparison_tag_id)
+            )
+          )
           
-          if ("value" %in% names(dt) && !"Value" %in% names(dt)) {
-            setnames(dt, "value", "Value")
-          }
+          dt <- normalise_and_drop_empty_values(
+            data = dt,
+            value_col = current_cfg$value_col
+          )
           
           tag_info <- as.data.table(
             getAllTags(dataset = input$comparison_base_dataset_id)
@@ -5956,15 +6585,18 @@ server <- function(input, output, session) {
   }
   
   
-  standardise_comparison_columns <- function(data, cfg) {
-    dt <- as.data.table(copy(data))
+  standardise_comparison_columns <- function(
+    data,
+    cfg
+  ) {
     
-    # Tagged datasets may return lowercase value.
-    if ("value" %in% names(dt) && !"Value" %in% names(dt)) {
-      setnames(dt, "value", "Value")
-    }
+    dt <- normalise_and_drop_empty_values(
+      data = data,
+      value_col = cfg$value_col
+    )
     
-    # Convert key-like columns to character to avoid join/filter mismatches.
+    # Convert dimension columns to character to avoid
+    # filter and join mismatches.
     key_like_cols <- intersect(
       c(
         cfg$year_col,
@@ -5981,11 +6613,14 @@ server <- function(input, output, session) {
     )
     
     for (col in key_like_cols) {
-      dt[, (col) := trimws(as.character(get(col)))]
-    }
-    
-    if (cfg$value_col %in% names(dt)) {
-      dt[, (cfg$value_col) := suppressWarnings(as.numeric(get(cfg$value_col)))]
+      dt[
+        ,
+        (col) := trimws(
+          as.character(
+            get(col)
+          )
+        )
+      ]
     }
     
     dt[]
@@ -6593,35 +7228,36 @@ server <- function(input, output, session) {
             )
           }
           
-          if (is_flat_filter_dimension(dim_id)) {
+          tree_dt <- NULL
+          
+          if (
+            !is_flat_filter_dimension(dim_id) &&
+            !is.null(meta$codelist)
+          ) {
             
-            selected_values <- get_selected_codes_from_tree(
-              tree_input = tree_input,
-              codes = codes,
-              tree_dt = NULL,
-              expand_descendants = FALSE
-            )
-            
-          } else {
-            
-            tree_dt <- NULL
-            
-            if (!is.null(meta$codelist)) {
-              tree_dt <- tryCatch(
-                get_codelist_tree_cached(
-                  meta$codelist
-                ),
-                error = function(e) NULL
-              )
-            }
-            
-            selected_values <- get_selected_codes_from_tree(
-              tree_input = tree_input,
-              codes = codes,
-              tree_dt = tree_dt,
-              expand_descendants = TRUE
+            tree_dt <- tryCatch(
+              get_codelist_tree_cached(
+                meta$codelist
+              ),
+              error = function(e) NULL
             )
           }
+          
+          selected_values <- get_selected_codes_from_tree(
+            tree_input = tree_input,
+            codes = codes,
+            tree_dt = tree_dt,
+            expand_descendants =
+              !is_flat_filter_dimension(dim_id),
+            selection_rule = if (
+              is_flat_filter_dimension(dim_id)
+            ) {
+              "none"
+            } else {
+              "most_specific"
+            },
+            codelist_id = meta$codelist
+          )
         }
       }
       
@@ -7372,7 +8008,7 @@ server <- function(input, output, session) {
   }
   
   
-  rebuild_classification_specs_for_data <- function(
+  rebuild_hierarchy_specs_for_data <- function(
     data,
     aggregation_specs,
     allow_remainder_only = TRUE
@@ -7386,7 +8022,7 @@ server <- function(input, output, session) {
     
     if (
       is.null(rebuilt_specs) ||
-      length(rebuilt_specs) == 0
+      length(rebuilt_specs) == 0L
     ) {
       return(rebuilt_specs)
     }
@@ -7395,14 +8031,26 @@ server <- function(input, output, session) {
       
       spec <- rebuilt_specs[[dim_id]]
       
-      # Total aggregation already rebuilds its map dynamically
-      # in aggregate_by_multiple_dimensions().
-      #
-      # This section rebuilds only hierarchy-classification maps.
-      if (!identical(
-        spec$aggregation_mode,
-        "classification"
+      aggregation_mode <- as.character(
+        spec$aggregation_mode %||% ""
+      )
+      
+      # Total aggregation rebuilds its map dynamically inside
+      # aggregate_by_multiple_dimensions().
+      if (identical(
+        aggregation_mode,
+        "total"
       )) {
+        next
+      }
+      
+      if (
+        !aggregation_mode %in% c(
+          "classification",
+          "selected_groups",
+          "custom"
+        )
+      ) {
         next
       }
       
@@ -7428,31 +8076,12 @@ server <- function(input, output, session) {
         column_name = column_name
       )
       
-      if (length(filtered_raw_codes) == 0) {
+      if (length(filtered_raw_codes) == 0L) {
         stop(
           paste0(
             "No filtered codes are available for ",
             spec$label,
             " in the comparison dataset."
-          )
-        )
-      }
-      
-      selected_parent <- as.character(
-        spec$root_code %||%
-          spec$aggregate_code %||%
-          spec$selected_codes
-      )[1]
-      
-      if (
-        is.na(selected_parent) ||
-        !nzchar(selected_parent)
-      ) {
-        stop(
-          paste0(
-            "The saved hierarchy parent is missing for ",
-            spec$label,
-            "."
           )
         )
       }
@@ -7474,19 +8103,6 @@ server <- function(input, output, session) {
         spec$codelist
       )
       
-      classification_codes <- if (
-        identical(
-          spec$codelist,
-          "fisheriesCatchArea"
-        )
-      ) {
-        get_codelist_codes(
-          spec$codelist
-        )
-      } else {
-        NULL
-      }
-      
       dimension_meta <-
         AGGREGATION_DIMENSIONS[[dim_id]]
       
@@ -7499,16 +8115,174 @@ server <- function(input, output, session) {
         "Other filtered records"
       }
       
-      rebuilt_map <-
-        build_classification_map_with_remainder(
-          tree_dt = tree_dt,
-          selected_parent = selected_parent,
-          filtered_raw_codes = filtered_raw_codes,
-          codes = classification_codes,
-          remainder_label = remainder_label,
-          allow_remainder_only =
-            allow_remainder_only
+      rebuilt_map <- NULL
+      
+      ## ----------------------------------------------------------
+      # Direct-child classification for one or more parents.
+      # ----------------------------------------------------------
+      if (identical(
+        aggregation_mode,
+        "classification"
+      )) {
+        
+        selected_parents <- clean_code_vector(
+          spec$selected_codes %||%
+            spec$root_code %||%
+            spec$aggregate_code
         )
+        
+        if (length(selected_parents) == 0L) {
+          stop(
+            paste0(
+              "The saved hierarchy parents are missing for ",
+              spec$label,
+              "."
+            )
+          )
+        }
+        
+        classification_codes <- if (
+          identical(
+            spec$codelist,
+            "fisheriesCatchArea"
+          )
+        ) {
+          get_codelist_codes(
+            spec$codelist
+          )
+        } else {
+          NULL
+        }
+        
+        rebuilt_map <-
+          rebuilt_map <-
+          with_aggregation_context(
+            
+            build_classification_map_with_remainder(
+              tree_dt = tree_dt,
+              selected_parents = selected_parents,
+              filtered_raw_codes = filtered_raw_codes,
+              codes = classification_codes,
+              remainder_label = remainder_label,
+              allow_remainder_only =
+                allow_remainder_only
+            ),
+            
+            dimension_id =
+              spec$dimension %||%
+              dim_id,
+            
+            label =
+              spec$label,
+            
+            dataset_column =
+              spec$key_dim_name,
+            
+            codelist =
+              spec$codelist,
+            
+            selected_codes =
+              selected_parents,
+            
+            stage =
+              "comparison direct-child aggregation setup"
+          )
+      }
+      
+      # ----------------------------------------------------------
+      # Selected filter groups separately.
+      # ----------------------------------------------------------
+      if (identical(
+        aggregation_mode,
+        "selected_groups"
+      )) {
+        
+        selected_groups <- clean_code_vector(
+          spec$selected_codes
+        )
+        
+        if (length(selected_groups) == 0L) {
+          stop(
+            paste0(
+              "The saved selected filter groups are missing for ",
+              spec$label,
+              "."
+            )
+          )
+        }
+        
+        rebuilt_map <-
+          build_selected_groups_map_with_remainder(
+            tree_dt = tree_dt,
+            selected_codes = selected_groups,
+            filtered_raw_codes = filtered_raw_codes,
+            codelist_id = spec$codelist,
+            remainder_label = remainder_label
+          )
+      }
+      
+      # ----------------------------------------------------------
+      # Custom group plus Other.
+      # ----------------------------------------------------------
+      if (identical(
+        aggregation_mode,
+        "custom"
+      )) {
+        
+        selected_codes <- clean_code_vector(
+          spec$selected_codes
+        )
+        
+        aggregate_code <- clean_code_vector(
+          spec$aggregate_code %||%
+            spec$root_code
+        )
+        
+        if (length(selected_codes) == 0L) {
+          stop(
+            paste0(
+              "The saved custom aggregation nodes are missing for ",
+              spec$label,
+              "."
+            )
+          )
+        }
+        
+        if (length(aggregate_code) == 0L) {
+          stop(
+            paste0(
+              "The saved custom aggregation code is missing for ",
+              spec$label,
+              "."
+            )
+          )
+        }
+        
+        rebuilt_map <-
+          build_custom_map_with_remainder(
+            tree_dt = tree_dt,
+            selected_codes = selected_codes,
+            aggregate_code = aggregate_code[1L],
+            filtered_raw_codes = filtered_raw_codes,
+            codelist_id = spec$codelist,
+            remainder_label = remainder_label,
+            allow_remainder_only =
+              allow_remainder_only
+          )
+      }
+      
+      if (
+        is.null(rebuilt_map) ||
+        nrow(rebuilt_map) == 0L
+      ) {
+        stop(
+          paste0(
+            "No aggregation map could be rebuilt for ",
+            spec$label,
+            " in the comparison dataset."
+          )
+        )
+      }
       
       rebuilt_specs[[dim_id]]$aggregation_map <-
         rebuilt_map
@@ -7530,6 +8304,7 @@ server <- function(input, output, session) {
     
     rebuilt_specs
   }
+  
   
   observeEvent(input$run_comparison, {
     
@@ -7923,7 +8698,7 @@ server <- function(input, output, session) {
               } else {
                 
                 comparison_specs_i <-
-                  rebuild_classification_specs_for_data(
+                  rebuild_hierarchy_specs_for_data(
                     data = comparison_i_raw,
                     aggregation_specs = aggregation_specs,
                     allow_remainder_only = TRUE
@@ -8367,14 +9142,26 @@ server <- function(input, output, session) {
           input$dataset_id
         )
         
-        dt <- readDataset(
-          dataset_id = input$dataset_id
+        dt <- as.data.table(
+          readDataset(
+            dataset_id = input$dataset_id
+          )
         )
         
         validation <- validate_dataset_columns(
           data = dt,
           dataset_id = input$dataset_id
         )
+        
+        rows_before_value_cleaning <- nrow(dt)
+        
+        dt <- normalise_and_drop_empty_values(
+          data = dt,
+          value_col = validation$config$value_col
+        )
+        
+        rows_discarded_without_values <-
+          rows_before_value_cleaning - nrow(dt)
         
         dataset_data(dt)
         loaded_dataset_id(input$dataset_id)
@@ -8489,6 +9276,26 @@ server <- function(input, output, session) {
       }
     }
     
+    # Among the configured SWS roots, identify those that
+    # actually have at least one usable row.
+    measured_elements_with_data <- character(0)
+    
+    if (
+      !is.null(measured_col) &&
+      measured_col %in% names(dt_summary) &&
+      nrow(dt_summary) > 0L
+    ) {
+      
+      measured_elements_with_data <- intersect(
+        measured_elements,
+        sort(
+          clean_code_vector(
+            dt_summary[[measured_col]]
+          )
+        )
+      )
+    }
+    
     # Calculate the year range only from records belonging
     # to the configured measured-element roots.
     years <- get_year_values(
@@ -8528,6 +9335,28 @@ server <- function(input, output, session) {
         )
       }
     }
+    
+    
+    measured_element_labels_with_data <-
+      measured_elements_with_data
+    
+    if (length(measured_elements_with_data) > 0L) {
+      
+      matched_root_positions <- match(
+        measured_elements_with_data,
+        measured_elements
+      )
+      
+      matched_roots <- !is.na(
+        matched_root_positions
+      )
+      
+      measured_element_labels_with_data[matched_roots] <-
+        measured_element_labels[
+          matched_root_positions[matched_roots]
+        ]
+    }
+    
     
     available_dimensions <- c(
       "Geographical area",
@@ -8592,7 +9421,7 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong(
-          "Number of configured measured elements: "
+          "Number of configured measured-element roots: "
         ),
         length(measured_elements)
       ),
@@ -8608,6 +9437,33 @@ server <- function(input, output, session) {
           )
         } else {
           "No measured-element roots are configured"
+        }
+      ),
+      
+      tags$p(
+        tags$strong(
+          "Number of configured roots with usable data: "
+        ),
+        length(
+          measured_elements_with_data
+        )
+      ),
+      
+      tags$p(
+        tags$strong(
+          "Configured roots with usable data: "
+        ),
+        if (
+          length(
+            measured_element_labels_with_data
+          ) > 0L
+        ) {
+          paste(
+            measured_element_labels_with_data,
+            collapse = ", "
+          )
+        } else {
+          "None of the configured roots contains usable data"
         }
       ),
       
@@ -8997,10 +9853,19 @@ server <- function(input, output, session) {
       dimension_id = measured_col
     )
     
+    measured_roots <- intersect(
+      clean_code_vector(
+        measured_roots
+      ),
+      clean_code_vector(
+        dt[[measured_col]]
+      )
+    )
+    
     if (length(measured_roots) == 0) {
       return(
         helpText(
-          "No measured-element roots are configured for this dataset."
+          "No configured measured-element root has usable data in this dataset."
         )
       )
     }
@@ -9250,7 +10115,45 @@ server <- function(input, output, session) {
   })
   
   
+  get_effective_filter_roots <- function(
+    dim_id,
+    meta,
+    codes,
+    tree_dt
+  ) {
+    
+    filter_tree_input <- input[[
+      paste0(
+        "filter_tree_",
+        dim_id
+      )
+    ]]
+    
+    if (is.null(filter_tree_input)) {
+      return(character(0))
+    }
+    
+    roots <- tryCatch(
+      get_selected_codes_from_tree(
+        tree_input = filter_tree_input,
+        codes = codes,
+        tree_dt = tree_dt,
+        expand_descendants = FALSE,
+        selection_rule = "most_specific",
+        codelist_id = meta$codelist
+      ),
+      error = function(e) {
+        character(0)
+      }
+    )
+    
+    clean_non_empty_codes(
+      roots
+    )
+  }
+  
   build_filtered_aggregation_tree <- function(
+    dim_id,
     meta,
     tree_purpose = c(
       "classification",
@@ -9266,7 +10169,7 @@ server <- function(input, output, session) {
       filtered_data_for_aggregation_controls()
     
     if (
-      nrow(dt_filtered) == 0 ||
+      nrow(dt_filtered) == 0L ||
       is.null(meta$dataset_column) ||
       !meta$dataset_column %in% names(dt_filtered) ||
       is.null(meta$codelist)
@@ -9278,7 +10181,7 @@ server <- function(input, output, session) {
       dt_filtered[[meta$dataset_column]]
     )
     
-    if (length(filtered_raw_codes) == 0) {
+    if (length(filtered_raw_codes) == 0L) {
       return(list())
     }
     
@@ -9288,82 +10191,103 @@ server <- function(input, output, session) {
       )
     )
     
-    codes[, id := as.character(id)]
+    codes[
+      ,
+      id := as.character(id)
+    ]
     
     complete_tree_dt <-
       get_codelist_tree_cached(
         meta$codelist
       )
     
-    if (identical(meta$codelist, "fisheriesCatchArea")) {
-
-      # Show the complete fishing-area hierarchy, including children
-      # that are not themselves present as raw values in filtered data.
-      complete_id_cols <- get_tree_id_cols(
-        complete_tree_dt
-      )
-
-      relevant_codes <- unique(
-        trimws(
-          as.character(
-            unlist(
-              complete_tree_dt[, ..complete_id_cols],
-              recursive = TRUE,
-              use.names = FALSE
-            )
-          )
-        )
-      )
-
-      relevant_codes <- relevant_codes[
-        !is.na(relevant_codes) &
-          nzchar(relevant_codes)
-      ]
-
-    } else {
-
-      relevant_codes <- get_relevant_hierarchy_codes(
+    # ------------------------------------------------------------
+    # Filtering and hierarchy aggregation are independent.
+    #
+    # The filtered records determine which raw codes are available.
+    # The aggregation tree then shows every codelist hierarchy path
+    # containing at least one of those filtered raw codes.
+    #
+    # Example:
+    # - filtering through ISSCAAP may leave detailed ASFIS species;
+    # - those same species may also occur under TAXONOMIC;
+    # - therefore both ISSCAAP and TAXONOMIC must be shown as
+    #   separate aggregation roots.
+    # ------------------------------------------------------------
+    data_relevant_codes <-
+      get_relevant_hierarchy_codes(
         tree_dt = complete_tree_dt,
         filtered_raw_codes = filtered_raw_codes
       )
-    }
-
-    if (length(relevant_codes) == 0) {
-      return(list())
-    }
-
-    filtered_tree_dt <-
-      prune_codelist_tree_to_relevant_codes(
-        tree_dt = complete_tree_dt,
-        relevant_codes = relevant_codes
+    
+    relevant_codes <- clean_non_empty_codes(
+      data_relevant_codes
+    )
+    
+    # Read all real top-level classifications available in the
+    # complete codelist tree. This includes alternative hierarchy
+    # systems, not only roots configured for the dataset.
+    codelist_root_codes <- clean_non_empty_codes(
+      get_original_tree_roots(
+        complete_tree_dt
       )
+    )
     
-    if (nrow(filtered_tree_dt) == 0) {
-      return(list())
-    }
+    # Synthetic All and Expired roots are added, when appropriate,
+    # by get_display_roots_for_tree(). Do not treat them as ordinary
+    # codelist classification roots here.
+    codelist_root_codes <- setdiff(
+      codelist_root_codes,
+      c(
+        SYNTHETIC_ALL_ROOT_ID,
+        SYNTHETIC_EXPIRED_ROOTS_ID
+      )
+    )
     
-    relevant_codelist_codes <- codes[
-      id %in% relevant_codes
-    ]
-    
+    # Preserve the configured dataset roots first, then append any
+    # additional codelist classifications that contain filtered data.
     configured_roots <- clean_non_empty_codes(
       get_configured_roots_for_dimension(
         meta
       )
     )
     
+    aggregation_root_candidates <- unique(
+      c(
+        configured_roots,
+        codelist_root_codes
+      )
+    )
+    
+    # Only roots that contain at least one filtered raw code survive
+    # the intersection performed by get_display_roots_for_tree().
     tree_root_codes <- get_display_roots_for_tree(
       codelist_id = meta$codelist,
-      configured_roots = configured_roots,
+      configured_roots = aggregation_root_candidates,
       relevant_codes = relevant_codes,
       purpose = tree_purpose
     )
     
     if (
+      length(relevant_codes) == 0L ||
       length(tree_root_codes) == 0L
     ) {
       return(list())
     }
+    
+    filtered_tree_dt <-
+      prune_codelist_tree_to_relevant_codes(
+        tree_dt = complete_tree_dt,
+        relevant_codes = relevant_codes
+      )
+    
+    if (nrow(filtered_tree_dt) == 0L) {
+      return(list())
+    }
+    
+    relevant_codelist_codes <- codes[
+      id %in% relevant_codes
+    ]
     
     build_sws_codelist_tree_from_codelist_tree(
       tree_dt = filtered_tree_dt,
@@ -9379,8 +10303,17 @@ server <- function(input, output, session) {
   
   get_explicit_tree_selection_labels <- function(
     tree_input,
-    meta
+    meta,
+    selection_rule = c(
+      "top",
+      "most_specific",
+      "none"
+    )
   ) {
+    
+    selection_rule <- match.arg(
+      selection_rule
+    )
     
     if (is.null(tree_input)) {
       return(character(0))
@@ -9411,7 +10344,9 @@ server <- function(input, output, session) {
         tree_input = tree_input,
         codes = codes,
         tree_dt = tree_dt,
-        expand_descendants = FALSE
+        expand_descendants = FALSE,
+        selection_rule = selection_rule,
+        codelist_id = meta$codelist
       ),
       error = function(e) {
         character(0)
@@ -9659,6 +10594,20 @@ server <- function(input, output, session) {
             )
           ),
           
+          p(
+            tags$b(
+              "Available aggregation hierarchies: "
+            ),
+            paste0(
+              "for direct-child and custom aggregation, the tree shows every ",
+              "hierarchy classification containing at least one filtered raw code. ",
+              "The classification names are shown as separate top-level roots. ",
+              "For example, filtered ASFIS species may appear under both ISSCAAP ",
+              "and TAXONOMIC, allowing filtering through one classification and ",
+              "aggregation through the other."
+            )
+          ),
+          
           tags$ul(
             tags$li(
               tags$b("Keep filtered codes separate: "),
@@ -9677,16 +10626,33 @@ server <- function(input, output, session) {
               )
             ),
             
+            
             tags$li(
               tags$b(
-                "Aggregate by direct children of a hierarchy class: "
+                "Aggregate selected filter groups separately: "
               ),
               paste0(
-                "select any parent node in the hierarchy. Every direct child ",
-                "beneath it becomes a separate output and includes all of its ",
-                "descendants. For example, selecting ISSCAAP produces one output ",
-                "for each direct ISSCAAP class; selecting one of those classes ",
-                "produces one output for each class directly beneath it."
+                "one output is created for each effective hierarchy group selected ",
+                "in the filter. Each selected parent includes all filtered descendants ",
+                "beneath it. For example, selecting Europe and Asia in the filter ",
+                "produces separate Europe and Asia outputs. Selecting 1501, 1502 and ",
+                "1503 produces separate outputs for 1501, 1502 and 1503. If only ",
+                "ISSCAAP is selected, the output is one ISSCAAP group."
+              )
+            ),
+            
+            
+            tags$li(
+              tags$b(
+                "Aggregate by direct children of one or more hierarchy classes: "
+              ),
+              paste0(
+                "select one or more non-overlapping parent nodes in the hierarchy. ",
+                "Every direct child beneath each selected parent becomes a separate ",
+                "output and includes all descendants beneath that child. For example, ",
+                "selecting ISSCAAP produces one output for every direct ISSCAAP class; ",
+                "selecting 1501, 1502 and 1503 produces the direct children of all ",
+                "three selected classes."
               )
             ),
             
@@ -9757,7 +10723,10 @@ server <- function(input, output, session) {
         mode_choices <- c(
           mode_choices,
           
-          "Aggregate by direct children of a hierarchy class" =
+          "Aggregate selected filter groups separately" =
+            "selected_groups",
+          
+          "Aggregate by direct children of one or more hierarchy classes" =
             "classification"
         )
       }
@@ -9781,16 +10750,19 @@ server <- function(input, output, session) {
           
           tagList(
             tags$strong(
-              "Select exactly one hierarchy parent."
+              "Select one or more non-overlapping hierarchy parents."
             ),
             
             tags$p(
               style = "margin-bottom: 6px;",
               paste0(
-                "Tick the box beside the parent class. ",
-                "Use the arrow to expand the hierarchy. ",
-                "Each direct child of the selected parent will become a separate output ",
-                "and will include all descendants beneath that child."
+                "The top-level nodes identify the available hierarchy classifications. ",
+                "For example, ISSCAAP and TAXONOMIC are displayed as separate roots ",
+                "when both contain filtered ASFIS species. ",
+                "Tick the boxes beside one or more non-overlapping parent classes. ",
+                "Each direct child of every selected parent becomes a separate output ",
+                "and includes all descendants beneath that child. Other filtered codes ",
+                "in the same dimension are combined into the dimension-specific Other output."
               )
             )
           ),
@@ -9816,7 +10788,7 @@ server <- function(input, output, session) {
               search = TRUE,
               themeIcons = FALSE,
               themeDots = TRUE,
-              multiple = FALSE,
+              multiple = TRUE,
               three_state = FALSE,
               tie_selection = TRUE,
               whole_node = FALSE,
@@ -9828,7 +10800,7 @@ server <- function(input, output, session) {
             class = "tree-selection-summary-block",
             
             strong(
-              "Selected aggregation parent:"
+              "Selected aggregation parents:"
             ),
             
             uiOutput(
@@ -9852,8 +10824,10 @@ server <- function(input, output, session) {
         
         tags$strong(
           paste0(
-            "Select only the nodes that must be combined into one custom output. ",
-            "Other filtered groups remain in the result and are not discarded."
+            "The top-level nodes identify every hierarchy classification containing ",
+            "the filtered raw codes. Select one or more nodes from any available ",
+            "classification and combine them into one custom output. All other ",
+            "filtered records are combined into the dimension-specific Other output."
           )
         ),
         
@@ -9991,6 +10965,7 @@ server <- function(input, output, session) {
         tree_reset_counter()
         
         build_filtered_aggregation_tree(
+          dim_id = current_dim,
           meta = meta,
           tree_purpose = "classification"
         )
@@ -10021,6 +10996,7 @@ server <- function(input, output, session) {
         tree_reset_counter()
         
         build_filtered_aggregation_tree(
+          dim_id = current_dim,
           meta = meta,
           tree_purpose = "custom"
         )
@@ -10355,7 +11331,14 @@ server <- function(input, output, session) {
         
         selected_labels <- get_explicit_tree_selection_labels(
           tree_input = input[[tree_id]],
-          meta = meta
+          meta = meta,
+          selection_rule = if (
+            is_flat_filter_dimension(current_dim)
+          ) {
+            "none"
+          } else {
+            "most_specific"
+          }
         )
         
         make_tree_selection_summary_ui(
@@ -10656,47 +11639,36 @@ server <- function(input, output, session) {
           )
         }
         
-        if (is_flat_filter_dimension(dim_id)) {
-          
-          selected_values <- get_selected_codes_from_tree(
-            tree_input = tree_input,
-            codes = codes,
-            tree_dt = NULL,
-            expand_descendants = FALSE
-          )
-          
-        } else {
+        tree_dt <- NULL
+        
+        if (
+          !is_flat_filter_dimension(dim_id) &&
+          !is.null(meta$codelist)
+        ) {
           
           tree_dt <- tryCatch(
-            get_codelist_tree_cached(meta$codelist),
+            get_codelist_tree_cached(
+              meta$codelist
+            ),
             error = function(e) NULL
           )
-          
-          if (is_flat_filter_dimension(dim_id)) {
-            selected_values <- get_selected_codes_from_tree(
-              tree_input = tree_input,
-              codes = codes,
-              tree_dt = NULL,
-              expand_descendants = FALSE
-            )
-          } else {
-            tree_dt <- NULL
-            
-            if (!is.null(meta$codelist)) {
-              tree_dt <- tryCatch(
-                get_codelist_tree_cached(meta$codelist),
-                error = function(e) NULL
-              )
-            }
-            
-            selected_values <- get_selected_codes_from_tree(
-              tree_input = tree_input,
-              codes = codes,
-              tree_dt = tree_dt,
-              expand_descendants = TRUE
-            )
-          }
         }
+        
+        selected_values <- get_selected_codes_from_tree(
+          tree_input = tree_input,
+          codes = codes,
+          tree_dt = tree_dt,
+          expand_descendants =
+            !is_flat_filter_dimension(dim_id),
+          selection_rule = if (
+            is_flat_filter_dimension(dim_id)
+          ) {
+            "none"
+          } else {
+            "most_specific"
+          },
+          codelist_id = meta$codelist
+        )
       }
       
       dt <- filter_data_by_selected_values(
@@ -10785,6 +11757,7 @@ server <- function(input, output, session) {
       if (
         !aggregation_mode %in% c(
           "total",
+          "selected_groups",
           "classification",
           "custom"
         )
@@ -10845,41 +11818,13 @@ server <- function(input, output, session) {
           )
         }
         
-        explicitly_selected_codes <- character(0)
-        
-        filter_tree_input <- input[[
-          paste0(
-            "filter_tree_",
-            dim_id
+        explicitly_selected_codes <-
+          get_effective_filter_roots(
+            dim_id = dim_id,
+            meta = meta,
+            codes = codes,
+            tree_dt = tree_dt
           )
-        ]]
-        
-        if (!is.null(filter_tree_input)) {
-          
-          explicitly_selected_codes <- tryCatch(
-            get_selected_codes_from_tree(
-              tree_input = filter_tree_input,
-              codes = codes,
-              tree_dt = tree_dt,
-              expand_descendants = FALSE
-            ),
-            error = function(e) character(0)
-          )
-          
-          explicitly_selected_codes <- unique(
-            trimws(
-              as.character(
-                explicitly_selected_codes
-              )
-            )
-          )
-          
-          explicitly_selected_codes <-
-            explicitly_selected_codes[
-              !is.na(explicitly_selected_codes) &
-                nzchar(explicitly_selected_codes)
-            ]
-        }
         
         total_output_code <- if (
           length(explicitly_selected_codes) == 1L
@@ -10914,11 +11859,106 @@ server <- function(input, output, session) {
         next
       }
       
+      
       # ----------------------------------------------------------
-      # Select one hierarchy parent. Every direct child beneath that
-      # parent becomes a separate output and includes all descendants.
-      # The selected parent may be a configured root or any lower
-      # parent node visible in the hierarchy tree.
+      # Aggregate each effective filter group separately.
+      # ----------------------------------------------------------
+      if (identical(
+        aggregation_mode,
+        "selected_groups"
+      )) {
+        
+        selected_filter_groups <-
+          get_effective_filter_roots(
+            dim_id = dim_id,
+            meta = meta,
+            codes = codes,
+            tree_dt = tree_dt
+          )
+        
+        if (length(selected_filter_groups) == 0L) {
+          stop(
+            paste0(
+              "Please select at least one hierarchy filter for ",
+              meta$label,
+              " before using 'Aggregate selected filter groups separately'."
+            )
+          )
+        }
+        
+        filtered_raw_codes <- clean_non_empty_codes(
+          dt_filtered[[meta$dataset_column]]
+        )
+        
+        aggregation_map <-
+          build_selected_groups_map_with_remainder(
+            tree_dt = tree_dt,
+            selected_codes = selected_filter_groups,
+            filtered_raw_codes = filtered_raw_codes,
+            codelist_id = meta$codelist,
+            remainder_label =
+              meta$remainder_label %||%
+              "Other filtered records"
+          )
+        
+        if (nrow(aggregation_map) == 0L) {
+          stop(
+            paste0(
+              "None of the selected filter groups contains data for ",
+              meta$label,
+              "."
+            )
+          )
+        }
+        
+        output_codes <- unique(
+          as.character(
+            aggregation_map$group_code
+          )
+        )
+        
+        raw_member_codes <- unique(
+          as.character(
+            aggregation_map$raw_code
+          )
+        )
+        
+        saved_root_code <- if (
+          length(selected_filter_groups) == 1L
+        ) {
+          selected_filter_groups[1L]
+        } else {
+          "SELECTED_FILTER_GROUPS"
+        }
+        
+        aggregation_specs[[dim_id]] <- list(
+          dimension = dim_id,
+          label = meta$label,
+          key_dim_name = meta$dataset_column,
+          codelist = meta$codelist,
+          
+          aggregation_mode = "selected_groups",
+          root_code = saved_root_code,
+          aggregate_code = saved_root_code,
+          target_mode =
+            "selected_filter_groups_separately",
+          descendants_mode =
+            "each_selected_filter_group_and_descendants",
+          
+          selected_codes = selected_filter_groups,
+          output_codes = output_codes,
+          child_codes = raw_member_codes,
+          aggregation_map = aggregation_map
+        )
+        
+        next
+      }
+      
+      
+      # ----------------------------------------------------------
+      # Select one or more hierarchy parents. Every direct child
+      # beneath every selected parent becomes a separate output and
+      # includes all descendants beneath that child.
       # ----------------------------------------------------------
       if (identical(
         aggregation_mode,
@@ -10942,47 +11982,28 @@ server <- function(input, output, session) {
           )
         }
         
-        selected_parent <- get_selected_codes_from_tree(
+        selected_parents <- get_selected_codes_from_tree(
           tree_input = classification_tree_input,
           codes = codes,
           tree_dt = tree_dt,
-          expand_descendants = FALSE
+          expand_descendants = FALSE,
+          selection_rule = "top",
+          codelist_id = meta$codelist
         )
         
-        selected_parent <- unique(
-          trimws(
-            as.character(
-              selected_parent
-            )
-          )
+        selected_parents <- clean_code_vector(
+          selected_parents
         )
         
-        selected_parent <- selected_parent[
-          !is.na(selected_parent) &
-            nzchar(selected_parent)
-        ]
-        
-        if (length(selected_parent) == 0) {
+        if (length(selected_parents) == 0L) {
           stop(
             paste0(
-              "Please select one hierarchy parent for ",
+              "Please select at least one hierarchy parent for ",
               meta$label,
               ". Its direct children will become separate outputs."
             )
           )
         }
-        
-        if (length(selected_parent) > 1) {
-          stop(
-            paste0(
-              "Please select only one hierarchy parent for ",
-              meta$label,
-              "."
-            )
-          )
-        }
-        
-        selected_parent <- selected_parent[1]
         
         classification_codes <- if (
           identical(
@@ -10995,69 +12016,29 @@ server <- function(input, output, session) {
           NULL
         }
         
-        if (!is.null(classification_codes)) {
-
-          direct_groups <-
-            get_direct_children_from_shallowest_tree_level(
-              tree_dt = tree_dt,
-              parent_code = selected_parent
-            )
-
-        } else {
-          
-          direct_groups <- get_direct_children_from_codelist_tree(
-            tree_dt = tree_dt,
-            parent_code = selected_parent
-          )
-        }
-        
-        direct_groups <- unique(
-          trimws(
-            as.character(
-              direct_groups
-            )
-          )
+        filtered_raw_codes <- clean_code_vector(
+          dt_filtered[[meta$dataset_column]]
         )
-        
-        direct_groups <- direct_groups[
-          !is.na(direct_groups) &
-            nzchar(direct_groups)
-        ]
-        
-        if (length(direct_groups) == 0) {
-          stop(
-            paste0(
-              "The selected hierarchy node '",
-              selected_parent,
-              "' has no direct child classes. Select a parent node for ",
-              meta$label,
-              "."
-            )
-          )
-        }
-        
-        filtered_raw_codes <- unique(
-          trimws(
-            as.character(
-              dt_filtered[[meta$dataset_column]]
-            )
-          )
-        )
-        
-        filtered_raw_codes <- filtered_raw_codes[
-          !is.na(filtered_raw_codes) &
-            nzchar(filtered_raw_codes)
-        ]
         
         aggregation_map <-
-          build_classification_map_with_remainder(
-            tree_dt = tree_dt,
-            selected_parent = selected_parent,
-            filtered_raw_codes = filtered_raw_codes,
-            codes = classification_codes,
-            remainder_label =
-              meta$remainder_label %||%
-              "Other filtered records"
+          with_aggregation_context(
+            
+            build_classification_map_with_remainder(
+              tree_dt = tree_dt,
+              selected_parents = selected_parents,
+              filtered_raw_codes = filtered_raw_codes,
+              codes = classification_codes,
+              remainder_label =
+                meta$remainder_label %||%
+                "Other filtered records"
+            ),
+            
+            dimension_id = dim_id,
+            label = meta$label,
+            dataset_column = meta$dataset_column,
+            codelist = meta$codelist,
+            selected_codes = selected_parents,
+            stage = "direct-child aggregation setup"
           )
         
         output_codes <- unique(
@@ -11079,12 +12060,14 @@ server <- function(input, output, session) {
           codelist = meta$codelist,
           
           aggregation_mode = "classification",
-          root_code = selected_parent,
-          aggregate_code = selected_parent,
-          target_mode = "direct_children_of_selected_parent",
-          descendants_mode = "each_direct_child_and_all_descendants",
+          root_code = selected_parents,
+          aggregate_code = selected_parents,
+          target_mode =
+            "direct_children_of_selected_parents",
+          descendants_mode =
+            "each_direct_child_and_all_descendants",
           
-          selected_codes = selected_parent,
+          selected_codes = selected_parents,
           output_codes = output_codes,
           child_codes = raw_member_codes,
           aggregation_map = aggregation_map
@@ -11164,223 +12147,38 @@ server <- function(input, output, session) {
       ]
       
       # ----------------------------------------------------------
-      # Build the custom group from the selected aggregation nodes.
+      # Build the custom output and combine every remaining filtered
+      # code into the dimension-specific Other output.
       # ----------------------------------------------------------
-      custom_map <- build_custom_aggregation_map(
-        tree_dt = tree_dt,
-        selected_codes = selected_codes,
-        aggregate_code = aggregate_code
-      )
-      
-      # Only retain codes that are actually present after filtering.
-      custom_map <- custom_map[
-        raw_code %in% filtered_raw_codes
-      ]
-      
-      if (nrow(custom_map) == 0) {
-        stop(
-          paste0(
-            "None of the selected custom-aggregation nodes is present ",
-            "in the filtered data for ",
-            meta$label,
-            "."
-          )
-        )
-      }
-      
-      # ----------------------------------------------------------
-      # Read only the nodes explicitly selected in the filter tree.
-      # ----------------------------------------------------------
-      explicitly_filtered_groups <- character(0)
-      
-      filter_tree_input <- input[[
-        paste0(
-          "filter_tree_",
-          dim_id
-        )
-      ]]
-      
-      if (!is.null(filter_tree_input)) {
-        explicitly_filtered_groups <- tryCatch(
-          get_selected_codes_from_tree(
-            tree_input = filter_tree_input,
-            codes = codes,
+      aggregation_map <-
+        with_aggregation_context(
+          
+          build_custom_map_with_remainder(
             tree_dt = tree_dt,
-            expand_descendants = FALSE
+            selected_codes = selected_codes,
+            aggregate_code = aggregate_code,
+            filtered_raw_codes = filtered_raw_codes,
+            codelist_id = meta$codelist,
+            remainder_label =
+              meta$remainder_label %||%
+              "Other filtered records",
+            allow_remainder_only = FALSE
           ),
-          error = function(e) character(0)
-        )
-      }
-      
-      explicitly_filtered_groups <- unique(
-        trimws(
-          as.character(
-            explicitly_filtered_groups
-          )
-        )
-      )
-      
-      explicitly_filtered_groups <-
-        explicitly_filtered_groups[
-          !is.na(explicitly_filtered_groups) &
-            nzchar(explicitly_filtered_groups)
-        ]
-      
-      explicitly_filtered_groups <-
-        keep_top_selected_codes_from_codelist_tree(
-          selected_codes = explicitly_filtered_groups,
-          tree_dt = tree_dt
-        )
-      
-      # ----------------------------------------------------------
-      # Preserve filtered records outside the custom group.
-      #
-      # One selected filter parent:
-      # preserve its direct child classes separately.
-      #
-      # Several selected filter groups:
-      # preserve those selected groups separately.
-      #
-      # No selected filter group:
-      # preserve remaining detailed codes individually.
-      # ----------------------------------------------------------
-      preserved_group_map <- data.table(
-        raw_code = character(0),
-        group_code = character(0)
-      )
-      
-      if (length(explicitly_filtered_groups) == 1L) {
-        
-        filter_parent <- explicitly_filtered_groups[1]
-        
-        if (identical(meta$codelist, "fisheriesCatchArea")) {
-
-          # Use only the shallowest occurrence of the selected
-          # fishing-area parent in the flattened hierarchy.
-          direct_children <-
-            get_direct_children_from_shallowest_tree_level(
-              tree_dt = tree_dt,
-              parent_code = filter_parent
-            )
-
-        } else {
           
-          # Preserve the existing behaviour for ASFIS, geography
-          # and production source.
-          direct_children <- get_direct_children_from_codelist_tree(
-            tree_dt = tree_dt,
-            parent_code = filter_parent
-          )
-        }
-        
-        direct_children <- unique(
-          trimws(
-            as.character(
-              direct_children
-            )
-          )
+          dimension_id = dim_id,
+          label = meta$label,
+          dataset_column = meta$dataset_column,
+          codelist = meta$codelist,
+          selected_codes = selected_codes,
+          stage = "custom aggregation setup"
         )
-        
-        direct_children <- direct_children[
-          !is.na(direct_children) &
-            nzchar(direct_children)
-        ]
-        
-        if (length(direct_children) > 0) {
-          
-          if (identical(meta$codelist, "fisheriesCatchArea")) {
-            
-            preserved_group_map <-
-              build_direct_child_aggregation_map(
-                tree_dt = tree_dt,
-                root_code = filter_parent,
-                codes = codes
-              )
-            
-          } else {
-            
-            preserved_group_map <-
-              build_direct_child_aggregation_map(
-                tree_dt = tree_dt,
-                root_code = filter_parent
-              )
-          }
-          
-        } else {
-          
-          # The filter node is a leaf, so retain that leaf code.
-          preserved_group_map <-
-            build_selected_groups_aggregation_map(
-              tree_dt = tree_dt,
-              selected_codes = filter_parent
-            )
-        }
-        
-      } else if (length(explicitly_filtered_groups) > 1L) {
-        
-        preserved_group_map <-
-          build_selected_groups_aggregation_map(
-            tree_dt = tree_dt,
-            selected_codes = explicitly_filtered_groups
-          )
-      }
-      
-      # Keep only records remaining after filtering and remove
-      # records already assigned to the custom group.
-      preserved_group_map <- preserved_group_map[
-        raw_code %in% filtered_raw_codes &
-          !raw_code %in% custom_map$raw_code
-      ]
-      
-      already_mapped_codes <- unique(
-        c(
-          as.character(custom_map$raw_code),
-          as.character(preserved_group_map$raw_code)
-        )
-      )
-      
-      # Preserve any remaining detailed filtered code.
-      unmapped_codes <- setdiff(
-        filtered_raw_codes,
-        already_mapped_codes
-      )
-      
-      identity_map <- data.table(
-        raw_code = unmapped_codes,
-        group_code = unmapped_codes
-      )
-      
-      aggregation_map <- rbindlist(
-        list(
-          custom_map,
-          preserved_group_map,
-          identity_map
-        ),
-        use.names = TRUE,
-        fill = TRUE
-      )
-      
-      aggregation_map <- aggregation_map[
-        !is.na(raw_code) &
-          nzchar(raw_code) &
-          !is.na(group_code) &
-          nzchar(group_code) &
-          raw_code %in% filtered_raw_codes
-      ]
-      
-      # Priority:
-      # 1. Custom aggregation
-      # 2. Preserved hierarchy group
-      # 3. Original detailed code
-      aggregation_map <- unique(
-        aggregation_map,
-        by = "raw_code"
-      )
-      
       
       custom_member_codes <- unique(
         as.character(
-          custom_map$raw_code
+          aggregation_map[
+            group_code == aggregate_code,
+            raw_code
+          ]
         )
       )
       
