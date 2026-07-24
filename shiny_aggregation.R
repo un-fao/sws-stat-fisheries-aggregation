@@ -10662,8 +10662,8 @@ server <- function(input, output, session) {
                 "select one or more hierarchy nodes and combine the selected nodes ",
                 "and all their descendants into one output. One selected node keeps ",
                 "its code; several selected nodes are labelled as a Custom Aggregation. ",
-                "Filtered classes not selected for the custom group remain as separate ",
-                "outputs and are not combined back into the filter parent."
+                "All filtered classes not included in the custom aggregation are combined ",
+                "into one dimension-specific Other output."
               )
             ),
             
