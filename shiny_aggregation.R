@@ -4073,7 +4073,7 @@ ui <- page_navbar(
       .navbar {
         background-image:
         linear-gradient(rgba(0, 70, 120, 0.45), rgba(0, 70, 120, 0.45)),
-        url('fisheries_header.png') !important;
+        url('fisheries_header.jpg') !important;
         background-size: cover !important;
         background-position: center center !important;
         background-repeat: no-repeat !important;
@@ -4114,7 +4114,7 @@ ui <- page_navbar(
       body {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.70), rgba(255, 255, 255, 0.70)),
-    url('fisheries_header.png') !important;
+    url('fisheries_header.jpg') !important;
   background-size: cover !important;
   background-position: center center !important;
   background-repeat: no-repeat !important;
