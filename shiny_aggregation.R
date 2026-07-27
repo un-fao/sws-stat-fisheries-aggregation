@@ -4206,7 +4206,7 @@ ui <- page_navbar(
 .aggregation-help {
   margin-bottom: 0.75rem;
   padding: 0.6rem 0.75rem;
-  background-color: rgba(52, 152, 219, 0.16);
+  background-color: white;
   border: 1px solid rgba(52, 152, 219, 0.45);
   border-radius: 7px;
 }
@@ -4530,42 +4530,14 @@ ui <- page_navbar(
         uiOutput("year_selector")
       ),
       
-      # Filters and aggregation begin immediately below the years.
-      div(
-        class = "row g-2 align-items-start aggregation-columns",
-        
-        div(
-          class = "col-12 col-xl-5",
-          
-          card(
-            fill = FALSE,
-            style = "height: auto !important; width: 100%;",
-            
-            card_header("Dimension filters"),
-            
-            uiOutput("dimension_filter_selectors")
-          )
-        ),
-        
-        div(
-          class = "col-12 col-xl-7",
-          
-          card(
-            fill = FALSE,
-            style = "height: auto !important; width: 100%;",
-            
-            card_header("Aggregation controls"),
-            
-            uiOutput("aggregation_controls_ui"),
-            
-            actionButton(
-              "run_aggregation",
-              "Run aggregation",
-              class = "btn-success",
-              width = "100%"
-            )
-          )
-        )
+      # Filters and aggregation organized by dimension.
+      uiOutput("dimension_accordion_ui"),
+      
+      actionButton(
+        "run_aggregation",
+        "Run aggregation",
+        class = "btn-success",
+        width = "100%"
       )
     )
   ),
@@ -10473,6 +10445,705 @@ server <- function(input, output, session) {
       )
     )
   }
+  
+  
+  
+  output$dimension_accordion_ui <- renderUI({
+    
+    req(
+      dataset_data(),
+      input$dataset_id
+    )
+    
+    reset_id <- tree_reset_counter()
+    dt <- dataset_data()
+    
+    
+    # ============================================================
+    # Dimensions available in the loaded dataset
+    # ============================================================
+    
+    active_filter_dims <- FILTER_DIMENSIONS[
+      vapply(
+        FILTER_DIMENSIONS,
+        function(meta) {
+          !is.null(meta$dataset_column) &&
+            meta$dataset_column %in% names(dt)
+        },
+        logical(1)
+      )
+    ]
+    
+    
+    active_aggregation_dims <- AGGREGATION_DIMENSIONS[
+      vapply(
+        AGGREGATION_DIMENSIONS,
+        function(meta) {
+          !is.null(meta$dataset_column) &&
+            meta$dataset_column %in% names(dt)
+        },
+        logical(1)
+      )
+    ]
+    
+    
+    # ============================================================
+    # COMPLETE ORIGINAL EXPLANATION
+    # The wording below is unchanged.
+    # ============================================================
+    
+    aggregation_help_ui <- tags$details(
+      class = "aggregation-help",
+      
+      tags$summary(
+        "How the aggregation controls work"
+      ),
+      
+      div(
+        class = "aggregation-help-body",
+        
+        p(
+          paste0(
+            "Filters decide which records are included. ",
+            "Aggregation decides how those filtered records ",
+            "are grouped in the output."
+          )
+        ),
+        
+        p(
+          tags$b(
+            "Available aggregation hierarchies: "
+          ),
+          paste0(
+            "for direct-child and custom aggregation, the tree shows every ",
+            "hierarchy classification containing at least one filtered raw code. ",
+            "The classification names are shown as separate top-level roots. ",
+            "For example, filtered ASFIS species may appear under both ISSCAAP ",
+            "and TAXONOMIC, allowing filtering through one classification and ",
+            "aggregation through the other."
+          )
+        ),
+        
+        tags$ul(
+          tags$li(
+            tags$b("Keep filtered codes separate: "),
+            paste0(
+              "no grouping is applied to that dimension. ",
+              "Every detailed code remaining after filtering stays separate."
+            )
+          ),
+          
+          tags$li(
+            tags$b("Combine all filtered values into one output: "),
+            paste0(
+              "all remaining codes for that dimension are combined into one result. ",
+              "If exactly one hierarchy node was selected in the filter, its code ",
+              "is retained; otherwise the output code is TOTAL."
+            )
+          ),
+          
+          tags$li(
+            tags$b(
+              "Aggregate selected filter groups separately: "
+            ),
+            paste0(
+              "one output is created for each effective hierarchy group selected ",
+              "in the filter. Each selected parent includes all filtered descendants ",
+              "beneath it. For example, selecting Europe and Asia in the filter ",
+              "produces separate Europe and Asia outputs. Selecting 1501, 1502 and ",
+              "1503 produces separate outputs for 1501, 1502 and 1503. If only ",
+              "ISSCAAP is selected, the output is one ISSCAAP group."
+            )
+          ),
+          
+          tags$li(
+            tags$b(
+              "Aggregate by direct children of one or more hierarchy classes: "
+            ),
+            paste0(
+              "select one or more non-overlapping parent nodes in the hierarchy. ",
+              "Every direct child beneath each selected parent becomes a separate ",
+              "output and includes all descendants beneath that child. For example, ",
+              "selecting ISSCAAP produces one output for every direct ISSCAAP class; ",
+              "selecting 1501, 1502 and 1503 produces the direct children of all ",
+              "three selected classes."
+            )
+          ),
+          
+          tags$li(
+            tags$b("Custom aggregation: "),
+            paste0(
+              "select one or more hierarchy nodes and combine the selected nodes ",
+              "and all their descendants into one output. One selected node keeps ",
+              "its code; several selected nodes are labelled as a Custom Aggregation. ",
+              "All filtered classes not included in the custom aggregation are combined ",
+              "into one dimension-specific Other output."
+            )
+          ),
+          
+          tags$li(
+            tags$b("Total all selected years into one period: "),
+            paste0(
+              "combines all selected years into one period instead of ",
+              "keeping annual rows."
+            )
+          ),
+          
+          tags$li(
+            tags$b("Aggregate separately by observation flag: "),
+            paste0(
+              "keeps observation-status categories separate throughout the ",
+              "aggregation. For example, A records are aggregated only with A ",
+              "records, E records only with E records, and N records only with N ",
+              "records. The observation flag is preserved in the result."
+            )
+          )
+        )
+      )
+    )
+    
+    
+    # ============================================================
+    # Existing filtering control for one dimension
+    # ============================================================
+    
+    make_filter_card <- function(
+    dim_id,
+    meta
+    ) {
+      
+      if (identical(dim_id, "measured_element")) {
+        
+        return(
+          card(
+            fill = FALSE,
+            
+            card_header(meta$label),
+            
+            uiOutput(
+              "measured_element_checkbox_filter"
+            )
+          )
+        )
+      }
+      
+      
+      card(
+        fill = FALSE,
+        
+        card_header(meta$label),
+        
+        div(
+          style = paste(
+            "max-height: 260px;",
+            "overflow-y: auto;",
+            "overflow-x: auto;",
+            "border: 1px solid #e5e5e5;",
+            "border-radius: 6px;",
+            "padding: 6px;",
+            "background-color: white;"
+          ),
+          
+          div(
+            id = paste0(
+              "filter_tree_wrapper_",
+              dim_id,
+              "_",
+              reset_id
+            ),
+            
+            shinyTree(
+              paste0(
+                "filter_tree_",
+                dim_id
+              ),
+              checkbox = TRUE,
+              search = TRUE,
+              themeIcons = FALSE,
+              themeDots = TRUE,
+              three_state = FALSE,
+              tie_selection = TRUE,
+              whole_node = FALSE
+            )
+          )
+        ),
+        
+        hr(),
+        
+        div(
+          style = "padding: 0 6px 6px 6px;",
+          
+          strong("Selected filters:"),
+          
+          uiOutput(
+            paste0(
+              "selected_filter_summary_",
+              dim_id
+            )
+          )
+        )
+      )
+    }
+    
+    
+    # ============================================================
+    # Existing aggregation controls for one hierarchical dimension
+    # ============================================================
+    
+    make_aggregation_card <- function(
+    dim_id,
+    meta
+    ) {
+      
+      hierarchy_available <- length(
+        tryCatch(
+          get_aggregation_root_choices(meta),
+          error = function(e) {
+            character(0)
+          }
+        )
+      ) > 0
+      
+      
+      mode_choices <- c(
+        "Keep filtered codes separate — no aggregation" =
+          "none",
+        
+        "Combine all filtered values into one output" =
+          "total"
+      )
+      
+      
+      if (isTRUE(hierarchy_available)) {
+        
+        mode_choices <- c(
+          mode_choices,
+          
+          "Aggregate selected filter groups separately" =
+            "selected_groups",
+          
+          "Aggregate by direct children of one or more hierarchy classes" =
+            "classification"
+        )
+      }
+      
+      
+      mode_choices <- c(
+        mode_choices,
+        
+        "Custom aggregation — combine selected nodes into one output" =
+          "custom"
+      )
+      
+      
+      # ----------------------------------------------------------
+      # Original direct-child control and original explanation
+      # ----------------------------------------------------------
+      
+      classification_control <- if (
+        isTRUE(hierarchy_available)
+      ) {
+        
+        conditionalPanel(
+          condition = paste0(
+            "input.aggregation_mode_",
+            dim_id,
+            " == 'classification'"
+          ),
+          
+          tagList(
+            tags$strong(
+              "Select one or more non-overlapping hierarchy parents."
+            ),
+            
+            tags$p(
+              style = "margin-bottom: 6px;",
+              
+              paste0(
+                "The top-level nodes identify the available hierarchy classifications. ",
+                "For example, ISSCAAP and TAXONOMIC are displayed as separate roots ",
+                "when both contain filtered ASFIS species. ",
+                "Tick the boxes beside one or more non-overlapping parent classes. ",
+                "Each direct child of every selected parent becomes a separate output ",
+                "and includes all descendants beneath that child. Other filtered codes ",
+                "in the same dimension are combined into the dimension-specific Other output."
+              )
+            )
+          ),
+          
+          div(
+            style = paste(
+              "max-height: 260px;",
+              "overflow-y: auto;",
+              "overflow-x: auto;",
+              "border: 1px solid #e5e5e5;",
+              "border-radius: 6px;",
+              "padding: 6px;",
+              "margin-top: 6px;",
+              "background-color: white;"
+            ),
+            
+            shinyTree(
+              paste0(
+                "aggregation_classification_tree_",
+                dim_id
+              ),
+              checkbox = TRUE,
+              search = TRUE,
+              themeIcons = FALSE,
+              themeDots = TRUE,
+              multiple = TRUE,
+              three_state = FALSE,
+              tie_selection = TRUE,
+              whole_node = FALSE,
+              wholerow = TRUE
+            )
+          ),
+          
+          div(
+            class = "tree-selection-summary-block",
+            
+            strong(
+              "Selected aggregation parents:"
+            ),
+            
+            uiOutput(
+              paste0(
+                "selected_aggregation_classification_summary_",
+                dim_id
+              )
+            )
+          )
+        )
+        
+      } else {
+        
+        NULL
+      }
+      
+      
+      # ----------------------------------------------------------
+      # Original custom control and original explanation
+      # ----------------------------------------------------------
+      
+      custom_control <- conditionalPanel(
+        condition = paste0(
+          "input.aggregation_mode_",
+          dim_id,
+          " == 'custom'"
+        ),
+        
+        tags$strong(
+          paste0(
+            "The top-level nodes identify every hierarchy classification containing ",
+            "the filtered raw codes. Select one or more nodes from any available ",
+            "classification and combine them into one custom output. All other ",
+            "filtered records are combined into the dimension-specific Other output."
+          )
+        ),
+        
+        div(
+          style = paste(
+            "max-height: 260px;",
+            "overflow-y: auto;",
+            "overflow-x: auto;",
+            "border: 1px solid #e5e5e5;",
+            "border-radius: 6px;",
+            "padding: 6px;",
+            "margin-top: 6px;",
+            "background-color: white;"
+          ),
+          
+          shinyTree(
+            paste0(
+              "aggregation_custom_tree_",
+              dim_id
+            ),
+            checkbox = TRUE,
+            search = TRUE,
+            themeIcons = FALSE,
+            themeDots = TRUE,
+            three_state = FALSE,
+            tie_selection = TRUE,
+            whole_node = FALSE
+          )
+        ),
+        
+        div(
+          class = "tree-selection-summary-block",
+          
+          strong(
+            "Selected custom aggregation nodes:"
+          ),
+          
+          uiOutput(
+            paste0(
+              "selected_aggregation_custom_summary_",
+              dim_id
+            )
+          )
+        )
+      )
+      
+      
+      card(
+        fill = FALSE,
+        
+        card_header(meta$label),
+        
+        radioButtons(
+          inputId = paste0(
+            "aggregation_mode_",
+            dim_id
+          ),
+          label = NULL,
+          choices = mode_choices,
+          selected = "none"
+        ),
+        
+        classification_control,
+        custom_control
+      )
+    }
+    
+    
+    # ============================================================
+    # Measured element centred above the accordion
+    # ============================================================
+    
+    measured_element_ui <- NULL
+    
+    if (
+      "measured_element" %in%
+      names(active_filter_dims)
+    ) {
+      
+      measured_element_ui <- div(
+        style = paste(
+          "max-width: 900px;",
+          "margin: 0 auto 12px auto;"
+        ),
+        
+        make_filter_card(
+          dim_id = "measured_element",
+          meta = active_filter_dims[[
+            "measured_element"
+          ]]
+        )
+      )
+    }
+    
+    
+    # ============================================================
+    # Hierarchical accordion panels
+    # ============================================================
+    
+    hierarchical_panels <- lapply(
+      names(active_aggregation_dims),
+      function(dim_id) {
+        
+        filter_meta <- active_filter_dims[[
+          dim_id
+        ]]
+        
+        aggregation_meta <-
+          active_aggregation_dims[[
+            dim_id
+          ]]
+        
+        if (is.null(filter_meta)) {
+          return(NULL)
+        }
+        
+        accordion_panel(
+          title = aggregation_meta$label,
+          value = dim_id,
+          
+          div(
+            class = "row g-2 align-items-start",
+            
+            div(
+              class = "col-12 col-xl-5",
+              
+              make_filter_card(
+                dim_id = dim_id,
+                meta = filter_meta
+              )
+            ),
+            
+            div(
+              class = "col-12 col-xl-7",
+              
+              make_aggregation_card(
+                dim_id = dim_id,
+                meta = aggregation_meta
+              )
+            )
+          )
+        )
+      }
+    )
+    
+    
+    # ============================================================
+    # Currency filter accordion panel
+    # It appears before Observation flag.
+    # ============================================================
+    
+    currency_panel <- NULL
+    
+    if (
+      "currency_flag" %in%
+      names(active_filter_dims)
+    ) {
+      
+      currency_panel <- accordion_panel(
+        title = active_filter_dims[[
+          "currency_flag"
+        ]]$label,
+        
+        value = "currency_flag",
+        
+        make_filter_card(
+          dim_id = "currency_flag",
+          meta = active_filter_dims[[
+            "currency_flag"
+          ]]
+        )
+      )
+    }
+    
+    
+    # ============================================================
+    # Observation flag accordion panel
+    # This is deliberately the LAST accordion panel.
+    # ============================================================
+    
+    observation_panel <- NULL
+    
+    if (
+      "observation_flag" %in%
+      names(active_filter_dims)
+    ) {
+      
+      observation_panel <- accordion_panel(
+        title = active_filter_dims[[
+          "observation_flag"
+        ]]$label,
+        
+        value = "observation_flag",
+        
+        div(
+          class = "row g-2 align-items-start",
+          
+          div(
+            class = "col-12 col-xl-7",
+            
+            make_filter_card(
+              dim_id = "observation_flag",
+              meta = active_filter_dims[[
+                "observation_flag"
+              ]]
+            )
+          ),
+          
+          div(
+            class = "col-12 col-xl-5",
+            
+            card(
+              fill = FALSE,
+              
+              card_header(
+                "Observation flag aggregation"
+              ),
+              
+              checkboxInput(
+                "apply_observation_flag",
+                "Aggregate separately by observation flag",
+                value = FALSE
+              )
+            )
+          )
+        )
+      )
+    }
+    
+    
+    # ============================================================
+    # Assemble accordion in the requested order
+    # ============================================================
+    
+    accordion_panels <- Filter(
+      Negate(is.null),
+      
+      c(
+        hierarchical_panels,
+        list(
+          currency_panel,
+          observation_panel
+        )
+      )
+    )
+    
+    
+    accordion_ui <- if (
+      length(accordion_panels) > 0
+    ) {
+      
+      do.call(
+        bslib::accordion,
+        
+        c(
+          accordion_panels,
+          
+          list(
+            id = "dimension_accordion",
+            open = FALSE,
+            multiple = TRUE
+          )
+        )
+      )
+      
+    } else {
+      
+      helpText(
+        "No filter or aggregation dimensions are available."
+      )
+    }
+    
+    
+    # ============================================================
+    # Final page content
+    # ============================================================
+    
+    tagList(
+      
+      # Complete original explanation.
+      aggregation_help_ui,
+      
+      
+      # Measured element stays visible and centred.
+      measured_element_ui,
+      
+      
+      # All remaining dimensions can be opened and closed.
+      accordion_ui,
+      
+      
+      # Existing selected-year aggregation option.
+      card(
+        fill = FALSE,
+        style = "margin-top: 12px;",
+        
+        checkboxInput(
+          "aggregate_selected_years",
+          "Total all selected years into one period",
+          value = FALSE
+        )
+      )
+    )
+  })
+  
   
   output$dimension_filter_selectors <- renderUI({
     req(dataset_data(), input$dataset_id)
