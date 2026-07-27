@@ -14444,7 +14444,7 @@ server <- function(input, output, session) {
       return(dt[])
     }
     
-    if (uniqueN(period_tmp) < 2) {
+    if (uniqueN(dt$period_tmp) < 2) {
       return(data.table())
     }
     
