@@ -16,7 +16,6 @@ format:
     code-summary: "Show R code"
     code-tools: false
     code-overflow: wrap
-    embed-resources: true
     link-external-newwindow: true
 execute:
   echo: true

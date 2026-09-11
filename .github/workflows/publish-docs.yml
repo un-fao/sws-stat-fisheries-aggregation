@@ -36,11 +36,13 @@ jobs:
       - name: Render documentation
         run: quarto render Documentation/fisheries_documentation.qmd --to html
 
-      # embed-resources: true renders a single self-contained HTML, no sidecar dirs.
+      # Keep the sidecar assets dir: the SWS CSP has no `data:` in style-src, so a
+      # self-contained HTML (embed-resources) gets its inlined stylesheets blocked.
       - name: Prepare site
         run: |
           mkdir -p _site
           cp Documentation/fisheries_documentation.html _site/index.html
+          cp -r Documentation/fisheries_documentation_files _site/
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
