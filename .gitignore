@@ -12,3 +12,9 @@ renv/staging/
 client.json
 
 .DS_Store
+
+fisheries_documentation_files/
+fisheries_documentation.html
+renv/
+
+/.quarto/
