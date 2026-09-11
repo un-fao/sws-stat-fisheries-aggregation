@@ -583,6 +583,11 @@
         "rlang"
       ]
     },
+    "quarto": {
+      "Package": "quarto",
+      "Version": "1.5.1",
+      "Source": "Repository"
+    },
     "rappdirs": {
       "Package": "rappdirs",
       "Version": "0.3.4",
