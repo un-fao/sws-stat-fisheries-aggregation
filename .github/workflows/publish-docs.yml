@@ -23,15 +23,24 @@ jobs:
 
       - uses: quarto-dev/quarto-actions/setup@v2
 
+      # The .qmd uses the knitr engine, so the runner needs R.
+      # ponytail: only knitr::kable is called at render time, so no renv restore.
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install knitr
+        run: install.packages("knitr")
+        shell: Rscript {0}
+
       - name: Render documentation
         run: quarto render Documentation/fisheries_documentation.qmd --to html
 
+      # embed-resources: true renders a single self-contained HTML, no sidecar dirs.
       - name: Prepare site
         run: |
           mkdir -p _site
           cp Documentation/fisheries_documentation.html _site/index.html
-          cp -r Documentation/images _site/images
-          cp -r Documentation/fisheries_documentation_files _site/fisheries_documentation_files
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4

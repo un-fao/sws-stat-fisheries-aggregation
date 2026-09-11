@@ -18,10 +18,10 @@ format:
     code-overflow: wrap
     embed-resources: true
     link-external-newwindow: true
-    execute:
-    echo: true
-    warning: false
-    message: false
+execute:
+  echo: true
+  warning: false
+  message: false
 editor: source
 ---
   
@@ -2256,7 +2256,7 @@ When hierarchy definitions assign one code to more than one direct child, the ap
 ```{r}
 #| label: tbl-technical-functions
 #| tbl-cap: "Main functions in the application"
-#| #| echo: false
+#| echo: false
 
 technical_functions <- data.frame(
   Function = c(
