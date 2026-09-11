@@ -1,0 +1,40 @@
+name: Publish Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Documentation/**'
+      - '.github/workflows/publish-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render documentation
+        run: quarto render Documentation/clean_test.qmd --to html
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp Documentation/clean_test.html _site/index.html
+          cp -r Documentation/images _site/images
+          cp -r Documentation/clean_test_files _site/clean_test_files
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
