@@ -2940,7 +2940,7 @@ aggregation_modes <- data.frame(
 knitr::kable(aggregation_modes)
 ```
 
-## Mode 1: Keep filtered codes separate
+### Mode 1: Keep filtered codes separate
 
 No aggregation map is applied to that dimension.
 
@@ -2959,14 +2959,14 @@ Species C
 With species set to **Keep filtered codes separate**, all three species codes remain distinct.
 
 ::: {.callout-warning}
-### Current execution requirement
+#### Current execution requirement
 
 This option operates at the dimension level. In the current implementation, the Run button still requires at least one aggregation action overall.
 
 When every dimension is set to “Keep filtered codes separate” and neither year aggregation nor observation-flag aggregation is selected, the application stops and asks the user to select at least one aggregation dimension.
 :::
   
-## Mode 2: Combine all filtered values into one output
+### Mode 2: Combine all filtered values into one output
   
 All remaining codes for that dimension are combined into one output.
 
@@ -3030,7 +3030,7 @@ knitr::kable(total_result)
 The three species groups are therefore replaced by a single `TOTAL` output with an aggregated value of `120`.
 
 
-## Mode 3: Aggregate selected filter groups separately
+### Mode 3: Aggregate selected filter groups separately
 
 This mode uses the effective groups selected in the **filter tree**.
 
@@ -3071,7 +3071,7 @@ Output:
 
 This mode does **not** automatically split ISSCAAP into its direct children. Splitting by direct children is a separate aggregation mode.
 
-### Leaf selection
+#### Leaf selection
 
 A leaf selected as a filter group works normally in this mode.
 
@@ -3083,7 +3083,7 @@ Output: that species leaf
 
 The mode groups by the selected filter groups themselves; therefore a selected group does not need to have children.
 
-## Mode 4: Aggregate by direct children
+### Mode 4: Aggregate by direct children
 
 This mode uses selections made in the independent **aggregation-classification tree**.
 
@@ -3162,7 +3162,7 @@ direct_child_output <- aggregate(
 knitr::kable(direct_child_output)
 ```
 
-### Filtering through one classification and aggregating through another
+#### Filtering through one classification and aggregating through another
 
 ASFIS species may be represented under multiple classifications, such as:
   
@@ -3184,7 +3184,7 @@ Example:
 
 The aggregation tree is restricted to classifications containing at least one raw code remaining after filtering.
 
-### Direct-child parent-selection rule
+#### Direct-child parent-selection rule
 
 The direct-child tree treats selected nodes as aggregation parents.
 
@@ -3192,7 +3192,7 @@ The effective parent selection uses the top, non-overlapping parent nodes.
 
 When selecting `ISSCAAP`, descendants may appear checked because of the hierarchical tree behaviour, but `ISSCAAP` remains the effective parent and its direct children become the outputs.
 
-### Several aggregation parents
+#### Several aggregation parents
 
 Several non-overlapping aggregation parents may be selected.
 
@@ -3209,7 +3209,7 @@ The outputs are the direct children of all three selected parents.
 
 The selected parents must not overlap.
 
-### Parent whose children are leaves
+#### Parent whose children are leaves
 
 Direct-child aggregation works when the selected parent has children even when those children have no descendants.
 
@@ -3232,7 +3232,7 @@ Major fishing area C
 
 The children do not need to have children of their own.
 
-### Selecting a leaf as the aggregation parent
+#### Selecting a leaf as the aggregation parent
 
 A leaf cannot be used as a direct-child aggregation parent because it has no direct children.
 
@@ -3244,7 +3244,7 @@ Result: error — no direct child groups
 This is different from selecting a leaf for **Aggregate selected filter groups separately**, where the leaf itself remains a valid output.
 
 
-### Overlapping direct-child outputs
+#### Overlapping direct-child outputs
 
 Aggregation stops when:
   
