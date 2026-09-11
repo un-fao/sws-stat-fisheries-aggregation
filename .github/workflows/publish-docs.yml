@@ -29,8 +29,8 @@ jobs:
         with:
           use-public-rspm: true
 
-      - name: Install knitr
-        run: install.packages("knitr")
+      - name: Install knitr engine
+        run: install.packages(c("knitr", "rmarkdown"))
         shell: Rscript {0}
 
       - name: Render documentation
