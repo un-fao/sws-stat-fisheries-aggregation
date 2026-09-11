@@ -24,14 +24,14 @@ jobs:
       - uses: quarto-dev/quarto-actions/setup@v2
 
       - name: Render documentation
-        run: quarto render Documentation/clean_test.qmd --to html
+        run: quarto render Documentation/fisheries_documentation.qmd --to html
 
       - name: Prepare site
         run: |
           mkdir -p _site
           cp Documentation/clean_test.html _site/index.html
           cp -r Documentation/images _site/images
-          cp -r Documentation/clean_test_files _site/clean_test_files
+          cp -r Documentation/fisheries_documentation_files _site/fisheries_documentation_test_files
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
