@@ -132,8 +132,37 @@ The filtering hierarchy and aggregation hierarchy therefore do not need to be th
 
 # Application architecture
 
+The user interface contains seven principal pages.
 
-## Application structure
+```{r}
+#| label: tbl-app-pages
+#| tbl-cap: "Application navigation pages"
+#| echo: false
+app_pages <- data.frame(
+  Page = 1:7,
+  Name = c(
+    "Data selection",
+    "Dataset summary",
+    "Filters & aggregation",
+    "Dataset table",
+    "Graphs",
+    "Comparison",
+    "Outlier analysis"
+  ),
+  Purpose = c(
+    "Initialize the client and load a dataset",
+    "Inspect metadata, measured elements, raw time series and source rows",
+    "Select years, apply filters and configure aggregation",
+    "Review and download aggregation outputs",
+    "Visualize totals and compositions",
+    "Compare current output with disseminated or tagged data",
+    "Screen aggregated outputs for unusual levels or changes"
+  )
+)
+
+knitr::kable(app_pages)
+```
+
 
 1. **Data Selection** page allows the user to connect to SWS by clicking the **Initialise Client** button, with no additional action required. The user can then select the **Dataset group**, with **Current Fisheries dataset** selected by default, and choose a dataset of interest from the supported Fisheries datasets.
 
@@ -288,20 +317,11 @@ The currency flag is used as a filter where available. It is also retained as an
 
 # Data loading and preprocessing
 
-## Client initialization
+## Client initialization and dataset loading
 
 The user must initialize the SWS client before selecting and loading a dataset.
 
-The application then retrieves:
-  
-- dataset data;
-- dataset metadata;
-- configured dimension roots;
-- codelist codes;
-- codelist trees;
-- user information required by the SWS connection.
-
-## Required-column validation
+![Client initialisation](./images/datasets_initialise.png){#fig-initialisation-and-datasets width="50%"}
 
 After loading a dataset, the application validates the expected common columns.
 
@@ -309,54 +329,26 @@ Loading stops when one or more required columns are absent.
 
 This prevents later filtering or aggregation operations from silently using an incomplete structure.
 
-
   
-## Dataset-dependent controls
-  
-After a dataset is loaded, the application rebuilds its dynamic controls.
+## Dataset summary
 
-The currently loaded dataset determines:
-  
-- available years;
-- available measured elements;
-- which filter dimensions are shown;
-- values available in flat filters (filters whose values are displayed as a flat list of selectable options, rather than as a hierarchical tree with parent and child categories);
-- hierarchy branches available in filter trees;
-- dimensions available for aggregation;
-- comparison eligibility.
+After a dataset is loaded, the application displays a summary of its main characteristics.
 
-# Application pages
+The summary includes:
 
-The user interface contains seven principal pages.
+- the selected dataset and dataset group;
+- the number of records under the configured measured-element roots;
+- the available year range;
+- the number of configured measured-element roots;
+- the configured measured-element roots;
+- the number of configured roots with usable data;
+- the configured roots with usable data;
+- the main dimensions available in the dataset.
 
-```{r}
-#| label: tbl-app-pages
-#| tbl-cap: "Application navigation pages"
-#| echo: false
-app_pages <- data.frame(
-  Page = 1:7,
-  Name = c(
-    "Data selection",
-    "Dataset summary",
-    "Filters & aggregation",
-    "Dataset table",
-    "Graphs",
-    "Comparison",
-    "Outlier analysis"
-  ),
-  Purpose = c(
-    "Initialize the client and load a dataset",
-    "Inspect metadata, measured elements, raw time series and source rows",
-    "Select years, apply filters and configure aggregation",
-    "Review and download aggregation outputs",
-    "Visualize totals and compositions",
-    "Compare current output with disseminated or tagged data",
-    "Screen aggregated outputs for unusual levels or changes"
-  )
-)
+The summary is restricted to the measured-element roots configured for the loaded dataset in SWS.
 
-knitr::kable(app_pages)
-```
+![Dataset summary](./images/data_summary_loaded_dataset.png){#fig-dataset-summary width="50%"}
+
 
 # Filtering methodology
 
@@ -382,6 +374,8 @@ The exact active dimensions depend on the columns present in the loaded dataset.
 When no value is selected for a dimension, that dimension does not restrict the dataset.
 
 For example, leaving the geographical-area tree empty keeps all geographical-area codes that remain valid under the dataset configuration.
+
+![Filters & Aggregation page](./images/filters_aggregation_page.png){#fig-filters-aggregation-page width="100%"}
 
 ## Year filter
 
@@ -414,14 +408,20 @@ For example, selecting `FI_001` and `FI_002` produces two separate output tabs r
 
 The following dimensions use hierarchy trees:
   
-  - geographical area;
+- geographical area;
 - species or ASFIS;
 - fishing area;
 - production source, where available.
 
+![Geographical area filter](./images/geographical_area_filter.png){#fig-geographical-filter width="100%"}
+
+![Asfis filter](./images/asfis_filter.png){#fig-asfis-filter width="100%"}
+
+![Fishing area filter](./images/fishing_area_filter.png){#fig-fishing-area-filter width="100%"}
+
 Selecting a hierarchy node includes:
   
-  - the selected node itself;
+- the selected node itself;
 - all descendant codes under that node.
 
 ### Example
@@ -490,6 +490,8 @@ This rule ensures that, when both a parent and one or more of its descendants ar
 
 Observation flags and currency flags are treated as flat dimensions.
 
+![Observation flag filter](./images/observation_flag_filter.png){#fig-observation-flag-filter width="100%"}
+
 They do not have descendant expansion.
 
 For example, selecting observation flags `A` and `E` retains rows whose observation-status flag is exactly `A` or `E`.
@@ -530,47 +532,6 @@ aggregation_dimensions <- data.frame(
 
 knitr::kable(aggregation_dimensions)
 ```
-
-## Aggregation maps
-
-Every hierarchy aggregation is represented internally by an aggregation map containing:
-  
-  - `raw_code`: a detailed code present in the filtered data;
-- `group_code`: the output group to which that raw code is assigned.
-
-Conceptually:
-  
-  ```text
-raw_code → group_code
-```
-
-Example:
-  
-```{r}
-#| label: tbl-aggregation-map-example
-#| tbl-cap: "Illustrative species aggregation map"
-#| echo: false
-aggregation_map_example <- data.frame(
-  raw_code = c(
-    "Species A",
-    "Species B",
-    "Species C",
-    "Species D",
-    "Species E"
-  ),
-  group_code = c(
-    "1501",
-    "1501",
-    "1502",
-    "1503",
-    "1503"
-  )
-)
-
-knitr::kable(aggregation_map_example)
-```
-
-The application checks that every filtered code is mapped before aggregation. It stops instead of silently dropping unmapped records.
 
 ## Aggregation modes
 
@@ -921,11 +882,11 @@ Aggregation stops when:
 
 This validation prevents double counting.
 
-## Mode 5: Custom aggregation
+### Mode 5: Custom aggregation
 
 Custom aggregation combines selected nodes and all their descendants into one output.
 
-### Output naming
+#### Output naming
 
 - One selected node keeps its original code.
 - Several selected nodes within one dimension are combined into a single generated group, labelled `Custom Aggregation 1`. If custom aggregation is also applied to other dimensions in the same run, subsequent groups are labelled `Custom Aggregation 2`, `Custom Aggregation 3`, and so on.
@@ -937,7 +898,7 @@ Custom aggregation combines selected nodes and all their descendants into one ou
 Selected custom node: 1501
 
 Outputs:
-  - 1501
+- 1501
 - Other filtered species
 ```
 
@@ -987,11 +948,13 @@ custom_output <- data.frame(
 knitr::kable(custom_output)
 ```
 
-### Parent and descendant selected together
+#### Parent and descendant selected together
 
 When both a parent and one of its descendants are selected for the same custom aggregation, only the parent is used as the effective selection, because the descendant is already included within the parent branch.
 
 If only the descendant is selected, then the descendant itself is used as the custom aggregation group, together with any descendants below it.
+
+When aggregation is applied to several dimensions, the final output reflects the combination of the selected aggregation settings; categories that remain separate in any retained dimension also remain separate in the output.
 
 # Filtering and aggregation are independent
 
@@ -1025,14 +988,14 @@ knitr::kable(filter_vs_aggregation)
 
 ## Cross-classification example
 
-Suppose the raw dataset contains five species.
+Suppose the dataset contains five species.
 
 ```{r}
 #| label: tbl-cross-classification
-#| tbl-cap: "Illustrative cross-classification of raw species"
+#| tbl-cap: "Illustrative cross-classification of species"
 #| echo: false
 cross_classification <- data.frame(
-  raw_species = c(
+  species = c(
     "Species A",
     "Species B",
     "Species C",
@@ -1084,60 +1047,6 @@ knitr::kable(cross_output)
 ```
 
 
-# Multiple-dimension aggregation
-
-## Aggregating several dimensions in the same run
-
-Aggregation can be applied to more than one dimension in the same run. A separate aggregation mode is selected for each available dimension, for example:
-
-* geographical area;
-* species;
-* fishing area;
-* production source, where available.
-
-The selected rule is applied to each dimension. Dimensions for which **Keep filtered codes separate** is selected remain at the level of the filtered values.
-
-The final result reflects the combination of all selected aggregation settings.
-
-## Other dimensions remain as grouping keys
-
-When one dimension is aggregated, the other dimensions are retained in the result unless they are also aggregated or combined through another setting.
-
-Therefore, records are summed only when they belong to the same resulting combination of dimensions after all selected aggregation rules have been applied.
-
-For example, records assigned to the same species aggregation group are still kept separate if they belong to different fishing areas, geographical areas, production sources, years, or other retained dimensions.
-
-**Example**
-
-Assume the following settings:
-
-```text
-Geographical area:
-  Combine all filtered values into one output
-
-Species:
-  Aggregate by direct children of ISSCAAP
-
-Fishing area:
-  Keep filtered codes separate
-
-Production source:
-  Keep filtered codes separate
-```
-
-The resulting dataset contains separate rows for each combination of:
-
-* the aggregated geographical-area output;
-* the direct ISSCAAP child;
-* the original filtered fishing-area value;
-* the original filtered production-source value;
-* year, unless **Total all selected years into one period** is selected;
-* measured element;
-* any other dimensions or flags retained in the dataset.
-
-For example, two records belonging to the same ISSCAAP child are not combined if they refer to different fishing areas. They become part of the same row only when all the other retained grouping dimensions are also identical.
-
-
 # Numerical aggregation
 
 ## Value calculation
@@ -1155,8 +1064,6 @@ The aggregated result is rounded to a maximum of four decimal places.
 
 # Flag aggregation
 
-## Observation and method flags
-
 Numerical values are aggregated according to the selected aggregation rule, while observation flags are aggregated according to the applicable FAO flag rules. The application uses `faoswsFlag::aggregateFlagData()` to calculate aggregate observation-status and method flags.
 
 The function is called with:
@@ -1165,9 +1072,6 @@ The function is called with:
 forceMissingAggregateValues = FALSE
 includeMissingFlags = TRUE
 ```
-
-
-## Aggregate separately by observation flag
 
 The observation flag can first be filtered like the other filter dimensions. For example, the user may retain only `A` records, only `E` records, or several observation-flag categories.
 
@@ -1295,6 +1199,8 @@ For all graphs except **Aggregated total**, the user also selects how the result
 
 The **Aggregated total** view shows the total aggregated value for each year or aggregated period.
 
+![Aggregated total graph](./images/aggregated_total_graph.png){#fig-aggregated-total-graph width="100%"}
+
 For every year or period displayed on the horizontal axis, the application sums all values in the selected measured-element output.
 
 For example, suppose the selected output contains:
@@ -1408,9 +1314,13 @@ B = 80
 
 The height of each complete bar therefore represents the total value for that year or period, while the coloured sections show how the selected categories contribute to that total.
 
+![Stacked bar chart](./images/stacked_bar_chart.png){#fig-stacked-bar-chart width="100%"}
+
 ## Relative stacked bar chart
 
 The **Relative stacked bar chart** shows the same composition as the stacked bar chart, but expresses each category as a **percentage of the total for that year or period** rather than as an absolute value.
+
+![Relative stacked bar chart](./images/relative_stacked_bar_chart.png){#fig-relative-stacked-bar-chart width="100%"}
 
 For a year or period \(t\) and category \(c\), the share is calculated as:
 
@@ -1460,6 +1370,8 @@ Each complete bar represents 100%, which makes it possible to compare changes in
 
 The **Component time series** shows the evolution of each selected category over time.
 
+![Component time series](./images/component_time_series.png){#fig-component-time-series width="100%"}
+
 A separate line is drawn for every category selected through **Categorize by**, with points showing the value for each year or period.
 
 For example:
@@ -1488,6 +1400,8 @@ Depending on the selected categorization, the lines may represent, for example:
 ## Treemap
 
 The **Treemap chart** shows the composition of the selected measured-element output for **one year or aggregated period at a time**.
+
+![Treemap chart](./images/treemap_chart.png){#fig-treemap-chart width="100%"}
 
 The user selects the year or period using the **Treemap year** selector. By default, the most recent available year or period is selected.
 
@@ -1522,7 +1436,7 @@ The treemap therefore provides a compact view of the relative importance of the 
 
 # Dataset comparison
 
-## Eligibility
+## Eligibility and required sequence
 
 Comparison is available only when the main loaded dataset is a current Fisheries dataset.
 
@@ -1531,11 +1445,12 @@ A comparison source may be:
 - a disseminated dataset;
 - a tagged version associated with a base Fisheries dataset.
 
-## Required sequence
+![Tagged dataset upload](./images/tagged_dataset_upload.png){#fig-tagged-dataset-upload width="100%"}
+
 
 The intended workflow is:
   
-  1. load a current dataset;
+1. load a current dataset;
 2. select filters;
 3. run aggregation;
 4. open the Comparison page;
@@ -1562,16 +1477,6 @@ Aggregation maps are rebuilt against the filtered comparison data so that the co
 
 To compare the current and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.
 
-Depending on the dataset, these dimensions can include:
-
-* year or aggregated period;
-* geographical area;
-* species;
-* fishing area;
-* measured element;
-* production source, where available;
-* currency flag, where available.
-
 Only dimensions available in both the current and comparison results are used.
 
 For example, a current value for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.
@@ -1584,7 +1489,7 @@ Observation flags are not used to match records because the current and comparis
 
 For every matched analytical combination, the output contains:
   
-  - `current_value`;
+- `current_value`;
 - `comparison_value`;
 - `absolute_difference`;
 - `percentage_difference`;
@@ -1697,8 +1602,13 @@ Two views are available:
   
   - **All comparison rows**
   - **Differences only**
-  
-  Each measured element has its own comparison tab and CSV download.
+
+![All comparison rows](./images/all_comparison_rows.png){#fig-all-comparison-rows width="100%"}
+
+![Differences only table](./images/differences_only_no_differences.png){#fig-differences-only-table width="100%"}
+
+
+Each measured element has its own comparison tab and CSV download.
 
 # Outlier analysis
 
@@ -1746,7 +1656,6 @@ The selector can also contain columns available in the selected aggregation outp
 * `flagCurrency`, where available.
 
 The available choices depend on the structure of the selected dataset and on the aggregation that was performed.
-
 When one of these columns is selected, an additional **Selected group value** selector appears. This allows the analysis to be restricted to one specific category from that column.
 
 For example:
@@ -1782,9 +1691,12 @@ When the selected measured-element output contains at least two periods, two add
 
 If the aggregation has combined all selected years into a single period, the change metrics are not available because there is no earlier period with which to calculate a change.
 
+
 ### Value
 
 With **Value** selected, the analysis uses the aggregated `Value` directly.
+
+![Value outlier metric](./images/distribution_by_year_asfis.png){#fig-value-outlier-metric width="50%"}
 
 For example, suppose the selected aggregation output contains:
 
@@ -1804,6 +1716,8 @@ The **Value** metric should therefore be interpreted as a screening tool for ide
 ### Year-on-year absolute change
 
 The **Year-on-year absolute change** metric examines how much a value changes from the previous available period for the same series.
+
+![Year-on-year absolute change selector](./images/largest_records_absolute_change.png){#fig-year-on-year-metric width="50%"}
 
 It is calculated as:
 
@@ -1941,6 +1855,8 @@ This view helps identify which combinations of year, geographical area, species,
 
 When **Year-on-year absolute change** is selected, records are ordered according to the **absolute magnitude of the change**.
 
+![Largest records table](./images/largest_records_data.png){#fig-largest-records-data width="50%"}
+
 This means that both large increases and large decreases can appear at the top of the table.
 
 For example:
@@ -1982,10 +1898,7 @@ This is particularly important when very large percentages are generated by a sm
 ## Number of top records to display
 
 The **Number of top records to display** control appears when the **Largest / strongest records** tab is selected.
-
-The user can choose to display between **10 and 200 records**, in increments of 10.
-
-The default is **50 records**.
+ The user can choose to display between **10 and 200 records**, in increments of 10. The default is **50 records**.
 
 For the **Value** metric, these are the records with the largest values.
 
@@ -2003,7 +1916,6 @@ The downloaded CSV corresponds to:
 * the selected number of top records.
 
 The downloaded table contains the same relevant analytical columns used to identify the records displayed in the application.
-
 For change metrics, it also contains the previous value and the calculated change information required to interpret the result.
 
 
@@ -2018,10 +1930,10 @@ The following examples illustrate some typical ways in which filtering and aggre
 **Procedure:**
 
 1. Select the required years and measured element.
-2. In the species filter, select ISSCAAP group `1501`.
-3. Set **Species aggregation** to **Keep filtered codes separate**.
-4. Select the required geographical areas in the geographical-area filter.
-5. Set **Geographical area aggregation** to **Combine all filtered values into one output**.
+2. Select the required geographical areas in the geographical-area filter.
+3. Set **Geographical area aggregation** to **Combine all filtered values into one output**.
+4. In the species filter, select ISSCAAP group `1501`.
+5. Set **Species aggregation** to **Keep filtered codes separate**.
 6. Run the aggregation.
 
 Selecting `1501` in the species filter retains the species belonging to that ISSCAAP branch.
@@ -2251,12 +2163,12 @@ A disseminated or tagged dataset is used as the comparison side.
 When hierarchy definitions assign one code to more than one direct child, the application stops rather than duplicating and double-counting the record.
 :::
   
-# Technical function map
+# Main functions in the application
   
 ```{r}
 #| label: tbl-technical-functions
 #| tbl-cap: "Main functions in the application"
-#| #| echo: false
+#| echo: false
 
 technical_functions <- data.frame(
   Function = c(
@@ -2273,17 +2185,17 @@ technical_functions <- data.frame(
     "prepare_outlier_data()"
   ),
   Responsibility = c(
-    "Standardize the Value column and remove records with empty values",
-    "Check that the dataset contains the required columns",
-    "Convert hierarchy-tree selections into the corresponding categories",
-    "Apply the currently selected filters to the dataset",
+    "Standardize the Value column, convert it to numeric and remove rows without a valid numerical value",
+    "Check that the dataset contains the required columns and identify missing optional columns",
+    "Interpret tree selections, apply the hierarchy selection rule and, where required, include descendants",
+    "Apply the active year and dimension filters to the selected dataset",
     "Create separate outputs for the selected filter groups and assign the remaining categories to Other",
-    "Create outputs for the direct children of the selected hierarchy parent and their descendants",
-    "Create one custom aggregation output and assign the remaining filtered categories to Other",
-    "Aggregate one dimension according to the selected aggregation mapping and apply flag aggregation",
-    "Apply the selected aggregation settings across multiple dimensions and, when requested, across years",
-    "Match current and comparison results and calculate differences",
-    "Calculate Value or year-on-year metrics for outlier analysis"
+    "Create outputs for the direct children of the selected hierarchy parents and assign the remaining categories to Other",
+    "Create one custom aggregation output and assign the remaining categories to Other",
+    "Aggregate one dimension by summing values according to the aggregation mapping and calculating aggregate flags",
+    "Apply the selected aggregation settings across dimensions and optionally aggregate years or preserve observation-flag groups",
+    "Match current and comparison results, calculate differences and assign comparison statuses",
+    "Prepare Value, absolute-change or percentage-change metrics for outlier analysis"
   )
 )
 
@@ -2317,6 +2229,11 @@ A recommended version-control workflow is:
 6. commit both source code and documentation source;
 7. publish or share the rendered HTML where appropriate.
 
+The trigger link for this Shiny Application:  
+[Open the Shiny Application](https://sws.qa.fao.org/tasks/trigger/a12c26d0-6297-4bd5-a26c-82909115b124)
+
+The GitHub repository:  
+[Open the GitHub repository](https://github.com/un-fao/sws-stat-fisheries-aggregation)
 
 
 # Conclusion
