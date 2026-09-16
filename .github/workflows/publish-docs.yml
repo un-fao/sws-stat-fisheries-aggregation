@@ -41,8 +41,8 @@ jobs:
       - name: Prepare site
         run: |
           mkdir -p _site
-          cp fisheries_documentation.html _site/index.html
-          cp -r fisheries_documentation_files _site/
+          cp Documentation/fisheries_documentation.html _site/index.html
+          cp -r Documentation/fisheries_documentation_files _site/
 
       - name: Deploy to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
