@@ -1,48 +1,3 @@
-# library("SwsApiClient")
-# # Using default path: "client.json"
-# initialiseClient()
-# 
-# # Read dataset with dimension filter
-# dt_aqua <- readDataset(
-#   dataset_id = "aqua" #,
-#   # filter_by_dimension = list(
-#   #   geographicAreaM49 = c("4", "12"),
-#   #   timePointYears = c("2018", "2019")
-#   # )
-# )
-# 
-# fisheries_datasets <- getAllDatasets(search = "Fisheries")
-# fisheries_domain_datasets <- fisheries_datasets[which(domain_id == "Fisheries")]  #current datasets
-# disseminated_domain_datasets <- fisheries_datasets[which(domain_id == "disseminated")]      #the previous ones
-# 
-# 
-# dt_fisheries_list <- lapply(fisheries_domain_datasets$id, function(dataset_id_i) {
-#   message("Downloading dataset: ", dataset_id_i)
-#   
-#   dt <- readDataset(dataset_id = dataset_id_i)
-#   
-#   dt <- as.data.table(dt)
-#   dt[, dataset_id := dataset_id_i]
-#   
-#   dt
-# })
-# 
-# 
-# #Let's get the fisheriesAsfis codelist
-# fisheriesAsfis_codelist = getCodelistInfo("fisheriesAsfis")
-# geographicAreaM49_fi_codelist = getCodelistInfo("geographicAreaM49_fi")
-# fisheriesCatchArea_codelist = getCodelistInfo("fisheriesCatchArea")
-# 
-# 
-# 
-# 
-# 
-# codes_fisheriesAsfis <- as.data.table(fisheriesAsfis_codelist$codes)
-# 
-# codes_fisheriesAsfis[id == "ISSCAAP", children]
-# 
-# unlist(codes_fisheriesAsfis[id == "ISSCAAP", children], recursive=TRUE, use.names=FALSE)
-
 library(shiny)
 library(bslib)
 library(SwsApiClient)
@@ -53,7 +8,7 @@ library(ggplot2)
 library(treemapify)
 library(shinyTree)
 # -------------------------------------------------------------------------
-# Draft Fisheries aggregation Shiny app
+# Fisheries aggregation Shiny app
 #
 # Purpose:
 # - Initialise the SWS API client.
@@ -91,6 +46,8 @@ library(shinyTree)
 # - the exact column names to use
 # -------------------------------------------------------------------------
 
+
+# Common column names used across all supported Fisheries datasets.
 COMMON_FISHERIES_COLUMNS <- list(
   year_col = "timePointYears",
   value_col = "Value",
@@ -102,6 +59,9 @@ COMMON_FISHERIES_COLUMNS <- list(
   method_flag_col = "flagMethod"
 )
 
+
+# Build the configuration for one dataset, combining dataset metadata,
+# common Fisheries columns, and dataset-specific optional columns.
 make_dataset_config <- function(dataset_id,
                                 label,
                                 dataset_group,
@@ -131,6 +91,9 @@ make_dataset_config <- function(dataset_id,
   )
 }
 
+
+# Configuration of all Fisheries datasets supported by the application.
+# Each entry defines the dataset metadata and any optional dataset-specific columns.
 DATASET_CONFIG <- list(
   capture = make_dataset_config(
     dataset_id = "capture",
@@ -247,7 +210,8 @@ AGGREGATION_DIMENSIONS <- list(
   )
 )
 
-
+# Define the dataset dimensions available for filtering in the application,
+# including the corresponding dataset column and codelist, where applicable.
 FILTER_DIMENSIONS <- list(
   
   measured_element = list(
@@ -301,7 +265,7 @@ FILTER_DIMENSIONS <- list(
 
 
 
-
+# Retrieve the configuration associated with the selected dataset.
 get_dataset_config <- function(dataset_id) {
   if (is.null(dataset_id) || !nzchar(dataset_id)) {
     stop("No dataset has been selected.")
@@ -316,6 +280,8 @@ get_dataset_config <- function(dataset_id) {
   DATASET_CONFIG[[dataset_id]]
 }
 
+
+# Return the datasets available for selection, optionally restricted to a dataset group.
 get_dataset_choices <- function(dataset_group = NULL) {
   configs <- DATASET_CONFIG
   
@@ -340,6 +306,9 @@ get_dataset_choices <- function(dataset_group = NULL) {
   stats::setNames(ids, labels)
 }
 
+
+# Check that the selected dataset contains all required columns
+# and report any missing optional columns.
 validate_dataset_columns <- function(data, dataset_id) {
   cfg <- get_dataset_config(dataset_id)
   
@@ -381,14 +350,15 @@ validate_dataset_columns <- function(data, dataset_id) {
 
 
 
-
+# Return y when x is NULL or empty; otherwise return x.
 `%||%` <- function(x, y) {
   if (is.null(x) || length(x) == 0) y else x
 }
 
 # Fisheries source values contain at most four decimal places.
 VALUE_DECIMAL_DIGITS <- 4L
-
+# Standardize a vector of codes by converting to character,
+# trimming whitespace, removing missing/empty values, and keeping unique codes.
 clean_code_vector <- function(x) {
   
   if (is.null(x)) {
@@ -407,6 +377,9 @@ clean_code_vector <- function(x) {
   ]
 }
 
+
+# Build a descriptive context string for aggregation operations,
+# including the dimension, dataset column, codelist, selections, and processing stage.
 format_aggregation_context <- function(
     dimension_id,
     label,
@@ -416,6 +389,7 @@ format_aggregation_context <- function(
     stage = NULL
 ) {
   
+  # Clean and standardize all context inputs.
   label <- clean_code_vector(label)
   dimension_id <- clean_code_vector(dimension_id)
   dataset_column <- clean_code_vector(dataset_column)
@@ -423,14 +397,15 @@ format_aggregation_context <- function(
   selected_codes <- clean_code_vector(selected_codes)
   stage <- clean_code_vector(stage)
   
+  # Use the provided label when available; otherwise use a fallback label.
   label_text <- if (length(label) > 0L) {
     label[1L]
   } else {
     "Unknown aggregation dimension"
   }
-  
+  # Initialize the vector that will contain the context details.
   details <- character(0)
-  
+  # Add the aggregation dimension ID when available.
   if (length(dimension_id) > 0L) {
     details <- c(
       details,
@@ -440,7 +415,7 @@ format_aggregation_context <- function(
       )
     )
   }
-  
+  # Add the corresponding dataset column when available.
   if (length(dataset_column) > 0L) {
     details <- c(
       details,
@@ -450,7 +425,7 @@ format_aggregation_context <- function(
       )
     )
   }
-  
+  # Add the codelist used for the dimension when available.
   if (length(codelist) > 0L) {
     details <- c(
       details,
@@ -460,7 +435,7 @@ format_aggregation_context <- function(
       )
     )
   }
-  
+  # Add the selected aggregation codes when available.
   if (length(selected_codes) > 0L) {
     details <- c(
       details,
@@ -473,7 +448,7 @@ format_aggregation_context <- function(
       )
     )
   }
-  
+  # Add the processing stage when available.
   if (length(stage) > 0L) {
     details <- c(
       details,
@@ -483,7 +458,7 @@ format_aggregation_context <- function(
       )
     )
   }
-  
+  # Combine the label and all available details into one context string.
   paste0(
     label_text,
     " [",
@@ -495,7 +470,8 @@ format_aggregation_context <- function(
   )
 }
 
-
+# Evaluate an aggregation expression while attaching detailed aggregation
+# context to any error message that occurs.
 with_aggregation_context <- function(
     expression,
     dimension_id,
@@ -505,7 +481,7 @@ with_aggregation_context <- function(
     selected_codes = NULL,
     stage = NULL
 ) {
-  
+  # Build a descriptive context string for the current aggregation operation.
   context <- format_aggregation_context(
     dimension_id = dimension_id,
     label = label,
@@ -514,10 +490,10 @@ with_aggregation_context <- function(
     selected_codes = selected_codes,
     stage = stage
   )
-  
+  # Run the expression and intercept any error raised during execution.
   tryCatch(
     force(expression),
-    
+    # If an error occurs, re-throw it together with the aggregation context.
     error = function(e) {
       stop(
         paste0(
@@ -806,56 +782,58 @@ get_descendants <- function(codes, parent_code) {
   unique(out)
 }
 
+# Create named code choices for display, using the best available label column.
 make_code_choices <- function(codes) {
   codes <- as.data.table(codes)
-  
+  # Return an empty vector if the codelist does not contain an ID column.
   if (!"id" %in% names(codes)) {
     return(character(0))
   }
-  
+  # Use the first available descriptive label column.
   label_col <- intersect(c("label_en", "label", "description"), names(codes))[1]
-  
+  # Combine each code with its label when available; otherwise use the code alone.
   if (!is.na(label_col)) {
     labels <- paste0(codes$id, " - ", codes[[label_col]])
   } else {
     labels <- codes$id
   }
-  
+  # Return the codes as values, with the display labels as names.
   stats::setNames(as.character(codes$id), labels)
 }
 
 
 
-# Only for measured elements present in the loaded dataset.
+# Create filter choices using only values that are present in the loaded dataset.
+# When codelist information is available, use descriptive labels and units for display.
 make_filter_choices_from_data <- function(data,
                                           column_name,
                                           codes = NULL) {
   dt <- copy(data)
-  
+  # Return no choices if the requested column is not available.
   if (is.null(column_name) || !column_name %in% names(dt)) {
     return(character(0))
   }
   
-  # Use only values present in the selected dataset.
+  # Keep only distinct, non-missing values that actually occur in the dataset.
   values <- sort(unique(as.character(dt[[column_name]])))
   values <- values[!is.na(values) & nzchar(values)]
-  
+  # Return no choices if the column contains no usable values.
   if (length(values) == 0) {
     return(character(0))
   }
-  
+  # By default, use the values themselves as both stored values and display labels.
   out <- values
   names(out) <- values
-  
+  # If a codelist is available, enrich the display labels.
   if (!is.null(codes)) {
     codes <- as.data.table(codes)
     codes[, id := as.character(id)]
-    
+    # Use the first available descriptive label column.
     label_col <- intersect(
       c("label_en", "label", "description"),
       names(codes)
     )[1]
-    
+    # Build user-facing labels when a descriptive column is available.
     if (!is.na(label_col)) {
       label_map <- codes[
         id %in% values,
@@ -869,89 +847,96 @@ make_filter_choices_from_data <- function(data,
           }
         )
       ]
-      
+      # Fall back to the code itself when the descriptive label is missing.
       label_map[
         is.na(label_text) | !nzchar(label_text),
         label_text := id
       ]
-      
+      # Replace missing units with an empty string.
       label_map[
         is.na(unit_text),
         unit_text := ""
       ]
       
       label_map[, unit_text := trimws(unit_text)]
-      
+      # Display code, label and unit when a unit is available.
       label_map[
         nzchar(unit_text),
         label := paste0(id, " - ", label_text, " [", unit_text, "]")
       ]
-      
+      # Display only code and label when no unit is available.
       label_map[
         !nzchar(unit_text),
         label := paste0(id, " - ", label_text)
       ]
-      
+      # Match the dataset values to their corresponding codelist labels.
       matched <- match(values, label_map$id)
       has_match <- !is.na(matched)
-      
+      # Replace the default display names only for values found in the codelist.
       names(out)[has_match] <- label_map$label[matched[has_match]]
     }
   }
-  
+  # Return named choices: displayed labels as names and codes as values.
   out
 }
 
-
+# Create display choices from the full codelist.
+# Optionally restrict the choices to aggregate codes that have children.
 make_full_codelist_choices <- function(codes,
                                        aggregate_only = FALSE) {
   codes <- as.data.table(codes)
-  
+  # Return no choices if the codelist does not contain an ID column.
   if (!"id" %in% names(codes)) {
     return(character(0))
   }
-  
+  # Standardize codelist IDs as character values.
   codes[, id := as.character(id)]
-  
+  # If requested, keep only aggregate codes that have child categories.
   if (isTRUE(aggregate_only)) {
+    # Apply the restriction only when hierarchy information is available.
     if ("children" %in% names(codes)) {
       codes <- codes[
         vapply(children, has_children, logical(1))
       ]
     }
   }
-  
+  # Use the first available descriptive label column.
   label_col <- intersect(
     c("label_en", "label", "description"),
     names(codes)
   )[1]
-  
+  # Combine each code with its label when available;
+  # otherwise use the code itself as the display label.
   if (!is.na(label_col)) {
     labels <- paste0(codes$id, " - ", codes[[label_col]])
   } else {
     labels <- codes$id
   }
-  
+  # Return named choices: display labels as names and codes as values.
   stats::setNames(as.character(codes$id), labels)
 }
 
 
+# Expand selected hierarchy codes to include each selected code
+# together with all of its descendants.
 expand_selected_codes_with_descendants <- function(selected_codes,
                                                    codes) {
+  # Return an empty vector when no codes have been selected.
   if (is.null(selected_codes) || length(selected_codes) == 0) {
     return(character(0))
   }
-  
+  # Standardize the codelist and code IDs.
   codes <- as.data.table(codes)
   codes[, id := as.character(id)]
-  
+  # Convert selected codes to unique, non-missing character values.
   selected_codes <- unique(as.character(selected_codes))
   selected_codes <- selected_codes[!is.na(selected_codes) & nzchar(selected_codes)]
-  
+  # Return an empty vector if no valid selected codes remain.
   if (length(selected_codes) == 0) {
     return(character(0))
   }
-  
+  # For each selected code, include the code itself
+  # and all descendants below it in the hierarchy.
   expanded <- unique(unlist(
     lapply(
       selected_codes,
@@ -967,26 +952,31 @@ expand_selected_codes_with_descendants <- function(selected_codes,
     ),
     use.names = FALSE
   ))
-  
+  # Remove any missing or empty codes from the expanded selection.
   expanded <- expanded[!is.na(expanded) & nzchar(expanded)]
-  
+  # Return the final set of unique selected and descendant codes.
   unique(expanded)
 }
 
-
+# Check whether values represent a logical TRUE condition.
 is_true_value <- function(x) {
+  # Convert input values to character for consistent comparison.
   x <- as.character(x)
+  # Treat "true", "t", "1", and "yes" as TRUE, ignoring capitalization.
+  # Missing values are always treated as FALSE.
   !is.na(x) & tolower(x) %in% c("true", "t", "1", "yes")
 }
 
-
+# Create a display label for a hierarchy tree node using its code
+# and, when available, its descriptive label.
 make_tree_label <- function(code_id, label_text = NULL) {
+  # Standardize the code as character.
   code_id <- as.character(code_id)
-  
+  # If no descriptive label is available, display only the code in brackets.
   if (is.null(label_text) || is.na(label_text) || !nzchar(label_text)) {
     return(paste0("[", code_id, "]"))
   }
-  
+  # Otherwise display both the code and the descriptive label.
   paste0("[", code_id, "] ", label_text)
 }
 
@@ -1041,7 +1031,7 @@ extract_code_from_tree_label <- function(x) {
   unique(out)
 }
 
-
+# Return the first available descriptive label column from the codelist.
 get_codelist_label_column <- function(codes) {
   intersect(
     c("label_en", "label", "description"),
@@ -1049,26 +1039,31 @@ get_codelist_label_column <- function(codes) {
   )[1]
 }
 
-
+# Create display labels for hierarchy-tree nodes using code IDs
+# and the best available descriptive labels.
 make_tree_display_labels <- function(codes) {
+  # Standardize the codelist and code IDs.
   codes <- as.data.table(codes)
   codes[, id := as.character(id)]
-  
+  # Identify the first available descriptive label column.
   label_col <- get_codelist_label_column(codes)
-  
+  # If no descriptive label column exists, use the code itself.
   if (is.na(label_col)) {
     label_values <- codes$id
   } else {
+    
+    # Otherwise use the descriptive labels from the codelist.
     label_values <- as.character(codes[[label_col]])
+    # Replace missing or empty labels with the corresponding code ID.
     label_values[
       is.na(label_values) | !nzchar(label_values)
     ] <- codes$id[
       is.na(label_values) | !nzchar(label_values)
     ]
   }
-  
+  # Use the regular code ID as the default displayed code.
   display_code <- codes$id
-  
+  # If an alternative display ID is available, use it where provided.
   if ("display_id" %in% names(codes)) {
     display_code <- ifelse(
       !is.na(codes$display_id) & nzchar(as.character(codes$display_id)),
@@ -1076,33 +1071,34 @@ make_tree_display_labels <- function(codes) {
       display_code
     )
   }
-  
+  # Combine the displayed code and descriptive label.
   labels <- paste0(
     display_code,
     " - ",
     label_values
   )
-  
+  # Some synthetic hierarchy nodes should display only their descriptive label.
   if (
     "synthetic_label_only" %in%
     names(codes)
   ) {
-    
+    # Identify the rows marked as label-only synthetic nodes.
     synthetic_rows <- is_true_value(
       codes$synthetic_label_only
     )
-    
+    # Remove the code prefix from those synthetic-node labels.
     labels[synthetic_rows] <-
       label_values[synthetic_rows]
   }
-  
+  # Return display labels named by the underlying code IDs.
   stats::setNames(
     labels,
     codes$id
   )
 }
 
-
+# Convert selected hierarchy-tree display labels back to their underlying code IDs.
+# For flat dimensions without a codelist, return the selected values directly.
 tree_display_labels_to_codes <- function(selected_labels,
                                          codes = NULL) {
   if (is.null(selected_labels) || length(selected_labels) == 0) {
@@ -1171,19 +1167,25 @@ tree_display_labels_to_codes <- function(selected_labels,
   unique(selected_codes)
 }
 
+# Identify the root nodes of an SWS codelist hierarchy.
+# Virtual roots are preferred when available; otherwise infer roots from parent-child relationships.
 get_sws_tree_root_codes <- function(codes) {
+  # Standardize the codelist and code IDs.
   codes <- as.data.table(codes)
   codes[, id := as.character(id)]
   
+  # If no hierarchy information is available, treat all codes as possible roots.
   if (!"children" %in% names(codes)) {
     return(codes$id)
   }
   
+  # Keep only codes that have at least one child.
   parent_codes <- codes[
     vapply(children, has_children, logical(1)),
     id
   ]
   
+  # If no parent codes exist, return all codes.
   if (length(parent_codes) == 0) {
     return(codes$id)
   }
@@ -1198,6 +1200,7 @@ get_sws_tree_root_codes <- function(codes) {
       id
     ]
     
+    # Return virtual roots when at least one is available.
     if (length(virtual_roots) > 0) {
       return(virtual_roots)
     }
@@ -1222,6 +1225,7 @@ get_sws_tree_root_codes <- function(codes) {
   root_codes
 }
 
+# Build a nested hierarchy tree from an SWS codelist using its parent–child relationships.
 build_sws_codelist_tree <- function(codes,
                                     max_depth = 50) {
   codes <- as.data.table(codes)
@@ -1357,6 +1361,7 @@ build_sws_codelist_tree <- function(codes,
   root_nodes
 }
 
+#Return the number of hierarchy levels available in a codelist tree.
 get_codelist_tree_display_depth <- function(tree_dt) {
   id_cols <- get_tree_id_cols(tree_dt)
   
@@ -1369,13 +1374,13 @@ get_codelist_tree_display_depth <- function(tree_dt) {
 }
 
 
-
+#Identifies and orders the columns representing hierarchy levels in a codelist tree.
 get_tree_id_cols <- function(tree_dt) {
   id_cols <- grep("^level_[0-9]+_id$", names(tree_dt), value = TRUE)
   id_cols[order(as.integer(sub("^level_([0-9]+)_id$", "\\1", id_cols)))]
 }
 
-
+#Returns the immediate children of a selected parent code from the flattened codelist tree.
 get_direct_children_from_codelist_tree <- function(tree_dt, parent_code) {
   tree_dt <- as.data.table(tree_dt)
   id_cols <- get_tree_id_cols(tree_dt)
@@ -1471,7 +1476,7 @@ get_direct_children_from_shallowest_tree_level <- function(
   unique(children)
 }
 
-
+#Returns all descendants below a selected code in the hierarchy.
 get_descendants_from_codelist_tree <- function(tree_dt, parent_code) {
   tree_dt <- as.data.table(tree_dt)
   id_cols <- get_tree_id_cols(tree_dt)
@@ -1499,7 +1504,7 @@ get_descendants_from_codelist_tree <- function(tree_dt, parent_code) {
   setdiff(out, parent_code)
 }
 
-
+#Returns all ancestor codes above a selected code in the hierarchy.
 get_ancestors_from_codelist_tree <- function(tree_dt, code) {
   tree_dt <- as.data.table(tree_dt)
   id_cols <- get_tree_id_cols(tree_dt)
@@ -1526,7 +1531,7 @@ get_ancestors_from_codelist_tree <- function(tree_dt, code) {
   unique(out)
 }
 
-
+#Keeps only the highest selected nodes when both a parent and one of its descendants are selected.
 keep_top_selected_codes_from_codelist_tree <- function(selected_codes, tree_dt) {
   selected_codes <- unique(as.character(selected_codes))
   selected_codes <- selected_codes[!is.na(selected_codes) & nzchar(selected_codes)]
@@ -1553,7 +1558,8 @@ keep_top_selected_codes_from_codelist_tree <- function(selected_codes, tree_dt) 
   selected_codes[keep]
 }
 
-
+#Returns a selected hierarchy node together with all codes belonging to its branch, 
+#with special handling for fishing-area hierarchies.
 get_hierarchy_branch_codes <- function(
     tree_dt,
     root_code,
@@ -1664,7 +1670,7 @@ get_hierarchy_branch_codes <- function(
   )
 }
 
-
+#Keeps only the most specific selected nodes when both a parent and one or more descendants are selected.
 keep_most_specific_selected_codes_from_codelist_tree <-
   function(
     selected_codes,
@@ -1711,7 +1717,7 @@ keep_most_specific_selected_codes_from_codelist_tree <-
     selected_codes[keep]
   }
 
-
+#Identifies the root nodes of a flattened SWS codelist tree, preferring virtual roots when available.
 get_sws_tree_root_codes_from_codelist_tree <- function(tree_dt, codes = NULL) {
   tree_dt <- as.data.table(tree_dt)
   id_cols <- get_tree_id_cols(tree_dt)
@@ -1786,7 +1792,7 @@ get_sws_tree_root_codes_from_codelist_tree <- function(tree_dt, codes = NULL) {
   root_codes
 }
 
-
+#Builds the nested hierarchy displayed in the app from the flattened SWS codelist tree.
 build_sws_codelist_tree_from_codelist_tree <- function(
     tree_dt,
     codes,
@@ -1932,7 +1938,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
 
 
 
-
+#Creates a child-to-parent lookup table from the codelist hierarchy for efficient ancestor searches.
 make_parent_lookup <- function(codes) {
   codes <- as.data.table(codes)
   codes[, id := as.character(id)]
@@ -1963,7 +1969,7 @@ make_parent_lookup <- function(codes) {
   out
 }
 
-
+#Retrieve all ancestor codes of a selected code using the parent lookup table.
 get_ancestors_fast <- function(code, parent_lookup) {
   code <- as.character(code)
   
@@ -1993,7 +1999,7 @@ get_ancestors_fast <- function(code, parent_lookup) {
   unique(out)
 }
 
-
+#Keep only the highest selected hierarchy nodes when both a parent and one of its descendants are selected.
 keep_top_selected_codes <- function(selected_codes, codes) {
   selected_codes <- unique(as.character(selected_codes))
   selected_codes <- selected_codes[!is.na(selected_codes) & nzchar(selected_codes)]
@@ -2026,7 +2032,8 @@ keep_top_selected_codes <- function(selected_codes, codes) {
   selected_codes[keep]
 }
 
-
+#Read the selected tree nodes, convert them to codes, 
+#apply the requested selection rule, and optionally include descendants.
 get_selected_codes_from_tree <- function(
     tree_input,
     codes = NULL,
@@ -2126,7 +2133,7 @@ get_selected_codes_from_tree <- function(
   selected_codes
 }
 
-
+#Retrieve the selected root and its descendants, keeping only codes that represent aggregate groups with children.
 get_aggregate_codes_under_root <- function(codes, root_code) {
   codes <- as.data.table(codes)
   root_code <- as.character(root_code)
@@ -2144,7 +2151,8 @@ get_aggregate_codes_under_root <- function(codes, root_code) {
   aggregate_codes[]
 }
 
-
+#Create direct-child aggregation groups for the selected hierarchy parents 
+#and assign categories outside those groups to the corresponding Other output.
 build_classification_map_with_remainder <- function(
     tree_dt,
     selected_parents,
@@ -2347,7 +2355,8 @@ build_classification_map_with_remainder <- function(
 
 
 
-
+#Create the mapping that assigns each code under 
+#a selected parent to one of its direct-child groups and check for overlaps.
 build_direct_child_aggregation_map <- function(
     tree_dt,
     root_code,
@@ -2579,7 +2588,8 @@ build_direct_child_aggregation_map <- function(
   aggregation_map[]
 }
 
-
+#Create separate aggregation groups from the selected hierarchy groups, 
+#including the codes contained in each selected branch.
 build_selected_groups_aggregation_map <- function(
     tree_dt,
     selected_codes,
@@ -2662,7 +2672,7 @@ build_selected_groups_aggregation_map <- function(
   aggregation_map[]
 }
 
-
+#Combine the selected hierarchy nodes and their branches into one custom aggregation group.
 build_custom_aggregation_map <- function(
     tree_dt,
     selected_codes,
@@ -2719,7 +2729,7 @@ build_custom_aggregation_map <- function(
   )
 }
 
-
+#Create outputs for the selected filter groups and assign all remaining filtered categories to the Other group.
 build_selected_groups_map_with_remainder <- function(
     tree_dt,
     selected_codes,
@@ -2783,7 +2793,7 @@ build_selected_groups_map_with_remainder <- function(
   )
 }
 
-
+#Create the custom aggregation group and assign all remaining filtered categories to the Other group.
 build_custom_map_with_remainder <- function(
     tree_dt,
     selected_codes,
@@ -2857,7 +2867,8 @@ build_custom_map_with_remainder <- function(
   )
 }
 
-
+#Aggregate one dimension according to the aggregation map, 
+#sum values, and calculate the resulting observation and method flags.
 aggregate_by_codelist <- function(
     data,
     key_dim_name,
@@ -3220,7 +3231,7 @@ aggregate_by_codelist <- function(
   out[]
 }
 
-
+#Aggregate records separately by observation flag while preserving the flag categories in the output.
 aggregate_rows_by_observation_flag <- function(
     data,
     value_col = "Value",
@@ -3420,7 +3431,7 @@ aggregate_rows_by_observation_flag <- function(
   out[]
 }
 
-
+#Restrict the dataset to the selected inclusive year range.
 filter_data_by_year <- function(data,
                                 year_range = NULL,
                                 year_col = "timePointYears") {
@@ -3446,6 +3457,7 @@ filter_data_by_year <- function(data,
   dt[]
 }
 
+#Restrict the dataset to the selected measured elements.
 filter_data_by_measured_element <- function(data,
                                             measured_elements = NULL,
                                             measured_element_col = "measuredElement") {
@@ -3466,7 +3478,7 @@ filter_data_by_measured_element <- function(data,
   ]
 }
 
-
+#Restrict a dataset column to the selected values.
 filter_data_by_selected_values <- function(data,
                                            selected_values = NULL,
                                            column_name = NULL) {
@@ -3487,6 +3499,8 @@ filter_data_by_selected_values <- function(data,
   ]
 }
 
+#Apply the selected aggregation rules across multiple dimensions and 
+#optionally aggregate years or group separately by observation flag.
 aggregate_by_multiple_dimensions <- function(
     data,
     aggregation_specs,
@@ -3650,6 +3664,8 @@ aggregate_by_multiple_dimensions <- function(
   dt[]
 }
 
+
+#Extract the distinct available years from the dataset and return them in sorted order.
 get_year_values <- function(data, year_col = "timePointYears") {
   dt <- copy(data)
   
@@ -3664,7 +3680,7 @@ get_year_values <- function(data, year_col = "timePointYears") {
   years
 }
 
-
+#Calculate the total value and number of records for each year or aggregated period.
 summarise_total_by_year <- function(
     data,
     year_col = "timePointYears",
@@ -3724,14 +3740,14 @@ summarise_total_by_year <- function(
   out[]
 }
 
-
+#Standardize year or period labels and convert empty values to missing values.
 normalise_period_label <- function(x) {
   out <- trimws(as.character(x))
   out[is.na(out) | !nzchar(out)] <- NA_character_
   out
 }
 
-
+#Extract the starting numeric year from a year or period label for ordering purposes.
 period_start_value <- function(x) {
   suppressWarnings(
     as.numeric(
@@ -3745,7 +3761,7 @@ period_start_value <- function(x) {
 }
 
 
-
+#Calculate total values and record counts by year and measured element.
 summarise_total_by_year_and_element <- function(data,
                                                 year_col = "timePointYears",
                                                 value_col = "Value",
@@ -3787,7 +3803,7 @@ summarise_total_by_year_and_element <- function(data,
   ][order(measured_element, year)]
 }
 
-
+#Calculate yearly totals for each component defined by the aggregation map.
 summarise_composition_by_year <- function(
     data,
     aggregation_spec,
@@ -3907,7 +3923,7 @@ summarise_composition_by_year <- function(
   composition[]
 }
 
-
+#Keep the largest categories and combine all remaining categories into Other.
 collapse_top_categories <- function(plot_data,
                                     top_n = 10,
                                     category_col = "category",
@@ -3953,7 +3969,7 @@ collapse_top_categories <- function(plot_data,
 }
 
 
-
+#Restrict the data according to the aggregation settings of all dimensions except the selected one.
 filter_data_to_other_aggregation_context <- function(data,
                                                      aggregation_specs,
                                                      selected_dim_id) {
@@ -3984,6 +4000,8 @@ filter_data_to_other_aggregation_context <- function(data,
   dt[]
 }
 
+#Prepare treemap values for a selected year, keep the largest components, 
+#group the rest as Other, and calculate their shares.
 prepare_treemap_data <- function(composition,
                                  selected_year,
                                  top_n = 15) {
@@ -4866,7 +4884,7 @@ drop_expired_codelist_codes <- function(codes) {
   codes[]
 }
 
-
+#Remove hierarchy paths containing expired codelist codes.
 drop_expired_codes_from_codelist_tree <- function(tree_dt, active_codes) {
   tree_dt <- as.data.table(tree_dt)
   active_codes <- as.data.table(active_codes)
@@ -4913,13 +4931,13 @@ CODELISTS_WITH_ALL_ROOT <- c(
 SYNTHETIC_ALL_ROOT_ID <- "__ALL__"
 SYNTHETIC_EXPIRED_ROOTS_ID <- "__EXPIRED_ROOTS__"
 
-
+#Check whether a codelist uses the additional synthetic All hierarchy root.
 uses_augmented_all_root <- function(codelist_id) {
   as.character(codelist_id) %in%
     CODELISTS_WITH_ALL_ROOT
 }
 
-
+#Retrieve the original top-level codes from a codelist tree.
 get_original_tree_roots <- function(tree_dt) {
   
   tree_dt <- as.data.table(tree_dt)
@@ -4947,7 +4965,7 @@ get_original_tree_roots <- function(tree_dt) {
   )
 }
 
-
+#Separate the original hierarchy roots into current and expired roots.
 get_current_and_expired_tree_roots <- function(
     tree_dt,
     codes
@@ -4987,7 +5005,7 @@ get_current_and_expired_tree_roots <- function(
   )
 }
 
-
+#Add one or more hierarchy levels before the existing levels of a codelist tree.
 prepend_tree_levels <- function(
     tree_dt,
     prefix_codes
@@ -5057,7 +5075,7 @@ prepend_tree_levels <- function(
   out[]
 }
 
-
+#Add synthetic All and Expired roots entries to a codelist.
 add_synthetic_all_codes <- function(codes) {
   
   codes <- copy(as.data.table(codes))
@@ -5108,7 +5126,7 @@ add_synthetic_all_codes <- function(codes) {
   )
 }
 
-
+#Add an All branch to the hierarchy and place expired roots under All > Expired roots.
 add_all_and_expired_branches_to_tree <- function(
     tree_dt,
     codes
@@ -5180,7 +5198,7 @@ add_all_and_expired_branches_to_tree <- function(
   unique(out)
 }
 
-
+#Select the hierarchy roots to display according to the codelist, tree purpose, configured roots, and relevant codes.
 get_display_roots_for_tree <- function(
     codelist_id,
     configured_roots,
@@ -5418,7 +5436,7 @@ server <- function(input, output, session) {
     unique(roots)
   }
   
-  
+  #Retrieve and clean the configured roots associated with an aggregation dimension.
   get_configured_roots_for_dimension <- function(meta) {
     
     if (
@@ -5446,7 +5464,7 @@ server <- function(input, output, session) {
     
     roots
   }
-  
+  #Retrieve and cache codelist codes, removing expired codes when required.
   get_regular_codelist_codes <- function(codelist_id) {
     cache_id <- paste0("regular_codes__", codelist_id)
     
@@ -5477,7 +5495,7 @@ server <- function(input, output, session) {
     codelist_cache[[cache_id]]
   }
   
-  
+  #Retrieve and cache a codelist hierarchy, removing expired hierarchy paths when required.
   get_regular_codelist_tree_cached <- function(codelist_id) {
     cache_id <- paste0("regular_tree__", codelist_id)
     
@@ -5512,166 +5530,158 @@ server <- function(input, output, session) {
     codelist_tree_cache[[cache_id]]
   }
   
+  # #Retrieve the Economic Commission branch from the M49 hierarchy together with the codes needed to display it.
+  # get_m49_economic_commission_branch <- function() {
+  #   
+  #   tree_m49 <- as.data.table(
+  #     getCodelistTree("geographicAreaM49")
+  #   )
+  #   
+  #   codes_m49 <- as.data.table(
+  #     getCodelistInfo("geographicAreaM49")$codes
+  #   )
+  #   
+  #   codes_m49[, id := as.character(id)]
+  #   
+  #   id_cols <- get_tree_id_cols(tree_m49)
+  #   
+  #   if (length(id_cols) == 0) {
+  #     return(
+  #       list(
+  #         branch_tree = data.table(),
+  #         branch_codes = data.table()
+  #       )
+  #     )
+  #   }
+  #   
+  #   for (col_i in id_cols) {
+  #     tree_m49[, (col_i) := as.character(get(col_i))]
+  #   }
+  #   
+  #   branch_tree <- tree_m49[
+  #     as.character(level_1_id) == "ECC"
+  #   ]
+  #   
+  #   if (nrow(branch_tree) == 0) {
+  #     return(
+  #       list(
+  #         branch_tree = data.table(),
+  #         branch_codes = data.table()
+  #       )
+  #     )
+  #   }
+  #   
+  #   branch_tree <- unique(branch_tree)
+  #   
+  #   branch_ids <- unique(
+  #     as.character(
+  #       unlist(
+  #         branch_tree[, ..id_cols],
+  #         use.names = FALSE
+  #       )
+  #     )
+  #   )
+  #   
+  #   branch_ids <- branch_ids[
+  #     !is.na(branch_ids) &
+  #       nzchar(branch_ids)
+  #   ]
+  #   
+  #   branch_codes <- codes_m49[
+  #     id %in% branch_ids
+  #   ]
+  #   
+  #   missing_ids <- setdiff(branch_ids, branch_codes$id)
+  #   
+  #   if (length(missing_ids) > 0) {
+  #     
+  #     tree_labels <- rbindlist(
+  #       lapply(
+  #         id_cols,
+  #         function(id_col_i) {
+  #           label_col_i <- sub("_id$", "_label", id_col_i)
+  #           
+  #           data.table(
+  #             id = as.character(branch_tree[[id_col_i]]),
+  #             label_en = if (label_col_i %in% names(branch_tree)) {
+  #               as.character(branch_tree[[label_col_i]])
+  #             } else {
+  #               NA_character_
+  #             }
+  #           )
+  #         }
+  #       ),
+  #       fill = TRUE
+  #     )
+  #     
+  #     tree_labels <- tree_labels[
+  #       id %in% missing_ids
+  #     ]
+  #     
+  #     tree_labels <- tree_labels[
+  #       !is.na(id) & nzchar(id)
+  #     ]
+  #     
+  #     tree_labels <- unique(tree_labels, by = "id")
+  #     
+  #     tree_labels[
+  #       is.na(label_en) | !nzchar(label_en),
+  #       label_en := id
+  #     ]
+  #     
+  #     branch_codes <- rbindlist(
+  #       list(
+  #         branch_codes,
+  #         tree_labels
+  #       ),
+  #       fill = TRUE
+  #     )
+  #   }
+  #   
+  #   branch_codes <- unique(branch_codes, by = "id")
+  #   
+  #   if (!"display_id" %in% names(branch_codes)) {
+  #     branch_codes[, display_id := NA_character_]
+  #   }
+  #   
+  #   if ("order" %in% names(branch_codes)) {
+  #     branch_codes[
+  #       id == "ECC" & !is.na(order),
+  #       display_id := as.character(order)
+  #     ]
+  #     
+  #     branch_codes[
+  #       id == "ECC",
+  #       order := NA_real_
+  #     ]
+  #   }
+  #   
+  #   branch_codes[
+  #     id == "ECC" & (is.na(display_id) | !nzchar(display_id)),
+  #     display_id := id
+  #   ]
+  #   
+  #   list(
+  #     branch_tree = branch_tree,
+  #     branch_codes = branch_codes
+  #   )
+  # }
   
-  get_m49_economic_commission_branch <- function() {
-    
-    tree_m49 <- as.data.table(
-      getCodelistTree("geographicAreaM49")
-    )
-    
-    codes_m49 <- as.data.table(
-      getCodelistInfo("geographicAreaM49")$codes
-    )
-    
-    codes_m49[, id := as.character(id)]
-    
-    id_cols <- get_tree_id_cols(tree_m49)
-    
-    if (length(id_cols) == 0) {
-      return(
-        list(
-          branch_tree = data.table(),
-          branch_codes = data.table()
-        )
-      )
-    }
-    
-    for (col_i in id_cols) {
-      tree_m49[, (col_i) := as.character(get(col_i))]
-    }
-    
-    branch_tree <- tree_m49[
-      as.character(level_1_id) == "ECC"
-    ]
-    
-    if (nrow(branch_tree) == 0) {
-      return(
-        list(
-          branch_tree = data.table(),
-          branch_codes = data.table()
-        )
-      )
-    }
-    
-    branch_tree <- unique(branch_tree)
-    
-    branch_ids <- unique(
-      as.character(
-        unlist(
-          branch_tree[, ..id_cols],
-          use.names = FALSE
-        )
-      )
-    )
-    
-    branch_ids <- branch_ids[
-      !is.na(branch_ids) &
-        nzchar(branch_ids)
-    ]
-    
-    branch_codes <- codes_m49[
-      id %in% branch_ids
-    ]
-    
-    missing_ids <- setdiff(branch_ids, branch_codes$id)
-    
-    if (length(missing_ids) > 0) {
-      
-      tree_labels <- rbindlist(
-        lapply(
-          id_cols,
-          function(id_col_i) {
-            label_col_i <- sub("_id$", "_label", id_col_i)
-            
-            data.table(
-              id = as.character(branch_tree[[id_col_i]]),
-              label_en = if (label_col_i %in% names(branch_tree)) {
-                as.character(branch_tree[[label_col_i]])
-              } else {
-                NA_character_
-              }
-            )
-          }
-        ),
-        fill = TRUE
-      )
-      
-      tree_labels <- tree_labels[
-        id %in% missing_ids
-      ]
-      
-      tree_labels <- tree_labels[
-        !is.na(id) & nzchar(id)
-      ]
-      
-      tree_labels <- unique(tree_labels, by = "id")
-      
-      tree_labels[
-        is.na(label_en) | !nzchar(label_en),
-        label_en := id
-      ]
-      
-      branch_codes <- rbindlist(
-        list(
-          branch_codes,
-          tree_labels
-        ),
-        fill = TRUE
-      )
-    }
-    
-    branch_codes <- unique(branch_codes, by = "id")
-    
-    if (!"display_id" %in% names(branch_codes)) {
-      branch_codes[, display_id := NA_character_]
-    }
-    
-    if ("order" %in% names(branch_codes)) {
-      branch_codes[
-        id == "ECC" & !is.na(order),
-        display_id := as.character(order)
-      ]
-      
-      branch_codes[
-        id == "ECC",
-        order := NA_real_
-      ]
-    }
-    
-    branch_codes[
-      id == "ECC" & (is.na(display_id) | !nzchar(display_id)),
-      display_id := id
-    ]
-    
-    list(
-      branch_tree = branch_tree,
-      branch_codes = branch_codes
-    )
-  }
-  
-  
+  #Retrieve the codelist codes used by the app, adding synthetic hierarchy codes 
+  #or the M49 Economic Commission branch when required.
   get_codelist_codes <- function(codelist_id) {
-    if (
-      uses_augmented_all_root(
-        codelist_id
-      )
-    ) {
+    
+    if (uses_augmented_all_root(codelist_id)) {
       
       cache_id <- paste0(
         "augmented_codes__current_roots_plus_all__",
         codelist_id
       )
       
-      if (
-        is.null(
-          codelist_cache[[cache_id]]
-        )
-      ) {
+      if (is.null(codelist_cache[[cache_id]])) {
         
         original_codes <- copy(
-          get_regular_codelist_codes(
-            codelist_id
-          )
+          get_regular_codelist_codes(codelist_id)
         )
         
         out <- add_synthetic_all_codes(
@@ -5686,80 +5696,33 @@ server <- function(input, output, session) {
       )
     }
     
-    if (identical(codelist_id, "geographicAreaM49_fi")) {
-      
-      cache_id <- "augmented_codes__geographicAreaM49_fi_plus_economic_commissions"
-      
-      if (is.null(codelist_cache[[cache_id]])) {
-        
-        codes_fi <- copy(
-          get_regular_codelist_codes("geographicAreaM49_fi")
-        )
-        
-        codes_fi[, id := as.character(id)]
-        
-        branch <- get_m49_economic_commission_branch()
-        
-        out <- rbindlist(
-          list(
-            codes_fi,
-            branch$branch_codes
-          ),
-          fill = TRUE
-        )
-        
-        out <- unique(out, by = "id")
-        
-        if ("virtual" %in% names(out)) {
-          out[id %in% branch$branch_codes$id, virtual := NA_character_]
-        }
-        
-        codelist_cache[[cache_id]] <- out
-      }
-      
-      return(codelist_cache[[cache_id]])
-    }
-    
     get_regular_codelist_codes(codelist_id)
   }
   
-  
+  #Retrieve the hierarchy used by the app, adding synthetic branches 
   get_codelist_tree_cached <- function(codelist_id) {
     
-    if (
-      uses_augmented_all_root(
-        codelist_id
-      )
-    ) {
+    if (uses_augmented_all_root(codelist_id)) {
       
       cache_id <- paste0(
         "augmented_tree__current_roots_plus_all__",
         codelist_id
       )
       
-      if (
-        is.null(
-          codelist_tree_cache[[cache_id]]
-        )
-      ) {
+      if (is.null(codelist_tree_cache[[cache_id]])) {
         
         original_tree <- copy(
-          get_regular_codelist_tree_cached(
-            codelist_id
-          )
+          get_regular_codelist_tree_cached(codelist_id)
         )
         
         original_codes <- copy(
-          get_regular_codelist_codes(
-            codelist_id
-          )
+          get_regular_codelist_codes(codelist_id)
         )
         
-        out <-
-          add_all_and_expired_branches_to_tree(
-            tree_dt = original_tree,
-            codes = original_codes
-          )
+        out <- add_all_and_expired_branches_to_tree(
+          tree_dt = original_tree,
+          codes = original_codes
+        )
         
         codelist_tree_cache[[cache_id]] <- out
       }
@@ -5769,37 +5732,10 @@ server <- function(input, output, session) {
       )
     }
     
-    if (identical(codelist_id, "geographicAreaM49_fi")) {
-      
-      cache_id <- "augmented_tree__geographicAreaM49_fi_plus_economic_commissions"
-      
-      if (is.null(codelist_tree_cache[[cache_id]])) {
-        
-        tree_fi <- copy(
-          get_regular_codelist_tree_cached("geographicAreaM49_fi")
-        )
-        
-        branch <- get_m49_economic_commission_branch()
-        
-        out <- rbindlist(
-          list(
-            tree_fi,
-            branch$branch_tree
-          ),
-          fill = TRUE
-        )
-        
-        out <- unique(out)
-        
-        codelist_tree_cache[[cache_id]] <- out
-      }
-      
-      return(codelist_tree_cache[[cache_id]])
-    }
-    
     get_regular_codelist_tree_cached(codelist_id)
   }
   
+  #Restrict dataset records to codes allowed by the configured codelist hierarchies and dataset roots.
   restrict_to_active_configured_codes <- function(
     data,
     dataset_info
@@ -5953,6 +5889,7 @@ server <- function(input, output, session) {
     dt[]
   }
   
+  #Build the available top-level aggregation choices from the roots configured for the selected dataset dimension.
   get_aggregation_root_choices <- function(meta) {
     
     if (
@@ -6037,7 +5974,7 @@ server <- function(input, output, session) {
     )
   }
   
-  
+  #Build the available direct-child choices for a selected aggregation parent.
   get_aggregation_child_choices <- function(
     meta,
     parent_code
@@ -6113,6 +6050,7 @@ server <- function(input, output, session) {
     )
   }
   
+  #Retrieve available tagged datasets and create their display labels using the tag name, ID, and release date.
   get_tagged_dataset_choices <- function(dataset_id) {
     if (is.null(dataset_id) || !nzchar(dataset_id)) {
       return(character(0))
