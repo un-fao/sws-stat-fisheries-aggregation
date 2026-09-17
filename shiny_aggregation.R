@@ -5530,158 +5530,167 @@ server <- function(input, output, session) {
     codelist_tree_cache[[cache_id]]
   }
   
-  # #Retrieve the Economic Commission branch from the M49 hierarchy together with the codes needed to display it.
-  # get_m49_economic_commission_branch <- function() {
-  #   
-  #   tree_m49 <- as.data.table(
-  #     getCodelistTree("geographicAreaM49")
-  #   )
-  #   
-  #   codes_m49 <- as.data.table(
-  #     getCodelistInfo("geographicAreaM49")$codes
-  #   )
-  #   
-  #   codes_m49[, id := as.character(id)]
-  #   
-  #   id_cols <- get_tree_id_cols(tree_m49)
-  #   
-  #   if (length(id_cols) == 0) {
-  #     return(
-  #       list(
-  #         branch_tree = data.table(),
-  #         branch_codes = data.table()
-  #       )
-  #     )
-  #   }
-  #   
-  #   for (col_i in id_cols) {
-  #     tree_m49[, (col_i) := as.character(get(col_i))]
-  #   }
-  #   
-  #   branch_tree <- tree_m49[
-  #     as.character(level_1_id) == "ECC"
-  #   ]
-  #   
-  #   if (nrow(branch_tree) == 0) {
-  #     return(
-  #       list(
-  #         branch_tree = data.table(),
-  #         branch_codes = data.table()
-  #       )
-  #     )
-  #   }
-  #   
-  #   branch_tree <- unique(branch_tree)
-  #   
-  #   branch_ids <- unique(
-  #     as.character(
-  #       unlist(
-  #         branch_tree[, ..id_cols],
-  #         use.names = FALSE
-  #       )
-  #     )
-  #   )
-  #   
-  #   branch_ids <- branch_ids[
-  #     !is.na(branch_ids) &
-  #       nzchar(branch_ids)
-  #   ]
-  #   
-  #   branch_codes <- codes_m49[
-  #     id %in% branch_ids
-  #   ]
-  #   
-  #   missing_ids <- setdiff(branch_ids, branch_codes$id)
-  #   
-  #   if (length(missing_ids) > 0) {
-  #     
-  #     tree_labels <- rbindlist(
-  #       lapply(
-  #         id_cols,
-  #         function(id_col_i) {
-  #           label_col_i <- sub("_id$", "_label", id_col_i)
-  #           
-  #           data.table(
-  #             id = as.character(branch_tree[[id_col_i]]),
-  #             label_en = if (label_col_i %in% names(branch_tree)) {
-  #               as.character(branch_tree[[label_col_i]])
-  #             } else {
-  #               NA_character_
-  #             }
-  #           )
-  #         }
-  #       ),
-  #       fill = TRUE
-  #     )
-  #     
-  #     tree_labels <- tree_labels[
-  #       id %in% missing_ids
-  #     ]
-  #     
-  #     tree_labels <- tree_labels[
-  #       !is.na(id) & nzchar(id)
-  #     ]
-  #     
-  #     tree_labels <- unique(tree_labels, by = "id")
-  #     
-  #     tree_labels[
-  #       is.na(label_en) | !nzchar(label_en),
-  #       label_en := id
-  #     ]
-  #     
-  #     branch_codes <- rbindlist(
-  #       list(
-  #         branch_codes,
-  #         tree_labels
-  #       ),
-  #       fill = TRUE
-  #     )
-  #   }
-  #   
-  #   branch_codes <- unique(branch_codes, by = "id")
-  #   
-  #   if (!"display_id" %in% names(branch_codes)) {
-  #     branch_codes[, display_id := NA_character_]
-  #   }
-  #   
-  #   if ("order" %in% names(branch_codes)) {
-  #     branch_codes[
-  #       id == "ECC" & !is.na(order),
-  #       display_id := as.character(order)
-  #     ]
-  #     
-  #     branch_codes[
-  #       id == "ECC",
-  #       order := NA_real_
-  #     ]
-  #   }
-  #   
-  #   branch_codes[
-  #     id == "ECC" & (is.na(display_id) | !nzchar(display_id)),
-  #     display_id := id
-  #   ]
-  #   
-  #   list(
-  #     branch_tree = branch_tree,
-  #     branch_codes = branch_codes
-  #   )
-  # }
+  #Retrieve the Economic Commission branch from the M49 hierarchy together with the codes needed to display it.
+  get_m49_economic_commission_branch <- function() {
+    
+    tree_m49 <- as.data.table(
+      getCodelistTree("geographicAreaM49")
+    )
+    
+    codes_m49 <- as.data.table(
+      getCodelistInfo("geographicAreaM49")$codes
+    )
+    
+    codes_m49[, id := as.character(id)]
+    
+    id_cols <- get_tree_id_cols(tree_m49)
+    
+    if (length(id_cols) == 0) {
+      return(
+        list(
+          branch_tree = data.table(),
+          branch_codes = data.table()
+        )
+      )
+    }
+    
+    for (col_i in id_cols) {
+      tree_m49[, (col_i) := as.character(get(col_i))]
+    }
+    
+    branch_tree <- tree_m49[
+      as.character(level_1_id) == "ECC"
+    ]
+    
+    if (nrow(branch_tree) == 0) {
+      return(
+        list(
+          branch_tree = data.table(),
+          branch_codes = data.table()
+        )
+      )
+    }
+    
+    branch_tree <- unique(branch_tree)
+    
+    branch_ids <- unique(
+      as.character(
+        unlist(
+          branch_tree[, ..id_cols],
+          use.names = FALSE
+        )
+      )
+    )
+    
+    branch_ids <- branch_ids[
+      !is.na(branch_ids) &
+        nzchar(branch_ids)
+    ]
+    
+    branch_codes <- codes_m49[
+      id %in% branch_ids
+    ]
+    
+    missing_ids <- setdiff(branch_ids, branch_codes$id)
+    
+    if (length(missing_ids) > 0) {
+      
+      tree_labels <- rbindlist(
+        lapply(
+          id_cols,
+          function(id_col_i) {
+            label_col_i <- sub("_id$", "_label", id_col_i)
+            
+            data.table(
+              id = as.character(branch_tree[[id_col_i]]),
+              label_en = if (label_col_i %in% names(branch_tree)) {
+                as.character(branch_tree[[label_col_i]])
+              } else {
+                NA_character_
+              }
+            )
+          }
+        ),
+        fill = TRUE
+      )
+      
+      tree_labels <- tree_labels[
+        id %in% missing_ids
+      ]
+      
+      tree_labels <- tree_labels[
+        !is.na(id) & nzchar(id)
+      ]
+      
+      tree_labels <- unique(tree_labels, by = "id")
+      
+      tree_labels[
+        is.na(label_en) | !nzchar(label_en),
+        label_en := id
+      ]
+      
+      branch_codes <- rbindlist(
+        list(
+          branch_codes,
+          tree_labels
+        ),
+        fill = TRUE
+      )
+    }
+    
+    branch_codes <- unique(branch_codes, by = "id")
+    
+    if (!"display_id" %in% names(branch_codes)) {
+      branch_codes[, display_id := NA_character_]
+    }
+    
+    if ("order" %in% names(branch_codes)) {
+      branch_codes[
+        id == "ECC" & !is.na(order),
+        display_id := as.character(order)
+      ]
+      
+      branch_codes[
+        id == "ECC",
+        order := NA_real_
+      ]
+    }
+    
+    branch_codes[
+      id == "ECC" & (is.na(display_id) | !nzchar(display_id)),
+      display_id := id
+    ]
+    
+    list(
+      branch_tree = branch_tree,
+      branch_codes = branch_codes
+    )
+  }
   
   #Retrieve the codelist codes used by the app, adding synthetic hierarchy codes 
   #or the M49 Economic Commission branch when required.
   get_codelist_codes <- function(codelist_id) {
-    
-    if (uses_augmented_all_root(codelist_id)) {
+    if (
+      uses_augmented_all_root(
+        codelist_id
+      )
+    ) {
       
       cache_id <- paste0(
         "augmented_codes__current_roots_plus_all__",
         codelist_id
       )
       
-      if (is.null(codelist_cache[[cache_id]])) {
+      if (
+        is.null(
+          codelist_cache[[cache_id]]
+        )
+      ) {
         
         original_codes <- copy(
-          get_regular_codelist_codes(codelist_id)
+          get_regular_codelist_codes(
+            codelist_id
+          )
         )
         
         out <- add_synthetic_all_codes(
@@ -5696,33 +5705,80 @@ server <- function(input, output, session) {
       )
     }
     
+    if (identical(codelist_id, "geographicAreaM49_fi")) {
+      
+      cache_id <- "augmented_codes__geographicAreaM49_fi_plus_economic_commissions"
+      
+      if (is.null(codelist_cache[[cache_id]])) {
+        
+        codes_fi <- copy(
+          get_regular_codelist_codes("geographicAreaM49_fi")
+        )
+        
+        codes_fi[, id := as.character(id)]
+        
+        branch <- get_m49_economic_commission_branch()
+        
+        out <- rbindlist(
+          list(
+            codes_fi,
+            branch$branch_codes
+          ),
+          fill = TRUE
+        )
+        
+        out <- unique(out, by = "id")
+        
+        if ("virtual" %in% names(out)) {
+          out[id %in% branch$branch_codes$id, virtual := NA_character_]
+        }
+        
+        codelist_cache[[cache_id]] <- out
+      }
+      
+      return(codelist_cache[[cache_id]])
+    }
+    
     get_regular_codelist_codes(codelist_id)
   }
   
-  #Retrieve the hierarchy used by the app, adding synthetic branches 
+  #Retrieve the hierarchy used by the app, adding synthetic branches or the M49 Economic Commission branch when required.
   get_codelist_tree_cached <- function(codelist_id) {
     
-    if (uses_augmented_all_root(codelist_id)) {
+    if (
+      uses_augmented_all_root(
+        codelist_id
+      )
+    ) {
       
       cache_id <- paste0(
         "augmented_tree__current_roots_plus_all__",
         codelist_id
       )
       
-      if (is.null(codelist_tree_cache[[cache_id]])) {
+      if (
+        is.null(
+          codelist_tree_cache[[cache_id]]
+        )
+      ) {
         
         original_tree <- copy(
-          get_regular_codelist_tree_cached(codelist_id)
+          get_regular_codelist_tree_cached(
+            codelist_id
+          )
         )
         
         original_codes <- copy(
-          get_regular_codelist_codes(codelist_id)
+          get_regular_codelist_codes(
+            codelist_id
+          )
         )
         
-        out <- add_all_and_expired_branches_to_tree(
-          tree_dt = original_tree,
-          codes = original_codes
-        )
+        out <-
+          add_all_and_expired_branches_to_tree(
+            tree_dt = original_tree,
+            codes = original_codes
+          )
         
         codelist_tree_cache[[cache_id]] <- out
       }
@@ -5730,6 +5786,34 @@ server <- function(input, output, session) {
       return(
         codelist_tree_cache[[cache_id]]
       )
+    }
+    
+    if (identical(codelist_id, "geographicAreaM49_fi")) {
+      
+      cache_id <- "augmented_tree__geographicAreaM49_fi_plus_economic_commissions"
+      
+      if (is.null(codelist_tree_cache[[cache_id]])) {
+        
+        tree_fi <- copy(
+          get_regular_codelist_tree_cached("geographicAreaM49_fi")
+        )
+        
+        branch <- get_m49_economic_commission_branch()
+        
+        out <- rbindlist(
+          list(
+            tree_fi,
+            branch$branch_tree
+          ),
+          fill = TRUE
+        )
+        
+        out <- unique(out)
+        
+        codelist_tree_cache[[cache_id]] <- out
+      }
+      
+      return(codelist_tree_cache[[cache_id]])
     }
     
     get_regular_codelist_tree_cached(codelist_id)
