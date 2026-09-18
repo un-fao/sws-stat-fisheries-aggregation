@@ -1833,7 +1833,7 @@ This view helps identify which combinations of year, geographical area, species,
 
 When **Year-on-year absolute change** is selected, records are ordered according to the **absolute magnitude of the change**.
 
-![Largest records table](./images/largest_records_data.png){#fig-largest-records-data width="50%"}
+![Largest records table](./images/largest_records_data.png){#fig-largest-records-data width="100%"}
 
 This means that both large increases and large decreases can appear at the top of the table.
 
