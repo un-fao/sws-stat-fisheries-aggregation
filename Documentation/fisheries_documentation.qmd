@@ -43,34 +43,13 @@ The application supports the exploration, filtering, hierarchical aggregation, v
 
 The document has four main objectives:
   
-  1. Explain the application workflow from dataset loading to output download.
+1. Explain the application workflow from dataset loading to output download.
 2. Describe precisely how filters and aggregation modes affect the data.
 3. Document the methodological rules used to aggregate values and flags.
 4. Provide worked examples that can be used for testing and user training.
 5. Document the technical implementation of the application, including the structure of the R script, the location and organisation of the source-code repository, the trigger link used to launch the application, and the main information required for future maintenance and updates.
 
 
-# Documentation outline
-  
-The documentation is organized as follows:
-  
-1. Application purpose and scope.
-2. Shiny application architecture and dependencies.
-3. Supported datasets and dimensions.
-4. Data loading and preprocessing.
-5. Filtering methodology.
-6. Aggregation methodology.
-7. Interaction between filtering and aggregation.
-8. Output generation by measured element.
-9. Tables and downloads.
-10. Graphs and composition analysis.
-11. Dataset comparison.
-12. Outlier analysis.
-13. Validation and error handling.
-14. Worked examples.
-15. Current implementation constraints.
-16. Maintenance guidance.
-17. Glossary.
 
 # Application overview
 
