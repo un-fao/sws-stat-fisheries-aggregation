@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-09-17">
+<meta name="dcterms.date" content="2026-09-18">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -123,144 +123,143 @@ window.Quarto = {
    
   <ul>
   <li><a href="#document-purpose" id="toc-document-purpose" class="nav-link active" data-scroll-target="#document-purpose"><span class="header-section-number">1</span> Document purpose</a></li>
-  <li><a href="#documentation-outline" id="toc-documentation-outline" class="nav-link" data-scroll-target="#documentation-outline"><span class="header-section-number">2</span> Documentation outline</a></li>
-  <li><a href="#application-overview" id="toc-application-overview" class="nav-link" data-scroll-target="#application-overview"><span class="header-section-number">3</span> Application overview</a>
+  <li><a href="#application-overview" id="toc-application-overview" class="nav-link" data-scroll-target="#application-overview"><span class="header-section-number">2</span> Application overview</a>
   <ul>
-  <li><a href="#main-objective" id="toc-main-objective" class="nav-link" data-scroll-target="#main-objective"><span class="header-section-number">3.1</span> Main objective</a></li>
-  <li><a href="#conceptual-workflow" id="toc-conceptual-workflow" class="nav-link" data-scroll-target="#conceptual-workflow"><span class="header-section-number">3.2</span> Conceptual workflow</a></li>
-  <li><a href="#separation-between-filtering-and-aggregation" id="toc-separation-between-filtering-and-aggregation" class="nav-link" data-scroll-target="#separation-between-filtering-and-aggregation"><span class="header-section-number">3.3</span> Separation between filtering and aggregation</a></li>
+  <li><a href="#main-objective" id="toc-main-objective" class="nav-link" data-scroll-target="#main-objective"><span class="header-section-number">2.1</span> Main objective</a></li>
+  <li><a href="#conceptual-workflow" id="toc-conceptual-workflow" class="nav-link" data-scroll-target="#conceptual-workflow"><span class="header-section-number">2.2</span> Conceptual workflow</a></li>
+  <li><a href="#separation-between-filtering-and-aggregation" id="toc-separation-between-filtering-and-aggregation" class="nav-link" data-scroll-target="#separation-between-filtering-and-aggregation"><span class="header-section-number">2.3</span> Separation between filtering and aggregation</a></li>
   </ul></li>
-  <li><a href="#application-architecture" id="toc-application-architecture" class="nav-link" data-scroll-target="#application-architecture"><span class="header-section-number">4</span> Application architecture</a></li>
-  <li><a href="#supported-datasets" id="toc-supported-datasets" class="nav-link" data-scroll-target="#supported-datasets"><span class="header-section-number">5</span> Supported datasets</a>
+  <li><a href="#application-architecture" id="toc-application-architecture" class="nav-link" data-scroll-target="#application-architecture"><span class="header-section-number">3</span> Application architecture</a></li>
+  <li><a href="#supported-datasets" id="toc-supported-datasets" class="nav-link" data-scroll-target="#supported-datasets"><span class="header-section-number">4</span> Supported datasets</a>
   <ul>
-  <li><a href="#dataset-registry" id="toc-dataset-registry" class="nav-link" data-scroll-target="#dataset-registry"><span class="header-section-number">5.1</span> Dataset registry</a></li>
-  <li><a href="#dataset-groups" id="toc-dataset-groups" class="nav-link" data-scroll-target="#dataset-groups"><span class="header-section-number">5.2</span> Dataset groups</a></li>
+  <li><a href="#dataset-registry" id="toc-dataset-registry" class="nav-link" data-scroll-target="#dataset-registry"><span class="header-section-number">4.1</span> Dataset registry</a></li>
+  <li><a href="#dataset-groups" id="toc-dataset-groups" class="nav-link" data-scroll-target="#dataset-groups"><span class="header-section-number">4.2</span> Dataset groups</a></li>
   </ul></li>
-  <li><a href="#dataset-structure" id="toc-dataset-structure" class="nav-link" data-scroll-target="#dataset-structure"><span class="header-section-number">6</span> Dataset structure</a>
+  <li><a href="#dataset-structure" id="toc-dataset-structure" class="nav-link" data-scroll-target="#dataset-structure"><span class="header-section-number">5</span> Dataset structure</a>
   <ul>
-  <li><a href="#common-columns" id="toc-common-columns" class="nav-link" data-scroll-target="#common-columns"><span class="header-section-number">6.1</span> Common columns</a></li>
-  <li><a href="#optional-columns" id="toc-optional-columns" class="nav-link" data-scroll-target="#optional-columns"><span class="header-section-number">6.2</span> Optional columns</a></li>
+  <li><a href="#common-columns" id="toc-common-columns" class="nav-link" data-scroll-target="#common-columns"><span class="header-section-number">5.1</span> Common columns</a></li>
+  <li><a href="#optional-columns" id="toc-optional-columns" class="nav-link" data-scroll-target="#optional-columns"><span class="header-section-number">5.2</span> Optional columns</a></li>
   </ul></li>
-  <li><a href="#data-loading-and-preprocessing" id="toc-data-loading-and-preprocessing" class="nav-link" data-scroll-target="#data-loading-and-preprocessing"><span class="header-section-number">7</span> Data loading and preprocessing</a>
+  <li><a href="#data-loading-and-preprocessing" id="toc-data-loading-and-preprocessing" class="nav-link" data-scroll-target="#data-loading-and-preprocessing"><span class="header-section-number">6</span> Data loading and preprocessing</a>
   <ul>
-  <li><a href="#client-initialization-and-dataset-loading" id="toc-client-initialization-and-dataset-loading" class="nav-link" data-scroll-target="#client-initialization-and-dataset-loading"><span class="header-section-number">7.1</span> Client initialization and dataset loading</a></li>
-  <li><a href="#dataset-summary" id="toc-dataset-summary" class="nav-link" data-scroll-target="#dataset-summary"><span class="header-section-number">7.2</span> Dataset summary</a></li>
+  <li><a href="#client-initialization-and-dataset-loading" id="toc-client-initialization-and-dataset-loading" class="nav-link" data-scroll-target="#client-initialization-and-dataset-loading"><span class="header-section-number">6.1</span> Client initialization and dataset loading</a></li>
+  <li><a href="#dataset-summary" id="toc-dataset-summary" class="nav-link" data-scroll-target="#dataset-summary"><span class="header-section-number">6.2</span> Dataset summary</a></li>
   </ul></li>
-  <li><a href="#filtering-methodology" id="toc-filtering-methodology" class="nav-link" data-scroll-target="#filtering-methodology"><span class="header-section-number">8</span> Filtering methodology</a>
+  <li><a href="#filtering-methodology" id="toc-filtering-methodology" class="nav-link" data-scroll-target="#filtering-methodology"><span class="header-section-number">7</span> Filtering methodology</a>
   <ul>
-  <li><a href="#general-rule" id="toc-general-rule" class="nav-link" data-scroll-target="#general-rule"><span class="header-section-number">8.1</span> General rule</a></li>
-  <li><a href="#year-filter" id="toc-year-filter" class="nav-link" data-scroll-target="#year-filter"><span class="header-section-number">8.2</span> Year filter</a></li>
-  <li><a href="#measured-element-filter" id="toc-measured-element-filter" class="nav-link" data-scroll-target="#measured-element-filter"><span class="header-section-number">8.3</span> Measured-element filter</a></li>
-  <li><a href="#hierarchical-filters" id="toc-hierarchical-filters" class="nav-link" data-scroll-target="#hierarchical-filters"><span class="header-section-number">8.4</span> Hierarchical filters</a>
+  <li><a href="#general-rule" id="toc-general-rule" class="nav-link" data-scroll-target="#general-rule"><span class="header-section-number">7.1</span> General rule</a></li>
+  <li><a href="#year-filter" id="toc-year-filter" class="nav-link" data-scroll-target="#year-filter"><span class="header-section-number">7.2</span> Year filter</a></li>
+  <li><a href="#measured-element-filter" id="toc-measured-element-filter" class="nav-link" data-scroll-target="#measured-element-filter"><span class="header-section-number">7.3</span> Measured-element filter</a></li>
+  <li><a href="#hierarchical-filters" id="toc-hierarchical-filters" class="nav-link" data-scroll-target="#hierarchical-filters"><span class="header-section-number">7.4</span> Hierarchical filters</a>
   <ul class="collapse">
-  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">8.4.1</span> Example</a></li>
+  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">7.4.1</span> Example</a></li>
   </ul></li>
-  <li><a href="#most-specific-filter-selection-rule" id="toc-most-specific-filter-selection-rule" class="nav-link" data-scroll-target="#most-specific-filter-selection-rule"><span class="header-section-number">8.5</span> Most-specific filter-selection rule</a>
+  <li><a href="#most-specific-filter-selection-rule" id="toc-most-specific-filter-selection-rule" class="nav-link" data-scroll-target="#most-specific-filter-selection-rule"><span class="header-section-number">7.5</span> Most-specific filter-selection rule</a>
   <ul class="collapse">
-  <li><a href="#example-1" id="toc-example-1" class="nav-link" data-scroll-target="#example-1"><span class="header-section-number">8.5.1</span> Example</a></li>
+  <li><a href="#example-1" id="toc-example-1" class="nav-link" data-scroll-target="#example-1"><span class="header-section-number">7.5.1</span> Example</a></li>
   </ul></li>
-  <li><a href="#flat-filters" id="toc-flat-filters" class="nav-link" data-scroll-target="#flat-filters"><span class="header-section-number">8.6</span> Flat filters</a></li>
+  <li><a href="#flat-filters" id="toc-flat-filters" class="nav-link" data-scroll-target="#flat-filters"><span class="header-section-number">7.6</span> Flat filters</a></li>
   </ul></li>
-  <li><a href="#aggregation-methodology" id="toc-aggregation-methodology" class="nav-link" data-scroll-target="#aggregation-methodology"><span class="header-section-number">9</span> Aggregation methodology</a>
+  <li><a href="#aggregation-methodology" id="toc-aggregation-methodology" class="nav-link" data-scroll-target="#aggregation-methodology"><span class="header-section-number">8</span> Aggregation methodology</a>
   <ul>
-  <li><a href="#aggregation-dimensions" id="toc-aggregation-dimensions" class="nav-link" data-scroll-target="#aggregation-dimensions"><span class="header-section-number">9.1</span> Aggregation dimensions</a></li>
-  <li><a href="#aggregation-modes" id="toc-aggregation-modes" class="nav-link" data-scroll-target="#aggregation-modes"><span class="header-section-number">9.2</span> Aggregation modes</a>
+  <li><a href="#aggregation-dimensions" id="toc-aggregation-dimensions" class="nav-link" data-scroll-target="#aggregation-dimensions"><span class="header-section-number">8.1</span> Aggregation dimensions</a></li>
+  <li><a href="#aggregation-modes" id="toc-aggregation-modes" class="nav-link" data-scroll-target="#aggregation-modes"><span class="header-section-number">8.2</span> Aggregation modes</a>
   <ul class="collapse">
-  <li><a href="#mode-1-keep-filtered-codes-separate" id="toc-mode-1-keep-filtered-codes-separate" class="nav-link" data-scroll-target="#mode-1-keep-filtered-codes-separate"><span class="header-section-number">9.2.1</span> Mode 1: Keep filtered codes separate</a></li>
-  <li><a href="#mode-2-combine-all-filtered-values-into-one-output" id="toc-mode-2-combine-all-filtered-values-into-one-output" class="nav-link" data-scroll-target="#mode-2-combine-all-filtered-values-into-one-output"><span class="header-section-number">9.2.2</span> Mode 2: Combine all filtered values into one output</a></li>
-  <li><a href="#mode-3-aggregate-selected-filter-groups-separately" id="toc-mode-3-aggregate-selected-filter-groups-separately" class="nav-link" data-scroll-target="#mode-3-aggregate-selected-filter-groups-separately"><span class="header-section-number">9.2.3</span> Mode 3: Aggregate selected filter groups separately</a>
+  <li><a href="#mode-1-keep-filtered-codes-separate" id="toc-mode-1-keep-filtered-codes-separate" class="nav-link" data-scroll-target="#mode-1-keep-filtered-codes-separate"><span class="header-section-number">8.2.1</span> Mode 1: Keep filtered codes separate</a></li>
+  <li><a href="#mode-2-combine-all-filtered-values-into-one-output" id="toc-mode-2-combine-all-filtered-values-into-one-output" class="nav-link" data-scroll-target="#mode-2-combine-all-filtered-values-into-one-output"><span class="header-section-number">8.2.2</span> Mode 2: Combine all filtered values into one output</a></li>
+  <li><a href="#mode-3-aggregate-selected-filter-groups-separately" id="toc-mode-3-aggregate-selected-filter-groups-separately" class="nav-link" data-scroll-target="#mode-3-aggregate-selected-filter-groups-separately"><span class="header-section-number">8.2.3</span> Mode 3: Aggregate selected filter groups separately</a>
   <ul class="collapse">
-  <li><a href="#leaf-selection" id="toc-leaf-selection" class="nav-link" data-scroll-target="#leaf-selection"><span class="header-section-number">9.2.3.1</span> Leaf selection</a></li>
+  <li><a href="#leaf-selection" id="toc-leaf-selection" class="nav-link" data-scroll-target="#leaf-selection"><span class="header-section-number">8.2.3.1</span> Leaf selection</a></li>
   </ul></li>
-  <li><a href="#mode-4-aggregate-by-direct-children" id="toc-mode-4-aggregate-by-direct-children" class="nav-link" data-scroll-target="#mode-4-aggregate-by-direct-children"><span class="header-section-number">9.2.4</span> Mode 4: Aggregate by direct children</a>
+  <li><a href="#mode-4-aggregate-by-direct-children" id="toc-mode-4-aggregate-by-direct-children" class="nav-link" data-scroll-target="#mode-4-aggregate-by-direct-children"><span class="header-section-number">8.2.4</span> Mode 4: Aggregate by direct children</a>
   <ul class="collapse">
-  <li><a href="#filtering-through-one-classification-and-aggregating-through-another" id="toc-filtering-through-one-classification-and-aggregating-through-another" class="nav-link" data-scroll-target="#filtering-through-one-classification-and-aggregating-through-another"><span class="header-section-number">9.2.4.1</span> Filtering through one classification and aggregating through another</a></li>
-  <li><a href="#direct-child-parent-selection-rule" id="toc-direct-child-parent-selection-rule" class="nav-link" data-scroll-target="#direct-child-parent-selection-rule"><span class="header-section-number">9.2.4.2</span> Direct-child parent-selection rule</a></li>
-  <li><a href="#several-aggregation-parents" id="toc-several-aggregation-parents" class="nav-link" data-scroll-target="#several-aggregation-parents"><span class="header-section-number">9.2.4.3</span> Several aggregation parents</a></li>
-  <li><a href="#parent-whose-children-are-leaves" id="toc-parent-whose-children-are-leaves" class="nav-link" data-scroll-target="#parent-whose-children-are-leaves"><span class="header-section-number">9.2.4.4</span> Parent whose children are leaves</a></li>
-  <li><a href="#selecting-a-leaf-as-the-aggregation-parent" id="toc-selecting-a-leaf-as-the-aggregation-parent" class="nav-link" data-scroll-target="#selecting-a-leaf-as-the-aggregation-parent"><span class="header-section-number">9.2.4.5</span> Selecting a leaf as the aggregation parent</a></li>
-  <li><a href="#overlapping-direct-child-outputs" id="toc-overlapping-direct-child-outputs" class="nav-link" data-scroll-target="#overlapping-direct-child-outputs"><span class="header-section-number">9.2.4.6</span> Overlapping direct-child outputs</a></li>
+  <li><a href="#filtering-through-one-classification-and-aggregating-through-another" id="toc-filtering-through-one-classification-and-aggregating-through-another" class="nav-link" data-scroll-target="#filtering-through-one-classification-and-aggregating-through-another"><span class="header-section-number">8.2.4.1</span> Filtering through one classification and aggregating through another</a></li>
+  <li><a href="#direct-child-parent-selection-rule" id="toc-direct-child-parent-selection-rule" class="nav-link" data-scroll-target="#direct-child-parent-selection-rule"><span class="header-section-number">8.2.4.2</span> Direct-child parent-selection rule</a></li>
+  <li><a href="#several-aggregation-parents" id="toc-several-aggregation-parents" class="nav-link" data-scroll-target="#several-aggregation-parents"><span class="header-section-number">8.2.4.3</span> Several aggregation parents</a></li>
+  <li><a href="#parent-whose-children-are-leaves" id="toc-parent-whose-children-are-leaves" class="nav-link" data-scroll-target="#parent-whose-children-are-leaves"><span class="header-section-number">8.2.4.4</span> Parent whose children are leaves</a></li>
+  <li><a href="#selecting-a-leaf-as-the-aggregation-parent" id="toc-selecting-a-leaf-as-the-aggregation-parent" class="nav-link" data-scroll-target="#selecting-a-leaf-as-the-aggregation-parent"><span class="header-section-number">8.2.4.5</span> Selecting a leaf as the aggregation parent</a></li>
+  <li><a href="#overlapping-direct-child-outputs" id="toc-overlapping-direct-child-outputs" class="nav-link" data-scroll-target="#overlapping-direct-child-outputs"><span class="header-section-number">8.2.4.6</span> Overlapping direct-child outputs</a></li>
   </ul></li>
-  <li><a href="#mode-5-custom-aggregation" id="toc-mode-5-custom-aggregation" class="nav-link" data-scroll-target="#mode-5-custom-aggregation"><span class="header-section-number">9.2.5</span> Mode 5: Custom aggregation</a>
+  <li><a href="#mode-5-custom-aggregation" id="toc-mode-5-custom-aggregation" class="nav-link" data-scroll-target="#mode-5-custom-aggregation"><span class="header-section-number">8.2.5</span> Mode 5: Custom aggregation</a>
   <ul class="collapse">
-  <li><a href="#output-naming" id="toc-output-naming" class="nav-link" data-scroll-target="#output-naming"><span class="header-section-number">9.2.5.1</span> Output naming</a></li>
-  <li><a href="#parent-and-descendant-selected-together" id="toc-parent-and-descendant-selected-together" class="nav-link" data-scroll-target="#parent-and-descendant-selected-together"><span class="header-section-number">9.2.5.2</span> Parent and descendant selected together</a></li>
+  <li><a href="#output-naming" id="toc-output-naming" class="nav-link" data-scroll-target="#output-naming"><span class="header-section-number">8.2.5.1</span> Output naming</a></li>
+  <li><a href="#parent-and-descendant-selected-together" id="toc-parent-and-descendant-selected-together" class="nav-link" data-scroll-target="#parent-and-descendant-selected-together"><span class="header-section-number">8.2.5.2</span> Parent and descendant selected together</a></li>
   </ul></li>
   </ul></li>
   </ul></li>
-  <li><a href="#filtering-and-aggregation-are-independent" id="toc-filtering-and-aggregation-are-independent" class="nav-link" data-scroll-target="#filtering-and-aggregation-are-independent"><span class="header-section-number">10</span> Filtering and aggregation are independent</a>
+  <li><a href="#filtering-and-aggregation-are-independent" id="toc-filtering-and-aggregation-are-independent" class="nav-link" data-scroll-target="#filtering-and-aggregation-are-independent"><span class="header-section-number">9</span> Filtering and aggregation are independent</a>
   <ul>
-  <li><a href="#cross-classification-example" id="toc-cross-classification-example" class="nav-link" data-scroll-target="#cross-classification-example"><span class="header-section-number">10.1</span> Cross-classification example</a></li>
+  <li><a href="#cross-classification-example" id="toc-cross-classification-example" class="nav-link" data-scroll-target="#cross-classification-example"><span class="header-section-number">9.1</span> Cross-classification example</a></li>
   </ul></li>
-  <li><a href="#numerical-aggregation" id="toc-numerical-aggregation" class="nav-link" data-scroll-target="#numerical-aggregation"><span class="header-section-number">11</span> Numerical aggregation</a>
+  <li><a href="#numerical-aggregation" id="toc-numerical-aggregation" class="nav-link" data-scroll-target="#numerical-aggregation"><span class="header-section-number">10</span> Numerical aggregation</a>
   <ul>
-  <li><a href="#value-calculation" id="toc-value-calculation" class="nav-link" data-scroll-target="#value-calculation"><span class="header-section-number">11.1</span> Value calculation</a></li>
+  <li><a href="#value-calculation" id="toc-value-calculation" class="nav-link" data-scroll-target="#value-calculation"><span class="header-section-number">10.1</span> Value calculation</a></li>
   </ul></li>
-  <li><a href="#flag-aggregation" id="toc-flag-aggregation" class="nav-link" data-scroll-target="#flag-aggregation"><span class="header-section-number">12</span> Flag aggregation</a></li>
-  <li><a href="#year-aggregation" id="toc-year-aggregation" class="nav-link" data-scroll-target="#year-aggregation"><span class="header-section-number">13</span> Year aggregation</a></li>
-  <li><a href="#measured-element-processing" id="toc-measured-element-processing" class="nav-link" data-scroll-target="#measured-element-processing"><span class="header-section-number">14</span> Measured-element processing</a></li>
-  <li><a href="#aggregation-output-tables" id="toc-aggregation-output-tables" class="nav-link" data-scroll-target="#aggregation-output-tables"><span class="header-section-number">15</span> Aggregation output tables</a></li>
-  <li><a href="#graphs" id="toc-graphs" class="nav-link" data-scroll-target="#graphs"><span class="header-section-number">16</span> Graphs</a>
+  <li><a href="#flag-aggregation" id="toc-flag-aggregation" class="nav-link" data-scroll-target="#flag-aggregation"><span class="header-section-number">11</span> Flag aggregation</a></li>
+  <li><a href="#year-aggregation" id="toc-year-aggregation" class="nav-link" data-scroll-target="#year-aggregation"><span class="header-section-number">12</span> Year aggregation</a></li>
+  <li><a href="#measured-element-processing" id="toc-measured-element-processing" class="nav-link" data-scroll-target="#measured-element-processing"><span class="header-section-number">13</span> Measured-element processing</a></li>
+  <li><a href="#aggregation-output-tables" id="toc-aggregation-output-tables" class="nav-link" data-scroll-target="#aggregation-output-tables"><span class="header-section-number">14</span> Aggregation output tables</a></li>
+  <li><a href="#graphs" id="toc-graphs" class="nav-link" data-scroll-target="#graphs"><span class="header-section-number">15</span> Graphs</a>
   <ul>
-  <li><a href="#aggregated-total" id="toc-aggregated-total" class="nav-link" data-scroll-target="#aggregated-total"><span class="header-section-number">16.1</span> Aggregated total</a></li>
-  <li><a href="#categorize-by" id="toc-categorize-by" class="nav-link" data-scroll-target="#categorize-by"><span class="header-section-number">16.2</span> Categorize by</a>
+  <li><a href="#aggregated-total" id="toc-aggregated-total" class="nav-link" data-scroll-target="#aggregated-total"><span class="header-section-number">15.1</span> Aggregated total</a></li>
+  <li><a href="#categorize-by" id="toc-categorize-by" class="nav-link" data-scroll-target="#categorize-by"><span class="header-section-number">15.2</span> Categorize by</a>
   <ul class="collapse">
-  <li><a href="#aggregation-composition" id="toc-aggregation-composition" class="nav-link" data-scroll-target="#aggregation-composition"><span class="header-section-number">16.2.1</span> Aggregation composition</a></li>
-  <li><a href="#final-result-column" id="toc-final-result-column" class="nav-link" data-scroll-target="#final-result-column"><span class="header-section-number">16.2.2</span> Final result column</a></li>
+  <li><a href="#aggregation-composition" id="toc-aggregation-composition" class="nav-link" data-scroll-target="#aggregation-composition"><span class="header-section-number">15.2.1</span> Aggregation composition</a></li>
+  <li><a href="#final-result-column" id="toc-final-result-column" class="nav-link" data-scroll-target="#final-result-column"><span class="header-section-number">15.2.2</span> Final result column</a></li>
   </ul></li>
-  <li><a href="#stacked-bar-chart" id="toc-stacked-bar-chart" class="nav-link" data-scroll-target="#stacked-bar-chart"><span class="header-section-number">16.3</span> Stacked bar chart</a></li>
-  <li><a href="#relative-stacked-bar-chart" id="toc-relative-stacked-bar-chart" class="nav-link" data-scroll-target="#relative-stacked-bar-chart"><span class="header-section-number">16.4</span> Relative stacked bar chart</a></li>
-  <li><a href="#component-time-series" id="toc-component-time-series" class="nav-link" data-scroll-target="#component-time-series"><span class="header-section-number">16.5</span> Component time series</a></li>
-  <li><a href="#treemap" id="toc-treemap" class="nav-link" data-scroll-target="#treemap"><span class="header-section-number">16.6</span> Treemap</a></li>
+  <li><a href="#stacked-bar-chart" id="toc-stacked-bar-chart" class="nav-link" data-scroll-target="#stacked-bar-chart"><span class="header-section-number">15.3</span> Stacked bar chart</a></li>
+  <li><a href="#relative-stacked-bar-chart" id="toc-relative-stacked-bar-chart" class="nav-link" data-scroll-target="#relative-stacked-bar-chart"><span class="header-section-number">15.4</span> Relative stacked bar chart</a></li>
+  <li><a href="#component-time-series" id="toc-component-time-series" class="nav-link" data-scroll-target="#component-time-series"><span class="header-section-number">15.5</span> Component time series</a></li>
+  <li><a href="#treemap" id="toc-treemap" class="nav-link" data-scroll-target="#treemap"><span class="header-section-number">15.6</span> Treemap</a></li>
   </ul></li>
-  <li><a href="#dataset-comparison" id="toc-dataset-comparison" class="nav-link" data-scroll-target="#dataset-comparison"><span class="header-section-number">17</span> Dataset comparison</a>
+  <li><a href="#dataset-comparison" id="toc-dataset-comparison" class="nav-link" data-scroll-target="#dataset-comparison"><span class="header-section-number">16</span> Dataset comparison</a>
   <ul>
-  <li><a href="#eligibility-and-required-sequence" id="toc-eligibility-and-required-sequence" class="nav-link" data-scroll-target="#eligibility-and-required-sequence"><span class="header-section-number">17.1</span> Eligibility and required sequence</a></li>
-  <li><a href="#reuse-of-the-aggregation-state" id="toc-reuse-of-the-aggregation-state" class="nav-link" data-scroll-target="#reuse-of-the-aggregation-state"><span class="header-section-number">17.2</span> Reuse of the aggregation state</a></li>
-  <li><a href="#matching-records-for-comparison" id="toc-matching-records-for-comparison" class="nav-link" data-scroll-target="#matching-records-for-comparison"><span class="header-section-number">17.3</span> Matching records for comparison</a></li>
-  <li><a href="#comparison-values" id="toc-comparison-values" class="nav-link" data-scroll-target="#comparison-values"><span class="header-section-number">17.4</span> Comparison values</a></li>
-  <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">17.5</span> Comparison statuses</a></li>
-  <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">17.6</span> Differences in category coverage</a></li>
-  <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">17.7</span> Comparison outputs</a></li>
+  <li><a href="#eligibility-and-required-sequence" id="toc-eligibility-and-required-sequence" class="nav-link" data-scroll-target="#eligibility-and-required-sequence"><span class="header-section-number">16.1</span> Eligibility and required sequence</a></li>
+  <li><a href="#reuse-of-the-aggregation-state" id="toc-reuse-of-the-aggregation-state" class="nav-link" data-scroll-target="#reuse-of-the-aggregation-state"><span class="header-section-number">16.2</span> Reuse of the aggregation state</a></li>
+  <li><a href="#matching-records-for-comparison" id="toc-matching-records-for-comparison" class="nav-link" data-scroll-target="#matching-records-for-comparison"><span class="header-section-number">16.3</span> Matching records for comparison</a></li>
+  <li><a href="#comparison-values" id="toc-comparison-values" class="nav-link" data-scroll-target="#comparison-values"><span class="header-section-number">16.4</span> Comparison values</a></li>
+  <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">16.5</span> Comparison statuses</a></li>
+  <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">16.6</span> Differences in category coverage</a></li>
+  <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">16.7</span> Comparison outputs</a></li>
   </ul></li>
-  <li><a href="#outlier-analysis" id="toc-outlier-analysis" class="nav-link" data-scroll-target="#outlier-analysis"><span class="header-section-number">18</span> Outlier analysis</a>
+  <li><a href="#outlier-analysis" id="toc-outlier-analysis" class="nav-link" data-scroll-target="#outlier-analysis"><span class="header-section-number">17</span> Outlier analysis</a>
   <ul>
-  <li><a href="#measured-element-for-outlier-analysis" id="toc-measured-element-for-outlier-analysis" class="nav-link" data-scroll-target="#measured-element-for-outlier-analysis"><span class="header-section-number">18.1</span> Measured element for outlier analysis</a></li>
-  <li><a href="#analyse-outliers-for" id="toc-analyse-outliers-for" class="nav-link" data-scroll-target="#analyse-outliers-for"><span class="header-section-number">18.2</span> Analyse outliers for</a></li>
-  <li><a href="#outlier-metric" id="toc-outlier-metric" class="nav-link" data-scroll-target="#outlier-metric"><span class="header-section-number">18.3</span> Outlier metric</a>
+  <li><a href="#measured-element-for-outlier-analysis" id="toc-measured-element-for-outlier-analysis" class="nav-link" data-scroll-target="#measured-element-for-outlier-analysis"><span class="header-section-number">17.1</span> Measured element for outlier analysis</a></li>
+  <li><a href="#analyse-outliers-for" id="toc-analyse-outliers-for" class="nav-link" data-scroll-target="#analyse-outliers-for"><span class="header-section-number">17.2</span> Analyse outliers for</a></li>
+  <li><a href="#outlier-metric" id="toc-outlier-metric" class="nav-link" data-scroll-target="#outlier-metric"><span class="header-section-number">17.3</span> Outlier metric</a>
   <ul class="collapse">
-  <li><a href="#value" id="toc-value" class="nav-link" data-scroll-target="#value"><span class="header-section-number">18.3.1</span> Value</a></li>
-  <li><a href="#year-on-year-absolute-change" id="toc-year-on-year-absolute-change" class="nav-link" data-scroll-target="#year-on-year-absolute-change"><span class="header-section-number">18.3.2</span> Year-on-year absolute change</a></li>
-  <li><a href="#year-on-year-percentage-change" id="toc-year-on-year-percentage-change" class="nav-link" data-scroll-target="#year-on-year-percentage-change"><span class="header-section-number">18.3.3</span> Year-on-year percentage change</a></li>
+  <li><a href="#value" id="toc-value" class="nav-link" data-scroll-target="#value"><span class="header-section-number">17.3.1</span> Value</a></li>
+  <li><a href="#year-on-year-absolute-change" id="toc-year-on-year-absolute-change" class="nav-link" data-scroll-target="#year-on-year-absolute-change"><span class="header-section-number">17.3.2</span> Year-on-year absolute change</a></li>
+  <li><a href="#year-on-year-percentage-change" id="toc-year-on-year-percentage-change" class="nav-link" data-scroll-target="#year-on-year-percentage-change"><span class="header-section-number">17.3.3</span> Year-on-year percentage change</a></li>
   </ul></li>
-  <li><a href="#distribution-by-year" id="toc-distribution-by-year" class="nav-link" data-scroll-target="#distribution-by-year"><span class="header-section-number">18.4</span> Distribution by year</a></li>
-  <li><a href="#largest-strongest-records" id="toc-largest-strongest-records" class="nav-link" data-scroll-target="#largest-strongest-records"><span class="header-section-number">18.5</span> Largest / strongest records</a>
+  <li><a href="#distribution-by-year" id="toc-distribution-by-year" class="nav-link" data-scroll-target="#distribution-by-year"><span class="header-section-number">17.4</span> Distribution by year</a></li>
+  <li><a href="#largest-strongest-records" id="toc-largest-strongest-records" class="nav-link" data-scroll-target="#largest-strongest-records"><span class="header-section-number">17.5</span> Largest / strongest records</a>
   <ul class="collapse">
-  <li><a href="#value-1" id="toc-value-1" class="nav-link" data-scroll-target="#value-1"><span class="header-section-number">18.5.1</span> Value</a></li>
-  <li><a href="#year-on-year-absolute-change-1" id="toc-year-on-year-absolute-change-1" class="nav-link" data-scroll-target="#year-on-year-absolute-change-1"><span class="header-section-number">18.5.2</span> Year-on-year absolute change</a></li>
-  <li><a href="#year-on-year-percentage-change-1" id="toc-year-on-year-percentage-change-1" class="nav-link" data-scroll-target="#year-on-year-percentage-change-1"><span class="header-section-number">18.5.3</span> Year-on-year percentage change</a></li>
+  <li><a href="#value-1" id="toc-value-1" class="nav-link" data-scroll-target="#value-1"><span class="header-section-number">17.5.1</span> Value</a></li>
+  <li><a href="#year-on-year-absolute-change-1" id="toc-year-on-year-absolute-change-1" class="nav-link" data-scroll-target="#year-on-year-absolute-change-1"><span class="header-section-number">17.5.2</span> Year-on-year absolute change</a></li>
+  <li><a href="#year-on-year-percentage-change-1" id="toc-year-on-year-percentage-change-1" class="nav-link" data-scroll-target="#year-on-year-percentage-change-1"><span class="header-section-number">17.5.3</span> Year-on-year percentage change</a></li>
   </ul></li>
-  <li><a href="#number-of-top-records-to-display" id="toc-number-of-top-records-to-display" class="nav-link" data-scroll-target="#number-of-top-records-to-display"><span class="header-section-number">18.6</span> Number of top records to display</a></li>
-  <li><a href="#download-outlier-csv" id="toc-download-outlier-csv" class="nav-link" data-scroll-target="#download-outlier-csv"><span class="header-section-number">18.7</span> Download outlier CSV</a></li>
+  <li><a href="#number-of-top-records-to-display" id="toc-number-of-top-records-to-display" class="nav-link" data-scroll-target="#number-of-top-records-to-display"><span class="header-section-number">17.6</span> Number of top records to display</a></li>
+  <li><a href="#download-outlier-csv" id="toc-download-outlier-csv" class="nav-link" data-scroll-target="#download-outlier-csv"><span class="header-section-number">17.7</span> Download outlier CSV</a></li>
   </ul></li>
-  <li><a href="#worked-user-scenarios" id="toc-worked-user-scenarios" class="nav-link" data-scroll-target="#worked-user-scenarios"><span class="header-section-number">19</span> Worked user scenarios</a>
+  <li><a href="#worked-user-scenarios" id="toc-worked-user-scenarios" class="nav-link" data-scroll-target="#worked-user-scenarios"><span class="header-section-number">18</span> Worked user scenarios</a>
   <ul>
-  <li><a href="#scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" id="toc-scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" class="nav-link" data-scroll-target="#scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas"><span class="header-section-number">19.1</span> Scenario 1: Filter one ISSCAAP group, keep species separate and aggregate geographical areas</a></li>
-  <li><a href="#scenario-2-aggregate-species-by-the-direct-isscaap-groups" id="toc-scenario-2-aggregate-species-by-the-direct-isscaap-groups" class="nav-link" data-scroll-target="#scenario-2-aggregate-species-by-the-direct-isscaap-groups"><span class="header-section-number">19.2</span> Scenario 2: Aggregate species by the direct ISSCAAP groups</a></li>
-  <li><a href="#scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" id="toc-scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" class="nav-link" data-scroll-target="#scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic"><span class="header-section-number">19.3</span> Scenario 3: Filter species using ISSCAAP and aggregate them using TAXONOMIC</a></li>
-  <li><a href="#scenario-4-apply-different-aggregation-rules-to-several-dimensions" id="toc-scenario-4-apply-different-aggregation-rules-to-several-dimensions" class="nav-link" data-scroll-target="#scenario-4-apply-different-aggregation-rules-to-several-dimensions"><span class="header-section-number">19.4</span> Scenario 4: Apply different aggregation rules to several dimensions</a></li>
+  <li><a href="#scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" id="toc-scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" class="nav-link" data-scroll-target="#scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas"><span class="header-section-number">18.1</span> Scenario 1: Filter one ISSCAAP group, keep species separate and aggregate geographical areas</a></li>
+  <li><a href="#scenario-2-aggregate-species-by-the-direct-isscaap-groups" id="toc-scenario-2-aggregate-species-by-the-direct-isscaap-groups" class="nav-link" data-scroll-target="#scenario-2-aggregate-species-by-the-direct-isscaap-groups"><span class="header-section-number">18.2</span> Scenario 2: Aggregate species by the direct ISSCAAP groups</a></li>
+  <li><a href="#scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" id="toc-scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" class="nav-link" data-scroll-target="#scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic"><span class="header-section-number">18.3</span> Scenario 3: Filter species using ISSCAAP and aggregate them using TAXONOMIC</a></li>
+  <li><a href="#scenario-4-apply-different-aggregation-rules-to-several-dimensions" id="toc-scenario-4-apply-different-aggregation-rules-to-several-dimensions" class="nav-link" data-scroll-target="#scenario-4-apply-different-aggregation-rules-to-several-dimensions"><span class="header-section-number">18.4</span> Scenario 4: Apply different aggregation rules to several dimensions</a></li>
   </ul></li>
-  <li><a href="#validation-and-error-handling" id="toc-validation-and-error-handling" class="nav-link" data-scroll-target="#validation-and-error-handling"><span class="header-section-number">20</span> Validation and error handling</a>
+  <li><a href="#validation-and-error-handling" id="toc-validation-and-error-handling" class="nav-link" data-scroll-target="#validation-and-error-handling"><span class="header-section-number">19</span> Validation and error handling</a>
   <ul>
-  <li><a href="#dataset-and-aggregation-checks" id="toc-dataset-and-aggregation-checks" class="nav-link" data-scroll-target="#dataset-and-aggregation-checks"><span class="header-section-number">20.1</span> Dataset and aggregation checks</a></li>
-  <li><a href="#hierarchy-and-aggregation-checks" id="toc-hierarchy-and-aggregation-checks" class="nav-link" data-scroll-target="#hierarchy-and-aggregation-checks"><span class="header-section-number">20.2</span> Hierarchy and aggregation checks</a></li>
-  <li><a href="#aggregation-error-diagnostics" id="toc-aggregation-error-diagnostics" class="nav-link" data-scroll-target="#aggregation-error-diagnostics"><span class="header-section-number">20.3</span> Aggregation error diagnostics</a></li>
-  <li><a href="#per-measured-element-warnings" id="toc-per-measured-element-warnings" class="nav-link" data-scroll-target="#per-measured-element-warnings"><span class="header-section-number">20.4</span> Per-measured-element warnings</a></li>
+  <li><a href="#dataset-and-aggregation-checks" id="toc-dataset-and-aggregation-checks" class="nav-link" data-scroll-target="#dataset-and-aggregation-checks"><span class="header-section-number">19.1</span> Dataset and aggregation checks</a></li>
+  <li><a href="#hierarchy-and-aggregation-checks" id="toc-hierarchy-and-aggregation-checks" class="nav-link" data-scroll-target="#hierarchy-and-aggregation-checks"><span class="header-section-number">19.2</span> Hierarchy and aggregation checks</a></li>
+  <li><a href="#aggregation-error-diagnostics" id="toc-aggregation-error-diagnostics" class="nav-link" data-scroll-target="#aggregation-error-diagnostics"><span class="header-section-number">19.3</span> Aggregation error diagnostics</a></li>
+  <li><a href="#per-measured-element-warnings" id="toc-per-measured-element-warnings" class="nav-link" data-scroll-target="#per-measured-element-warnings"><span class="header-section-number">19.4</span> Per-measured-element warnings</a></li>
   </ul></li>
-  <li><a href="#current-implementation-constraints" id="toc-current-implementation-constraints" class="nav-link" data-scroll-target="#current-implementation-constraints"><span class="header-section-number">21</span> Current implementation constraints</a></li>
-  <li><a href="#main-functions-in-the-application" id="toc-main-functions-in-the-application" class="nav-link" data-scroll-target="#main-functions-in-the-application"><span class="header-section-number">22</span> Main functions in the application</a></li>
-  <li><a href="#maintenance-guidance-trigger-link-and-repository" id="toc-maintenance-guidance-trigger-link-and-repository" class="nav-link" data-scroll-target="#maintenance-guidance-trigger-link-and-repository"><span class="header-section-number">23</span> Maintenance guidance, trigger link and repository</a></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">24</span> Conclusion</a></li>
+  <li><a href="#current-implementation-constraints" id="toc-current-implementation-constraints" class="nav-link" data-scroll-target="#current-implementation-constraints"><span class="header-section-number">20</span> Current implementation constraints</a></li>
+  <li><a href="#main-functions-in-the-application" id="toc-main-functions-in-the-application" class="nav-link" data-scroll-target="#main-functions-in-the-application"><span class="header-section-number">21</span> Main functions in the application</a></li>
+  <li><a href="#maintenance-guidance-trigger-link-and-repository" id="toc-maintenance-guidance-trigger-link-and-repository" class="nav-link" data-scroll-target="#maintenance-guidance-trigger-link-and-repository"><span class="header-section-number">22</span> Maintenance guidance, trigger link and repository</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">23</span> Conclusion</a></li>
   </ul>
 </nav>
 </div>
@@ -288,7 +287,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 17, 2026</p>
+      <p class="date">September 18, 2026</p>
     </div>
   </div>
   
@@ -313,33 +312,10 @@ window.Quarto = {
 <li>Document the technical implementation of the application, including the structure of the R script, the location and organisation of the source-code repository, the trigger link used to launch the application, and the main information required for future maintenance and updates.</li>
 </ol>
 </section>
-<section id="documentation-outline" class="level1" data-number="2">
-<h1 data-number="2"><span class="header-section-number">2</span> Documentation outline</h1>
-<p>The documentation is organized as follows:</p>
-<ol type="1">
-<li>Application purpose and scope.</li>
-<li>Shiny application architecture and dependencies.</li>
-<li>Supported datasets and dimensions.</li>
-<li>Data loading and preprocessing.</li>
-<li>Filtering methodology.</li>
-<li>Aggregation methodology.</li>
-<li>Interaction between filtering and aggregation.</li>
-<li>Output generation by measured element.</li>
-<li>Tables and downloads.</li>
-<li>Graphs and composition analysis.</li>
-<li>Dataset comparison.</li>
-<li>Outlier analysis.</li>
-<li>Validation and error handling.</li>
-<li>Worked examples.</li>
-<li>Current implementation constraints.</li>
-<li>Maintenance guidance.</li>
-<li>Glossary.</li>
-</ol>
-</section>
-<section id="application-overview" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Application overview</h1>
-<section id="main-objective" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="main-objective"><span class="header-section-number">3.1</span> Main objective</h2>
+<section id="application-overview" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Application overview</h1>
+<section id="main-objective" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="main-objective"><span class="header-section-number">2.1</span> Main objective</h2>
 <p>The application provides one common interface for processing multiple Fisheries datasets that share a broadly consistent data structure.</p>
 <p>Users can:</p>
 <ul>
@@ -357,8 +333,8 @@ window.Quarto = {
 <li>Download aggregated, comparison and outlier tables.</li>
 </ul>
 </section>
-<section id="conceptual-workflow" class="level2" data-number="3.2">
-<h2 data-number="3.2" class="anchored" data-anchor-id="conceptual-workflow"><span class="header-section-number">3.2</span> Conceptual workflow</h2>
+<section id="conceptual-workflow" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="conceptual-workflow"><span class="header-section-number">2.2</span> Conceptual workflow</h2>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
@@ -387,8 +363,8 @@ M --&gt; N
 </div>
 </div>
 </section>
-<section id="separation-between-filtering-and-aggregation" class="level2" data-number="3.3">
-<h2 data-number="3.3" class="anchored" data-anchor-id="separation-between-filtering-and-aggregation"><span class="header-section-number">3.3</span> Separation between filtering and aggregation</h2>
+<section id="separation-between-filtering-and-aggregation" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="separation-between-filtering-and-aggregation"><span class="header-section-number">2.3</span> Separation between filtering and aggregation</h2>
 <p>The application treats filtering and aggregation as two different operations.</p>
 <p><strong>Filtering determines which records remain in the working dataset.</strong></p>
 <p><strong>Aggregation determines how those remaining records are grouped in the output.</strong></p>
@@ -400,8 +376,8 @@ M --&gt; N
 <p>The filtering hierarchy and aggregation hierarchy therefore do not need to be the same.</p>
 </section>
 </section>
-<section id="application-architecture" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Application architecture</h1>
+<section id="application-architecture" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Application architecture</h1>
 <p>The user interface contains seven principal pages.</p>
 <div class="cell">
 <div id="tbl-app-pages" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -477,10 +453,10 @@ Table&nbsp;1: Application navigation pages
 <li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension.</p></li>
 </ol>
 </section>
-<section id="supported-datasets" class="level1" data-number="5">
-<h1 data-number="5"><span class="header-section-number">5</span> Supported datasets</h1>
-<section id="dataset-registry" class="level2" data-number="5.1">
-<h2 data-number="5.1" class="anchored" data-anchor-id="dataset-registry"><span class="header-section-number">5.1</span> Dataset registry</h2>
+<section id="supported-datasets" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Supported datasets</h1>
+<section id="dataset-registry" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="dataset-registry"><span class="header-section-number">4.1</span> Dataset registry</h2>
 <p>The application supports the following datasets:</p>
 <div class="cell">
 <div id="tbl-supported-datasets" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -606,8 +582,8 @@ Table&nbsp;2: Datasets currently registered in the application
 </div>
 </div>
 </section>
-<section id="dataset-groups" class="level2" data-number="5.2">
-<h2 data-number="5.2" class="anchored" data-anchor-id="dataset-groups"><span class="header-section-number">5.2</span> Dataset groups</h2>
+<section id="dataset-groups" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="dataset-groups"><span class="header-section-number">4.2</span> Dataset groups</h2>
 <p>The data-selection page separates datasets into:</p>
 <ul>
 <li><strong>Current Fisheries datasets</strong></li>
@@ -617,10 +593,10 @@ Table&nbsp;2: Datasets currently registered in the application
 <p>A disseminated dataset may be filtered, aggregated, graphed and analysed for outliers, but it cannot currently be used as the main dataset in a comparison.</p>
 </section>
 </section>
-<section id="dataset-structure" class="level1" data-number="6">
-<h1 data-number="6"><span class="header-section-number">6</span> Dataset structure</h1>
-<section id="common-columns" class="level2" data-number="6.1">
-<h2 data-number="6.1" class="anchored" data-anchor-id="common-columns"><span class="header-section-number">6.1</span> Common columns</h2>
+<section id="dataset-structure" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Dataset structure</h1>
+<section id="common-columns" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="common-columns"><span class="header-section-number">5.1</span> Common columns</h2>
 <p>The application expects the following common Fisheries columns.</p>
 <div class="cell">
 <div id="tbl-common-columns" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -692,8 +668,8 @@ Table&nbsp;3: Common Fisheries dataset columns
 </div>
 </div>
 </section>
-<section id="optional-columns" class="level2" data-number="6.2">
-<h2 data-number="6.2" class="anchored" data-anchor-id="optional-columns"><span class="header-section-number">6.2</span> Optional columns</h2>
+<section id="optional-columns" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="optional-columns"><span class="header-section-number">5.2</span> Optional columns</h2>
 <p>Some datasets additionally contain:</p>
 <ul>
 <li><code>fisheriesProductionSource</code></li>
@@ -703,10 +679,10 @@ Table&nbsp;3: Common Fisheries dataset columns
 <p>The currency flag is used as a filter where available. It is also retained as an analytical key so values expressed in different currencies are not unintentionally merged.</p>
 </section>
 </section>
-<section id="data-loading-and-preprocessing" class="level1" data-number="7">
-<h1 data-number="7"><span class="header-section-number">7</span> Data loading and preprocessing</h1>
-<section id="client-initialization-and-dataset-loading" class="level2" data-number="7.1">
-<h2 data-number="7.1" class="anchored" data-anchor-id="client-initialization-and-dataset-loading"><span class="header-section-number">7.1</span> Client initialization and dataset loading</h2>
+<section id="data-loading-and-preprocessing" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Data loading and preprocessing</h1>
+<section id="client-initialization-and-dataset-loading" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="client-initialization-and-dataset-loading"><span class="header-section-number">6.1</span> Client initialization and dataset loading</h2>
 <p>The user must initialize the SWS client before selecting and loading a dataset.</p>
 <div id="fig-initialisation-and-datasets" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -722,8 +698,8 @@ Figure&nbsp;1: Client initialisation
 <p>Loading stops when one or more required columns are absent.</p>
 <p>This prevents later filtering or aggregation operations from silently using an incomplete structure.</p>
 </section>
-<section id="dataset-summary" class="level2" data-number="7.2">
-<h2 data-number="7.2" class="anchored" data-anchor-id="dataset-summary"><span class="header-section-number">7.2</span> Dataset summary</h2>
+<section id="dataset-summary" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="dataset-summary"><span class="header-section-number">6.2</span> Dataset summary</h2>
 <p>After a dataset is loaded, the application displays a summary of its main characteristics.</p>
 <p>The summary includes:</p>
 <ul>
@@ -749,10 +725,10 @@ Figure&nbsp;2: Dataset summary
 </div>
 </section>
 </section>
-<section id="filtering-methodology" class="level1" data-number="8">
-<h1 data-number="8"><span class="header-section-number">8</span> Filtering methodology</h1>
-<section id="general-rule" class="level2" data-number="8.1">
-<h2 data-number="8.1" class="anchored" data-anchor-id="general-rule"><span class="header-section-number">8.1</span> General rule</h2>
+<section id="filtering-methodology" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Filtering methodology</h1>
+<section id="general-rule" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="general-rule"><span class="header-section-number">7.1</span> General rule</h2>
 <p>Filters are applied to the loaded dataset before aggregation.</p>
 <p>A filter does not directly determine the output grouping. It determines only which source rows remain available to the aggregation procedure.</p>
 <p>Filters are applied sequentially:</p>
@@ -780,8 +756,8 @@ Figure&nbsp;3: Filters &amp; Aggregation page
 </figure>
 </div>
 </section>
-<section id="year-filter" class="level2" data-number="8.2">
-<h2 data-number="8.2" class="anchored" data-anchor-id="year-filter"><span class="header-section-number">8.2</span> Year filter</h2>
+<section id="year-filter" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="year-filter"><span class="header-section-number">7.2</span> Year filter</h2>
 <p>The year slider defines an inclusive range.</p>
 <p>For a range from 2015 to 2020, rows are retained when:</p>
 <p><span class="math display">\[
@@ -794,8 +770,8 @@ Figure&nbsp;3: Filters &amp; Aggregation page
 <li>latest 20 years.</li>
 </ul>
 </section>
-<section id="measured-element-filter" class="level2" data-number="8.3">
-<h2 data-number="8.3" class="anchored" data-anchor-id="measured-element-filter"><span class="header-section-number">8.3</span> Measured-element filter</h2>
+<section id="measured-element-filter" class="level2" data-number="7.3">
+<h2 data-number="7.3" class="anchored" data-anchor-id="measured-element-filter"><span class="header-section-number">7.3</span> Measured-element filter</h2>
 <p>The measured-element selector shows only measured-element roots that satisfy both conditions:</p>
 <ol type="1">
 <li>the root is configured for the dataset in SWS metadata;</li>
@@ -804,8 +780,8 @@ Figure&nbsp;3: Filters &amp; Aggregation page
 <p>The selected measured elements are processed independently during aggregation.</p>
 <p>For example, selecting <code>FI_001</code> and <code>FI_002</code> produces two separate output tabs rather than summing the two measured elements together.</p>
 </section>
-<section id="hierarchical-filters" class="level2" data-number="8.4">
-<h2 data-number="8.4" class="anchored" data-anchor-id="hierarchical-filters"><span class="header-section-number">8.4</span> Hierarchical filters</h2>
+<section id="hierarchical-filters" class="level2" data-number="7.4">
+<h2 data-number="7.4" class="anchored" data-anchor-id="hierarchical-filters"><span class="header-section-number">7.4</span> Hierarchical filters</h2>
 <p>The following dimensions use hierarchy trees:</p>
 <ul>
 <li>geographical area;</li>
@@ -848,8 +824,8 @@ Figure&nbsp;6: Fishing area filter
 <li>the selected node itself;</li>
 <li>all descendant codes under that node.</li>
 </ul>
-<section id="example" class="level3" data-number="8.4.1">
-<h3 data-number="8.4.1" class="anchored" data-anchor-id="example"><span class="header-section-number">8.4.1</span> Example</h3>
+<section id="example" class="level3" data-number="7.4.1">
+<h3 data-number="7.4.1" class="anchored" data-anchor-id="example"><span class="header-section-number">7.4.1</span> Example</h3>
 <p>Assume the hierarchy is:</p>
 <pre class="text"><code>ISSCAAP
 ├── 1501
@@ -869,12 +845,12 @@ Figure&nbsp;6: Fishing area filter
 <p>It does not retain Species C, D or E unless they are included through another selected filter branch.</p>
 </section>
 </section>
-<section id="most-specific-filter-selection-rule" class="level2" data-number="8.5">
-<h2 data-number="8.5" class="anchored" data-anchor-id="most-specific-filter-selection-rule"><span class="header-section-number">8.5</span> Most-specific filter-selection rule</h2>
+<section id="most-specific-filter-selection-rule" class="level2" data-number="7.5">
+<h2 data-number="7.5" class="anchored" data-anchor-id="most-specific-filter-selection-rule"><span class="header-section-number">7.5</span> Most-specific filter-selection rule</h2>
 <p>Hierarchical filters use the <strong>most-specific selected nodes</strong> as effective filter roots.</p>
 <p>When a parent and one or more of its descendants are explicitly selected, the parent is removed from the effective selection and the more specific selections are retained.</p>
-<section id="example-1" class="level3" data-number="8.5.1">
-<h3 data-number="8.5.1" class="anchored" data-anchor-id="example-1"><span class="header-section-number">8.5.1</span> Example</h3>
+<section id="example-1" class="level3" data-number="7.5.1">
+<h3 data-number="7.5.1" class="anchored" data-anchor-id="example-1"><span class="header-section-number">7.5.1</span> Example</h3>
 <div class="cell">
 <div id="tbl-most-specific-filter" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -927,8 +903,8 @@ Table&nbsp;4: Most-specific hierarchical filtering
 <p>This rule ensures that, when both a parent and one or more of its descendants are selected, the more specific descendant selections determine the effective filter.</p>
 </section>
 </section>
-<section id="flat-filters" class="level2" data-number="8.6">
-<h2 data-number="8.6" class="anchored" data-anchor-id="flat-filters"><span class="header-section-number">8.6</span> Flat filters</h2>
+<section id="flat-filters" class="level2" data-number="7.6">
+<h2 data-number="7.6" class="anchored" data-anchor-id="flat-filters"><span class="header-section-number">7.6</span> Flat filters</h2>
 <p>Observation flags and currency flags are treated as flat dimensions.</p>
 <div id="fig-observation-flag-filter" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -945,10 +921,10 @@ Figure&nbsp;7: Observation flag filter
 <p>The <strong>Reset page</strong> button clears the current filters, aggregation settings and generated results, restoring the page to its initial state.</p>
 </section>
 </section>
-<section id="aggregation-methodology" class="level1" data-number="9">
-<h1 data-number="9"><span class="header-section-number">9</span> Aggregation methodology</h1>
-<section id="aggregation-dimensions" class="level2" data-number="9.1">
-<h2 data-number="9.1" class="anchored" data-anchor-id="aggregation-dimensions"><span class="header-section-number">9.1</span> Aggregation dimensions</h2>
+<section id="aggregation-methodology" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Aggregation methodology</h1>
+<section id="aggregation-dimensions" class="level2" data-number="8.1">
+<h2 data-number="8.1" class="anchored" data-anchor-id="aggregation-dimensions"><span class="header-section-number">8.1</span> Aggregation dimensions</h2>
 <p>The following dimensions can be aggregated independently.</p>
 <div class="cell">
 <div id="tbl-aggregation-dimensions" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -1000,8 +976,8 @@ Table&nbsp;5: Hierarchical aggregation dimensions
 </div>
 </div>
 </section>
-<section id="aggregation-modes" class="level2" data-number="9.2">
-<h2 data-number="9.2" class="anchored" data-anchor-id="aggregation-modes"><span class="header-section-number">9.2</span> Aggregation modes</h2>
+<section id="aggregation-modes" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="aggregation-modes"><span class="header-section-number">8.2</span> Aggregation modes</h2>
 <p>Each available aggregation dimension has its own independently selected mode.</p>
 <div class="cell">
 <div id="tbl-aggregation-modes" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -1057,8 +1033,8 @@ Table&nbsp;6: Aggregation modes available for each hierarchical dimension
 </figure>
 </div>
 </div>
-<section id="mode-1-keep-filtered-codes-separate" class="level3" data-number="9.2.1">
-<h3 data-number="9.2.1" class="anchored" data-anchor-id="mode-1-keep-filtered-codes-separate"><span class="header-section-number">9.2.1</span> Mode 1: Keep filtered codes separate</h3>
+<section id="mode-1-keep-filtered-codes-separate" class="level3" data-number="8.2.1">
+<h3 data-number="8.2.1" class="anchored" data-anchor-id="mode-1-keep-filtered-codes-separate"><span class="header-section-number">8.2.1</span> Mode 1: Keep filtered codes separate</h3>
 <p>No aggregation map is applied to that dimension.</p>
 <p>Every detailed code remaining after filtering stays as a separate value in the result.</p>
 <p><strong>Example</strong></p>
@@ -1082,8 +1058,8 @@ Species C</code></pre>
 </div>
 </div>
 </section>
-<section id="mode-2-combine-all-filtered-values-into-one-output" class="level3" data-number="9.2.2">
-<h3 data-number="9.2.2" class="anchored" data-anchor-id="mode-2-combine-all-filtered-values-into-one-output"><span class="header-section-number">9.2.2</span> Mode 2: Combine all filtered values into one output</h3>
+<section id="mode-2-combine-all-filtered-values-into-one-output" class="level3" data-number="8.2.2">
+<h3 data-number="8.2.2" class="anchored" data-anchor-id="mode-2-combine-all-filtered-values-into-one-output"><span class="header-section-number">8.2.2</span> Mode 2: Combine all filtered values into one output</h3>
 <p>All remaining codes for that dimension are combined into one output.</p>
 <p>The output code follows this rule:</p>
 <ul>
@@ -1169,8 +1145,8 @@ Table&nbsp;8: Result after total aggregation
 </div>
 <p>The three species groups are therefore replaced by a single <code>TOTAL</code> output with an aggregated value of <code>120</code>.</p>
 </section>
-<section id="mode-3-aggregate-selected-filter-groups-separately" class="level3" data-number="9.2.3">
-<h3 data-number="9.2.3" class="anchored" data-anchor-id="mode-3-aggregate-selected-filter-groups-separately"><span class="header-section-number">9.2.3</span> Mode 3: Aggregate selected filter groups separately</h3>
+<section id="mode-3-aggregate-selected-filter-groups-separately" class="level3" data-number="8.2.3">
+<h3 data-number="8.2.3" class="anchored" data-anchor-id="mode-3-aggregate-selected-filter-groups-separately"><span class="header-section-number">8.2.3</span> Mode 3: Aggregate selected filter groups separately</h3>
 <p>This mode uses the effective groups selected in the <strong>filter tree</strong>.</p>
 <p>Each effective filter group becomes a separate output and includes all filtered descendants beneath it.</p>
 <p><strong>Example A: regional groups</strong></p>
@@ -1195,8 +1171,8 @@ Aggregation mode: Aggregate selected filter groups separately
 Output:
   - ISSCAAP</code></pre>
 <p>This mode does <strong>not</strong> automatically split ISSCAAP into its direct children. Splitting by direct children is a separate aggregation mode.</p>
-<section id="leaf-selection" class="level4" data-number="9.2.3.1">
-<h4 data-number="9.2.3.1" class="anchored" data-anchor-id="leaf-selection"><span class="header-section-number">9.2.3.1</span> Leaf selection</h4>
+<section id="leaf-selection" class="level4" data-number="8.2.3.1">
+<h4 data-number="8.2.3.1" class="anchored" data-anchor-id="leaf-selection"><span class="header-section-number">8.2.3.1</span> Leaf selection</h4>
 <p>A leaf selected as a filter group works normally in this mode.</p>
 <pre class="text"><code>Filter group: one species leaf
 Aggregation mode: Aggregate selected filter groups separately
@@ -1204,8 +1180,8 @@ Output: that species leaf</code></pre>
 <p>The mode groups by the selected filter groups themselves; therefore a selected group does not need to have children.</p>
 </section>
 </section>
-<section id="mode-4-aggregate-by-direct-children" class="level3" data-number="9.2.4">
-<h3 data-number="9.2.4" class="anchored" data-anchor-id="mode-4-aggregate-by-direct-children"><span class="header-section-number">9.2.4</span> Mode 4: Aggregate by direct children</h3>
+<section id="mode-4-aggregate-by-direct-children" class="level3" data-number="8.2.4">
+<h3 data-number="8.2.4" class="anchored" data-anchor-id="mode-4-aggregate-by-direct-children"><span class="header-section-number">8.2.4</span> Mode 4: Aggregate by direct children</h3>
 <p>This mode uses selections made in the independent <strong>aggregation-classification tree</strong>.</p>
 <p>For every selected parent:</p>
 <ol type="1">
@@ -1314,8 +1290,8 @@ Table&nbsp;10: Illustrative direct-child aggregation output
 </figure>
 </div>
 </div>
-<section id="filtering-through-one-classification-and-aggregating-through-another" class="level4" data-number="9.2.4.1">
-<h4 data-number="9.2.4.1" class="anchored" data-anchor-id="filtering-through-one-classification-and-aggregating-through-another"><span class="header-section-number">9.2.4.1</span> Filtering through one classification and aggregating through another</h4>
+<section id="filtering-through-one-classification-and-aggregating-through-another" class="level4" data-number="8.2.4.1">
+<h4 data-number="8.2.4.1" class="anchored" data-anchor-id="filtering-through-one-classification-and-aggregating-through-another"><span class="header-section-number">8.2.4.1</span> Filtering through one classification and aggregating through another</h4>
 <p>ASFIS species may be represented under multiple classifications, such as:</p>
 <ul>
 <li>ISSCAAP;</li>
@@ -1332,14 +1308,14 @@ Aggregation hierarchy: TAXONOMIC</code></pre>
 </ol>
 <p>The aggregation tree is restricted to classifications containing at least one raw code remaining after filtering.</p>
 </section>
-<section id="direct-child-parent-selection-rule" class="level4" data-number="9.2.4.2">
-<h4 data-number="9.2.4.2" class="anchored" data-anchor-id="direct-child-parent-selection-rule"><span class="header-section-number">9.2.4.2</span> Direct-child parent-selection rule</h4>
+<section id="direct-child-parent-selection-rule" class="level4" data-number="8.2.4.2">
+<h4 data-number="8.2.4.2" class="anchored" data-anchor-id="direct-child-parent-selection-rule"><span class="header-section-number">8.2.4.2</span> Direct-child parent-selection rule</h4>
 <p>The direct-child tree treats selected nodes as aggregation parents.</p>
 <p>The effective parent selection uses the top, non-overlapping parent nodes.</p>
 <p>When selecting <code>ISSCAAP</code>, descendants may appear checked because of the hierarchical tree behaviour, but <code>ISSCAAP</code> remains the effective parent and its direct children become the outputs.</p>
 </section>
-<section id="several-aggregation-parents" class="level4" data-number="9.2.4.3">
-<h4 data-number="9.2.4.3" class="anchored" data-anchor-id="several-aggregation-parents"><span class="header-section-number">9.2.4.3</span> Several aggregation parents</h4>
+<section id="several-aggregation-parents" class="level4" data-number="8.2.4.3">
+<h4 data-number="8.2.4.3" class="anchored" data-anchor-id="several-aggregation-parents"><span class="header-section-number">8.2.4.3</span> Several aggregation parents</h4>
 <p>Several non-overlapping aggregation parents may be selected.</p>
 <p>For example:</p>
 <pre class="text"><code>Selected parents:
@@ -1349,8 +1325,8 @@ Aggregation hierarchy: TAXONOMIC</code></pre>
 <p>The outputs are the direct children of all three selected parents.</p>
 <p>The selected parents must not overlap.</p>
 </section>
-<section id="parent-whose-children-are-leaves" class="level4" data-number="9.2.4.4">
-<h4 data-number="9.2.4.4" class="anchored" data-anchor-id="parent-whose-children-are-leaves"><span class="header-section-number">9.2.4.4</span> Parent whose children are leaves</h4>
+<section id="parent-whose-children-are-leaves" class="level4" data-number="8.2.4.4">
+<h4 data-number="8.2.4.4" class="anchored" data-anchor-id="parent-whose-children-are-leaves"><span class="header-section-number">8.2.4.4</span> Parent whose children are leaves</h4>
 <p>Direct-child aggregation works when the selected parent has children even when those children have no descendants.</p>
 <p>Example:</p>
 <pre class="text"><code>MAJOR
@@ -1363,15 +1339,15 @@ Major fishing area B
 Major fishing area C</code></pre>
 <p>The children do not need to have children of their own.</p>
 </section>
-<section id="selecting-a-leaf-as-the-aggregation-parent" class="level4" data-number="9.2.4.5">
-<h4 data-number="9.2.4.5" class="anchored" data-anchor-id="selecting-a-leaf-as-the-aggregation-parent"><span class="header-section-number">9.2.4.5</span> Selecting a leaf as the aggregation parent</h4>
+<section id="selecting-a-leaf-as-the-aggregation-parent" class="level4" data-number="8.2.4.5">
+<h4 data-number="8.2.4.5" class="anchored" data-anchor-id="selecting-a-leaf-as-the-aggregation-parent"><span class="header-section-number">8.2.4.5</span> Selecting a leaf as the aggregation parent</h4>
 <p>A leaf cannot be used as a direct-child aggregation parent because it has no direct children.</p>
 <pre class="text"><code>Selected aggregation parent: Species A
 Result: error — no direct child groups</code></pre>
 <p>This is different from selecting a leaf for <strong>Aggregate selected filter groups separately</strong>, where the leaf itself remains a valid output.</p>
 </section>
-<section id="overlapping-direct-child-outputs" class="level4" data-number="9.2.4.6">
-<h4 data-number="9.2.4.6" class="anchored" data-anchor-id="overlapping-direct-child-outputs"><span class="header-section-number">9.2.4.6</span> Overlapping direct-child outputs</h4>
+<section id="overlapping-direct-child-outputs" class="level4" data-number="8.2.4.6">
+<h4 data-number="8.2.4.6" class="anchored" data-anchor-id="overlapping-direct-child-outputs"><span class="header-section-number">8.2.4.6</span> Overlapping direct-child outputs</h4>
 <p>Aggregation stops when:</p>
 <ul>
 <li>one output child belongs to more than one selected parent;</li>
@@ -1381,11 +1357,11 @@ Result: error — no direct child groups</code></pre>
 <p>This validation prevents double counting.</p>
 </section>
 </section>
-<section id="mode-5-custom-aggregation" class="level3" data-number="9.2.5">
-<h3 data-number="9.2.5" class="anchored" data-anchor-id="mode-5-custom-aggregation"><span class="header-section-number">9.2.5</span> Mode 5: Custom aggregation</h3>
+<section id="mode-5-custom-aggregation" class="level3" data-number="8.2.5">
+<h3 data-number="8.2.5" class="anchored" data-anchor-id="mode-5-custom-aggregation"><span class="header-section-number">8.2.5</span> Mode 5: Custom aggregation</h3>
 <p>Custom aggregation combines selected nodes and all their descendants into one output.</p>
-<section id="output-naming" class="level4" data-number="9.2.5.1">
-<h4 data-number="9.2.5.1" class="anchored" data-anchor-id="output-naming"><span class="header-section-number">9.2.5.1</span> Output naming</h4>
+<section id="output-naming" class="level4" data-number="8.2.5.1">
+<h4 data-number="8.2.5.1" class="anchored" data-anchor-id="output-naming"><span class="header-section-number">8.2.5.1</span> Output naming</h4>
 <ul>
 <li>One selected node keeps its original code.</li>
 <li>Several selected nodes within one dimension are combined into a single generated group, labelled <code>Custom Aggregation 1</code>. If custom aggregation is also applied to other dimensions in the same run, subsequent groups are labelled <code>Custom Aggregation 2</code>, <code>Custom Aggregation 3</code>, and so on.</li>
@@ -1446,8 +1422,8 @@ Table&nbsp;11: Illustrative custom aggregation
 </div>
 </div>
 </section>
-<section id="parent-and-descendant-selected-together" class="level4" data-number="9.2.5.2">
-<h4 data-number="9.2.5.2" class="anchored" data-anchor-id="parent-and-descendant-selected-together"><span class="header-section-number">9.2.5.2</span> Parent and descendant selected together</h4>
+<section id="parent-and-descendant-selected-together" class="level4" data-number="8.2.5.2">
+<h4 data-number="8.2.5.2" class="anchored" data-anchor-id="parent-and-descendant-selected-together"><span class="header-section-number">8.2.5.2</span> Parent and descendant selected together</h4>
 <p>When both a parent and one of its descendants are selected for the same custom aggregation, only the parent is used as the effective selection, because the descendant is already included within the parent branch.</p>
 <p>If only the descendant is selected, then the descendant itself is used as the custom aggregation group, together with any descendants below it.</p>
 <p>When aggregation is applied to several dimensions, the final output reflects the combination of the selected aggregation settings; categories that remain separate in any retained dimension also remain separate in the output.</p>
@@ -1455,8 +1431,8 @@ Table&nbsp;11: Illustrative custom aggregation
 </section>
 </section>
 </section>
-<section id="filtering-and-aggregation-are-independent" class="level1" data-number="10">
-<h1 data-number="10"><span class="header-section-number">10</span> Filtering and aggregation are independent</h1>
+<section id="filtering-and-aggregation-are-independent" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Filtering and aggregation are independent</h1>
 <p>The filter tree and aggregation tree have different purposes.</p>
 <div class="cell">
 <div id="tbl-filter-aggregation-distinction" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -1501,8 +1477,8 @@ Table&nbsp;12: Distinction between filtering and aggregation selections
 </figure>
 </div>
 </div>
-<section id="cross-classification-example" class="level2" data-number="10.1">
-<h2 data-number="10.1" class="anchored" data-anchor-id="cross-classification-example"><span class="header-section-number">10.1</span> Cross-classification example</h2>
+<section id="cross-classification-example" class="level2" data-number="9.1">
+<h2 data-number="9.1" class="anchored" data-anchor-id="cross-classification-example"><span class="header-section-number">9.1</span> Cross-classification example</h2>
 <p>Suppose the dataset contains five species.</p>
 <div class="cell">
 <div id="tbl-cross-classification" class="cell quarto-float quarto-figure quarto-figure-center anchored">
@@ -1598,10 +1574,10 @@ Table&nbsp;14: Result of filtering through ISSCAAP 1501 and aggregating by TAXON
 </div>
 </section>
 </section>
-<section id="numerical-aggregation" class="level1" data-number="11">
-<h1 data-number="11"><span class="header-section-number">11</span> Numerical aggregation</h1>
-<section id="value-calculation" class="level2" data-number="11.1">
-<h2 data-number="11.1" class="anchored" data-anchor-id="value-calculation"><span class="header-section-number">11.1</span> Value calculation</h2>
+<section id="numerical-aggregation" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Numerical aggregation</h1>
+<section id="value-calculation" class="level2" data-number="10.1">
+<h2 data-number="10.1" class="anchored" data-anchor-id="value-calculation"><span class="header-section-number">10.1</span> Value calculation</h2>
 <p>For every output group, the application calculates the numerical value directly from the mapped input records.</p>
 <p>The aggregated value for group (g) is:</p>
 <p><span class="math display">\[
@@ -1610,8 +1586,8 @@ V_g = \sum_{i \in g} V_i.
 <p>The aggregated result is rounded to a maximum of four decimal places.</p>
 </section>
 </section>
-<section id="flag-aggregation" class="level1" data-number="12">
-<h1 data-number="12"><span class="header-section-number">12</span> Flag aggregation</h1>
+<section id="flag-aggregation" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Flag aggregation</h1>
 <p>Numerical values are aggregated according to the selected aggregation rule, while observation flags are aggregated according to the applicable FAO flag rules. The application uses <code>faoswsFlag::aggregateFlagData()</code> to calculate aggregate observation-status and method flags.</p>
 <p>The function is called with:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>forceMissingAggregateValues <span class="ot">=</span> <span class="cn">FALSE</span></span>
@@ -1626,8 +1602,8 @@ N records are aggregated only with N records.</code></pre>
 <p>If only <code>A</code> has been retained through the observation-flag filter, then only <code>A</code> records enter the aggregation.</p>
 <p>When <strong>Aggregate separately by observation flag</strong> is not selected, records with different observation flags that remain after filtering may contribute to the same aggregated value, and the resulting aggregate flag is determined according to the FAO flag aggregation rules.</p>
 </section>
-<section id="year-aggregation" class="level1" data-number="13">
-<h1 data-number="13"><span class="header-section-number">13</span> Year aggregation</h1>
+<section id="year-aggregation" class="level1" data-number="12">
+<h1 data-number="12"><span class="header-section-number">12</span> Year aggregation</h1>
 <p>By default, selected years remain separate in the output.</p>
 <p>For example, if the selected period is 2015–2020 and the following values belong to the same combination of all other dimensions:</p>
 <pre class="text"><code>Year    Value
@@ -1648,8 +1624,8 @@ N records are aggregated only with N records.</code></pre>
 <p>The period label <code>2015-2020</code> therefore represents the aggregation of all selected years, not simply a relabelling of the individual annual records.</p>
 <p>If other dimensions remain different, their records are still kept separate. Year aggregation combines records across the selected years only when they refer to the same species, fishing area, geographical area, production source, measured element, and any other dimensions that remain in the output.</p>
 </section>
-<section id="measured-element-processing" class="level1" data-number="14">
-<h1 data-number="14"><span class="header-section-number">14</span> Measured-element processing</h1>
+<section id="measured-element-processing" class="level1" data-number="13">
+<h1 data-number="13"><span class="header-section-number">13</span> Measured-element processing</h1>
 <p>Measured elements are processed independently.</p>
 <p>The workflow is:</p>
 <ol type="1">
@@ -1670,8 +1646,8 @@ Tab FI_002</code></pre>
 <p>When a selected measured element has no rows after filtering, the application creates a warning tab for that measured element instead of terminating all other outputs.</p>
 <p>Other selected measured elements may still be processed successfully.</p>
 </section>
-<section id="aggregation-output-tables" class="level1" data-number="15">
-<h1 data-number="15"><span class="header-section-number">15</span> Aggregation output tables</h1>
+<section id="aggregation-output-tables" class="level1" data-number="14">
+<h1 data-number="14"><span class="header-section-number">14</span> Aggregation output tables</h1>
 <p>The Dataset table page displays one tab per measured element.</p>
 <p>Each successful tab contains a table with:</p>
 <ul>
@@ -1684,8 +1660,8 @@ Tab FI_002</code></pre>
 <p>A separate CSV file can be downloaded for each measured element.</p>
 <p>Warning tabs contain an explanation of why an output could not be created.</p>
 </section>
-<section id="graphs" class="level1" data-number="16">
-<h1 data-number="16"><span class="header-section-number">16</span> Graphs</h1>
+<section id="graphs" class="level1" data-number="15">
+<h1 data-number="15"><span class="header-section-number">15</span> Graphs</h1>
 <p>The <strong>Graphs</strong> page visualizes the results produced by the aggregation.</p>
 <p>Graphs are displayed for <strong>one measured element at a time</strong>. If only one measured element was included in the aggregation, that measured element is shown automatically. If several measured elements were included, the user can select which output to visualize using the <strong>Measured element for graphs</strong> selector.</p>
 <p>The page contains five graphical views:</p>
@@ -1697,8 +1673,8 @@ Tab FI_002</code></pre>
 <li><strong>Treemap chart</strong>.</li>
 </ul>
 <p>For all graphs except <strong>Aggregated total</strong>, the user also selects how the results should be categorized through the <strong>Categorize by</strong> selector.</p>
-<section id="aggregated-total" class="level2" data-number="16.1">
-<h2 data-number="16.1" class="anchored" data-anchor-id="aggregated-total"><span class="header-section-number">16.1</span> Aggregated total</h2>
+<section id="aggregated-total" class="level2" data-number="15.1">
+<h2 data-number="15.1" class="anchored" data-anchor-id="aggregated-total"><span class="header-section-number">15.1</span> Aggregated total</h2>
 <p>The <strong>Aggregated total</strong> view shows the total aggregated value for each year or aggregated period.</p>
 <div id="fig-aggregated-total-graph" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1732,16 +1708,16 @@ Figure&nbsp;8: Aggregated total graph
 \]</span></p>
 <p>The graph therefore shows the overall total for the selected measured element rather than its composition by individual categories. The current implementation displays these totals as bars. If <strong>Total all selected years into one period</strong> was selected during aggregation, the aggregated period label, for example <code>2015-2020</code>, is displayed instead of separate annual values.</p>
 </section>
-<section id="categorize-by" class="level2" data-number="16.2">
-<h2 data-number="16.2" class="anchored" data-anchor-id="categorize-by"><span class="header-section-number">16.2</span> Categorize by</h2>
+<section id="categorize-by" class="level2" data-number="15.2">
+<h2 data-number="15.2" class="anchored" data-anchor-id="categorize-by"><span class="header-section-number">15.2</span> Categorize by</h2>
 <p>The remaining four graphs require the user to choose a category through the <strong>Categorize by</strong> selector.</p>
 <p>Depending on the aggregation that was performed, the selector can contain two types of choices:</p>
 <ul>
 <li><strong>Aggregation composition</strong>;</li>
 <li><strong>Final result column</strong>.</li>
 </ul>
-<section id="aggregation-composition" class="level3" data-number="16.2.1">
-<h3 data-number="16.2.1" class="anchored" data-anchor-id="aggregation-composition"><span class="header-section-number">16.2.1</span> Aggregation composition</h3>
+<section id="aggregation-composition" class="level3" data-number="15.2.1">
+<h3 data-number="15.2.1" class="anchored" data-anchor-id="aggregation-composition"><span class="header-section-number">15.2.1</span> Aggregation composition</h3>
 <p>An <strong>Aggregation composition</strong> option is available for dimensions that were aggregated.</p>
 <p>For example, if species were aggregated using <strong>Aggregate by direct children of ISSCAAP</strong>, the graph can show the contribution of the resulting ISSCAAP groups.</p>
 <p>The application uses the aggregation rule that produced the result to determine which records belong to each aggregation group. The graph then calculates the total value of each group for every year or period. For example:</p>
@@ -1752,8 +1728,8 @@ Figure&nbsp;8: Aggregated total graph
 2021    1502             75</code></pre>
 <p>can be displayed as two components, <code>1501</code> and <code>1502</code>, in the stacked bar chart, relative stacked bar chart, component time series, or treemap.</p>
 </section>
-<section id="final-result-column" class="level3" data-number="16.2.2">
-<h3 data-number="16.2.2" class="anchored" data-anchor-id="final-result-column"><span class="header-section-number">16.2.2</span> Final result column</h3>
+<section id="final-result-column" class="level3" data-number="15.2.2">
+<h3 data-number="15.2.2" class="anchored" data-anchor-id="final-result-column"><span class="header-section-number">15.2.2</span> Final result column</h3>
 <p>A <strong>Final result column</strong> uses one of the dimensions that remains in the final aggregated dataset.</p>
 <p>This option categorizes the graph using a dimension that was not aggregated and therefore remains separate in the final output. Possible examples include:</p>
 <ul>
@@ -1768,8 +1744,8 @@ Figure&nbsp;8: Aggregated total graph
 <p>A dimension that has already been aggregated is not offered again as a <strong>Final result column</strong>. Instead, its composition can be examined through the corresponding <strong>Aggregation composition</strong> option.</p>
 </section>
 </section>
-<section id="stacked-bar-chart" class="level2" data-number="16.3">
-<h2 data-number="16.3" class="anchored" data-anchor-id="stacked-bar-chart"><span class="header-section-number">16.3</span> Stacked bar chart</h2>
+<section id="stacked-bar-chart" class="level2" data-number="15.3">
+<h2 data-number="15.3" class="anchored" data-anchor-id="stacked-bar-chart"><span class="header-section-number">15.3</span> Stacked bar chart</h2>
 <p>The <strong>Stacked bar chart</strong> shows the absolute value for each year or period, divided into the categories selected under <strong>Categorize by</strong>.</p>
 <p>For example:</p>
 <pre class="text"><code>Year    Category    Value
@@ -1796,8 +1772,8 @@ Figure&nbsp;9: Stacked bar chart
 </figure>
 </div>
 </section>
-<section id="relative-stacked-bar-chart" class="level2" data-number="16.4">
-<h2 data-number="16.4" class="anchored" data-anchor-id="relative-stacked-bar-chart"><span class="header-section-number">16.4</span> Relative stacked bar chart</h2>
+<section id="relative-stacked-bar-chart" class="level2" data-number="15.4">
+<h2 data-number="15.4" class="anchored" data-anchor-id="relative-stacked-bar-chart"><span class="header-section-number">15.4</span> Relative stacked bar chart</h2>
 <p>The <strong>Relative stacked bar chart</strong> shows the same composition as the stacked bar chart, but expresses each category as a <strong>percentage of the total for that year or period</strong> rather than as an absolute value.</p>
 <div id="fig-relative-stacked-bar-chart" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1833,8 +1809,8 @@ Category B = 80</code></pre>
 Category B = 66.7%</code></pre>
 <p>Each complete bar represents 100%, which makes it possible to compare changes in composition over time even when the absolute totals differ substantially between years.</p>
 </section>
-<section id="component-time-series" class="level2" data-number="16.5">
-<h2 data-number="16.5" class="anchored" data-anchor-id="component-time-series"><span class="header-section-number">16.5</span> Component time series</h2>
+<section id="component-time-series" class="level2" data-number="15.5">
+<h2 data-number="15.5" class="anchored" data-anchor-id="component-time-series"><span class="header-section-number">15.5</span> Component time series</h2>
 <p>The <strong>Component time series</strong> shows the evolution of each selected category over time.</p>
 <div id="fig-component-time-series" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1865,8 +1841,8 @@ Figure&nbsp;11: Component time series
 <li>another dimension remaining in the aggregated output.</li>
 </ul>
 </section>
-<section id="treemap" class="level2" data-number="16.6">
-<h2 data-number="16.6" class="anchored" data-anchor-id="treemap"><span class="header-section-number">16.6</span> Treemap</h2>
+<section id="treemap" class="level2" data-number="15.6">
+<h2 data-number="15.6" class="anchored" data-anchor-id="treemap"><span class="header-section-number">15.6</span> Treemap</h2>
 <p>The <strong>Treemap chart</strong> shows the composition of the selected measured-element output for <strong>one year or aggregated period at a time</strong>.</p>
 <div id="fig-treemap-chart" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1898,10 +1874,10 @@ Category C    20%</code></pre>
 <p>The treemap therefore provides a compact view of the relative importance of the different categories for one specific year or aggregated period.</p>
 </section>
 </section>
-<section id="dataset-comparison" class="level1" data-number="17">
-<h1 data-number="17"><span class="header-section-number">17</span> Dataset comparison</h1>
-<section id="eligibility-and-required-sequence" class="level2" data-number="17.1">
-<h2 data-number="17.1" class="anchored" data-anchor-id="eligibility-and-required-sequence"><span class="header-section-number">17.1</span> Eligibility and required sequence</h2>
+<section id="dataset-comparison" class="level1" data-number="16">
+<h1 data-number="16"><span class="header-section-number">16</span> Dataset comparison</h1>
+<section id="eligibility-and-required-sequence" class="level2" data-number="16.1">
+<h2 data-number="16.1" class="anchored" data-anchor-id="eligibility-and-required-sequence"><span class="header-section-number">16.1</span> Eligibility and required sequence</h2>
 <p>Comparison is available only when the main loaded dataset is a current Fisheries dataset.</p>
 <p>A comparison source may be:</p>
 <ul>
@@ -1929,8 +1905,8 @@ Figure&nbsp;13: Tagged dataset upload
 <li>run comparison.</li>
 </ol>
 </section>
-<section id="reuse-of-the-aggregation-state" class="level2" data-number="17.2">
-<h2 data-number="17.2" class="anchored" data-anchor-id="reuse-of-the-aggregation-state"><span class="header-section-number">17.2</span> Reuse of the aggregation state</h2>
+<section id="reuse-of-the-aggregation-state" class="level2" data-number="16.2">
+<h2 data-number="16.2" class="anchored" data-anchor-id="reuse-of-the-aggregation-state"><span class="header-section-number">16.2</span> Reuse of the aggregation state</h2>
 <p>The application stores:</p>
 <ul>
 <li>filtered input used for the current aggregation;</li>
@@ -1943,16 +1919,16 @@ Figure&nbsp;13: Tagged dataset upload
 <p>The comparison dataset is processed using the same analytical setup.</p>
 <p>Aggregation maps are rebuilt against the filtered comparison data so that the comparison follows the same requested hierarchy logic while accounting for codes present in the comparison source.</p>
 </section>
-<section id="matching-records-for-comparison" class="level2" data-number="17.3">
-<h2 data-number="17.3" class="anchored" data-anchor-id="matching-records-for-comparison"><span class="header-section-number">17.3</span> Matching records for comparison</h2>
+<section id="matching-records-for-comparison" class="level2" data-number="16.3">
+<h2 data-number="16.3" class="anchored" data-anchor-id="matching-records-for-comparison"><span class="header-section-number">16.3</span> Matching records for comparison</h2>
 <p>To compare the current and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.</p>
 <p>Only dimensions available in both the current and comparison results are used.</p>
 <p>For example, a current value for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.</p>
 <p>If one of the relevant categories differs, the records are not treated as the same observation for comparison.</p>
 <p>Observation flags are not used to match records because the current and comparison datasets may use different flag classifications.</p>
 </section>
-<section id="comparison-values" class="level2" data-number="17.4">
-<h2 data-number="17.4" class="anchored" data-anchor-id="comparison-values"><span class="header-section-number">17.4</span> Comparison values</h2>
+<section id="comparison-values" class="level2" data-number="16.4">
+<h2 data-number="16.4" class="anchored" data-anchor-id="comparison-values"><span class="header-section-number">16.4</span> Comparison values</h2>
 <p>For every matched analytical combination, the output contains:</p>
 <ul>
 <li><code>current_value</code>;</li>
@@ -1977,8 +1953,8 @@ Figure&nbsp;13: Tagged dataset upload
 \]</span></p>
 <p>It is calculated only when the comparison value is nonzero.</p>
 </section>
-<section id="comparison-statuses" class="level2" data-number="17.5">
-<h2 data-number="17.5" class="anchored" data-anchor-id="comparison-statuses"><span class="header-section-number">17.5</span> Comparison statuses</h2>
+<section id="comparison-statuses" class="level2" data-number="16.5">
+<h2 data-number="16.5" class="anchored" data-anchor-id="comparison-statuses"><span class="header-section-number">16.5</span> Comparison statuses</h2>
 <div class="cell">
 <details class="code-fold">
 <summary>Show R code</summary>
@@ -2137,8 +2113,8 @@ Table&nbsp;16: Illustrative comparison output
 </div>
 </div>
 </section>
-<section id="differences-in-category-coverage" class="level2" data-number="17.6">
-<h2 data-number="17.6" class="anchored" data-anchor-id="differences-in-category-coverage"><span class="header-section-number">17.6</span> Differences in category coverage</h2>
+<section id="differences-in-category-coverage" class="level2" data-number="16.6">
+<h2 data-number="16.6" class="anchored" data-anchor-id="differences-in-category-coverage"><span class="header-section-number">16.6</span> Differences in category coverage</h2>
 <p>After applying the filters, the application checks whether the current and comparison datasets contain the same categories for the dimensions that were aggregated.</p>
 <p>For example, suppose the species categories remaining in the two datasets are:</p>
 <pre class="text"><code>Current dataset:      1501, 1502
@@ -2153,8 +2129,8 @@ Comparison dataset:   1501, 1503</code></pre>
 <p>This helps the user identify situations in which the two datasets do not have exactly the same category coverage after filtering.</p>
 <p>The warning does not stop the comparison. The same filters and aggregation rules are still applied, and the comparison continues.</p>
 </section>
-<section id="comparison-outputs" class="level2" data-number="17.7">
-<h2 data-number="17.7" class="anchored" data-anchor-id="comparison-outputs"><span class="header-section-number">17.7</span> Comparison outputs</h2>
+<section id="comparison-outputs" class="level2" data-number="16.7">
+<h2 data-number="16.7" class="anchored" data-anchor-id="comparison-outputs"><span class="header-section-number">16.7</span> Comparison outputs</h2>
 <p>Two views are available:</p>
 <ul>
 <li><strong>All comparison rows</strong></li>
@@ -2183,8 +2159,8 @@ Figure&nbsp;15: Differences only table
 <p>Each measured element has its own comparison tab and CSV download.</p>
 </section>
 </section>
-<section id="outlier-analysis" class="level1" data-number="18">
-<h1 data-number="18"><span class="header-section-number">18</span> Outlier analysis</h1>
+<section id="outlier-analysis" class="level1" data-number="17">
+<h1 data-number="17"><span class="header-section-number">17</span> Outlier analysis</h1>
 <p>The <strong>Outlier analysis</strong> page provides tools for examining unusually large aggregated values and unusually large changes over time.</p>
 <p>The analysis is based on the <strong>aggregation output produced on the Filters &amp; Aggregation page</strong>. It does not operate directly on the original loaded dataset. Therefore, an aggregation must first be run before the outlier analysis can be used.</p>
 <p>The page contains two views:</p>
@@ -2193,15 +2169,15 @@ Figure&nbsp;15: Differences only table
 <li><strong>Largest / strongest records</strong>.</li>
 </ul>
 <p>The same selections made in the sidebar are applied to both views.</p>
-<section id="measured-element-for-outlier-analysis" class="level2" data-number="18.1">
-<h2 data-number="18.1" class="anchored" data-anchor-id="measured-element-for-outlier-analysis"><span class="header-section-number">18.1</span> Measured element for outlier analysis</h2>
+<section id="measured-element-for-outlier-analysis" class="level2" data-number="17.1">
+<h2 data-number="17.1" class="anchored" data-anchor-id="measured-element-for-outlier-analysis"><span class="header-section-number">17.1</span> Measured element for outlier analysis</h2>
 <p>Outlier analysis is performed for one measured element at a time.</p>
 <p>If the aggregation produced only one measured-element output, that measured element is used automatically.</p>
 <p>If several measured elements were aggregated, the <strong>Measured element for outlier analysis</strong> selector allows the user to choose which output to examine.</p>
 <p>For example, if separate aggregation outputs were produced for quantity and value, the outlier analysis is performed on only one of these outputs at a time.</p>
 </section>
-<section id="analyse-outliers-for" class="level2" data-number="18.2">
-<h2 data-number="18.2" class="anchored" data-anchor-id="analyse-outliers-for"><span class="header-section-number">18.2</span> Analyse outliers for</h2>
+<section id="analyse-outliers-for" class="level2" data-number="17.2">
+<h2 data-number="17.2" class="anchored" data-anchor-id="analyse-outliers-for"><span class="header-section-number">17.2</span> Analyse outliers for</h2>
 <p>The <strong>Analyse outliers for</strong> selector determines whether the analysis is carried out on the entire selected aggregation output or restricted to one particular group.</p>
 <p>The default option is:</p>
 <pre class="text"><code>Full selected aggregation output</code></pre>
@@ -2227,8 +2203,8 @@ Selected group value: 380</code></pre>
 <p>restricts the analysis to the selected geographical category.</p>
 <p>This option is useful when values from very different groups should not be examined together. For example, instead of comparing the distribution across all geographical areas, the user can examine the observations belonging to one geographical area only.</p>
 </section>
-<section id="outlier-metric" class="level2" data-number="18.3">
-<h2 data-number="18.3" class="anchored" data-anchor-id="outlier-metric"><span class="header-section-number">18.3</span> Outlier metric</h2>
+<section id="outlier-metric" class="level2" data-number="17.3">
+<h2 data-number="17.3" class="anchored" data-anchor-id="outlier-metric"><span class="header-section-number">17.3</span> Outlier metric</h2>
 <p>The <strong>Outlier metric</strong> selector determines which quantity is examined.</p>
 <p>The <strong>Value</strong> metric is always available.</p>
 <p>When the selected measured-element output contains at least two periods, two additional metrics are available:</p>
@@ -2237,8 +2213,8 @@ Selected group value: 380</code></pre>
 <li><strong>Year-on-year percentage change</strong>.</li>
 </ul>
 <p>If the aggregation has combined all selected years into a single period, the change metrics are not available because there is no earlier period with which to calculate a change.</p>
-<section id="value" class="level3" data-number="18.3.1">
-<h3 data-number="18.3.1" class="anchored" data-anchor-id="value"><span class="header-section-number">18.3.1</span> Value</h3>
+<section id="value" class="level3" data-number="17.3.1">
+<h3 data-number="17.3.1" class="anchored" data-anchor-id="value"><span class="header-section-number">17.3.1</span> Value</h3>
 <p>With <strong>Value</strong> selected, the analysis uses the aggregated <code>Value</code> directly.</p>
 <div id="fig-value-outlier-metric" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -2259,8 +2235,8 @@ Figure&nbsp;16: Value outlier metric
 <p>A large value is not automatically treated as an error. It may simply correspond to a genuinely large geographical area, species group, fishing area or other category.</p>
 <p>The <strong>Value</strong> metric should therefore be interpreted as a screening tool for identifying records that may deserve further examination.</p>
 </section>
-<section id="year-on-year-absolute-change" class="level3" data-number="18.3.2">
-<h3 data-number="18.3.2" class="anchored" data-anchor-id="year-on-year-absolute-change"><span class="header-section-number">18.3.2</span> Year-on-year absolute change</h3>
+<section id="year-on-year-absolute-change" class="level3" data-number="17.3.2">
+<h3 data-number="17.3.2" class="anchored" data-anchor-id="year-on-year-absolute-change"><span class="header-section-number">17.3.2</span> Year-on-year absolute change</h3>
 <p>The <strong>Year-on-year absolute change</strong> metric examines how much a value changes from the previous available period for the same series.</p>
 <div id="fig-year-on-year-metric" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -2295,8 +2271,8 @@ Figure&nbsp;17: Year-on-year absolute change selector
 <p>The first available period for each series has no previous value and therefore cannot have an absolute-change value.</p>
 <p>The resulting change is expressed in the same unit as the selected measured element. For example, if the measured element is expressed in tonnes, the absolute change is also expressed in tonnes.</p>
 </section>
-<section id="year-on-year-percentage-change" class="level3" data-number="18.3.3">
-<h3 data-number="18.3.3" class="anchored" data-anchor-id="year-on-year-percentage-change"><span class="header-section-number">18.3.3</span> Year-on-year percentage change</h3>
+<section id="year-on-year-percentage-change" class="level3" data-number="17.3.3">
+<h3 data-number="17.3.3" class="anchored" data-anchor-id="year-on-year-percentage-change"><span class="header-section-number">17.3.3</span> Year-on-year percentage change</h3>
 <p>The <strong>Year-on-year percentage change</strong> metric expresses the change relative to the magnitude of the previous available value.</p>
 <p>It is calculated as:</p>
 <p><span class="math display">\[
@@ -2326,8 +2302,8 @@ Current value: 150</code></pre>
 <p>Percentage changes should also be interpreted carefully when the previous value is very small. For example, an increase from <code>1</code> to <code>10</code> produces a very large percentage change even though the absolute change is only <code>9</code>.</p>
 </section>
 </section>
-<section id="distribution-by-year" class="level2" data-number="18.4">
-<h2 data-number="18.4" class="anchored" data-anchor-id="distribution-by-year"><span class="header-section-number">18.4</span> Distribution by year</h2>
+<section id="distribution-by-year" class="level2" data-number="17.4">
+<h2 data-number="17.4" class="anchored" data-anchor-id="distribution-by-year"><span class="header-section-number">17.4</span> Distribution by year</h2>
 <p>The <strong>Distribution by year</strong> tab provides a graphical view of the selected metric across the available years or periods.</p>
 <p>For every year or period, the graph displays:</p>
 <ul>
@@ -2344,12 +2320,12 @@ Current value: 150</code></pre>
 <p>If the analysis has been restricted using <strong>Analyse outliers for</strong> and <strong>Selected group value</strong>, the distribution is calculated only for that selected group.</p>
 <p>The plot can also be opened using the full-screen option.</p>
 </section>
-<section id="largest-strongest-records" class="level2" data-number="18.5">
-<h2 data-number="18.5" class="anchored" data-anchor-id="largest-strongest-records"><span class="header-section-number">18.5</span> Largest / strongest records</h2>
+<section id="largest-strongest-records" class="level2" data-number="17.5">
+<h2 data-number="17.5" class="anchored" data-anchor-id="largest-strongest-records"><span class="header-section-number">17.5</span> Largest / strongest records</h2>
 <p>The <strong>Largest / strongest records</strong> tab provides a table of the observations with the largest values or strongest changes.</p>
 <p>The way records are ranked depends on the selected metric.</p>
-<section id="value-1" class="level3" data-number="18.5.1">
-<h3 data-number="18.5.1" class="anchored" data-anchor-id="value-1"><span class="header-section-number">18.5.1</span> Value</h3>
+<section id="value-1" class="level3" data-number="17.5.1">
+<h3 data-number="17.5.1" class="anchored" data-anchor-id="value-1"><span class="header-section-number">17.5.1</span> Value</h3>
 <p>When <strong>Value</strong> is selected, records are ordered from the highest aggregated value to the lowest.</p>
 <p>For example:</p>
 <pre class="text"><code>Value
@@ -2360,8 +2336,8 @@ Current value: 150</code></pre>
 <p>would be displayed starting with <code>500</code>.</p>
 <p>This view helps identify which combinations of year, geographical area, species, fishing area and other dimensions generate the largest aggregated values.</p>
 </section>
-<section id="year-on-year-absolute-change-1" class="level3" data-number="18.5.2">
-<h3 data-number="18.5.2" class="anchored" data-anchor-id="year-on-year-absolute-change-1"><span class="header-section-number">18.5.2</span> Year-on-year absolute change</h3>
+<section id="year-on-year-absolute-change-1" class="level3" data-number="17.5.2">
+<h3 data-number="17.5.2" class="anchored" data-anchor-id="year-on-year-absolute-change-1"><span class="header-section-number">17.5.2</span> Year-on-year absolute change</h3>
 <p>When <strong>Year-on-year absolute change</strong> is selected, records are ordered according to the <strong>absolute magnitude of the change</strong>.</p>
 <div id="fig-largest-records-data" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -2383,8 +2359,8 @@ Figure&nbsp;18: Largest records table
 <p>is ranked according to the size of the change, regardless of its direction.</p>
 <p>The table includes the current <code>Value</code>, the <code>previous_value</code> used for the calculation and the calculated change.</p>
 </section>
-<section id="year-on-year-percentage-change-1" class="level3" data-number="18.5.3">
-<h3 data-number="18.5.3" class="anchored" data-anchor-id="year-on-year-percentage-change-1"><span class="header-section-number">18.5.3</span> Year-on-year percentage change</h3>
+<section id="year-on-year-percentage-change-1" class="level3" data-number="17.5.3">
+<h3 data-number="17.5.3" class="anchored" data-anchor-id="year-on-year-percentage-change-1"><span class="header-section-number">17.5.3</span> Year-on-year percentage change</h3>
 <p>The same ranking principle is used for <strong>Year-on-year percentage change</strong>.</p>
 <p>For example:</p>
 <pre class="text"><code>Percentage change
@@ -2398,14 +2374,14 @@ Figure&nbsp;18: Largest records table
 <p>This is particularly important when very large percentages are generated by a small previous value.</p>
 </section>
 </section>
-<section id="number-of-top-records-to-display" class="level2" data-number="18.6">
-<h2 data-number="18.6" class="anchored" data-anchor-id="number-of-top-records-to-display"><span class="header-section-number">18.6</span> Number of top records to display</h2>
+<section id="number-of-top-records-to-display" class="level2" data-number="17.6">
+<h2 data-number="17.6" class="anchored" data-anchor-id="number-of-top-records-to-display"><span class="header-section-number">17.6</span> Number of top records to display</h2>
 <p>The <strong>Number of top records to display</strong> control appears when the <strong>Largest / strongest records</strong> tab is selected. The user can choose to display between <strong>10 and 200 records</strong>, in increments of 10. The default is <strong>50 records</strong>.</p>
 <p>For the <strong>Value</strong> metric, these are the records with the largest values.</p>
 <p>For the two change metrics, these are the records with the largest absolute changes, regardless of whether the change is positive or negative.</p>
 </section>
-<section id="download-outlier-csv" class="level2" data-number="18.7">
-<h2 data-number="18.7" class="anchored" data-anchor-id="download-outlier-csv"><span class="header-section-number">18.7</span> Download outlier CSV</h2>
+<section id="download-outlier-csv" class="level2" data-number="17.7">
+<h2 data-number="17.7" class="anchored" data-anchor-id="download-outlier-csv"><span class="header-section-number">17.7</span> Download outlier CSV</h2>
 <p>The table shown in the <strong>Largest / strongest records</strong> tab can be downloaded using the <strong>Download outlier CSV</strong> button.</p>
 <p>The downloaded CSV corresponds to:</p>
 <ul>
@@ -2417,11 +2393,11 @@ Figure&nbsp;18: Largest records table
 <p>The downloaded table contains the same relevant analytical columns used to identify the records displayed in the application. For change metrics, it also contains the previous value and the calculated change information required to interpret the result.</p>
 </section>
 </section>
-<section id="worked-user-scenarios" class="level1" data-number="19">
-<h1 data-number="19"><span class="header-section-number">19</span> Worked user scenarios</h1>
+<section id="worked-user-scenarios" class="level1" data-number="18">
+<h1 data-number="18"><span class="header-section-number">18</span> Worked user scenarios</h1>
 <p>The following examples illustrate some typical ways in which filtering and aggregation can be combined in the application.</p>
-<section id="scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" class="level2" data-number="19.1">
-<h2 data-number="19.1" class="anchored" data-anchor-id="scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas"><span class="header-section-number">19.1</span> Scenario 1: Filter one ISSCAAP group, keep species separate and aggregate geographical areas</h2>
+<section id="scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas" class="level2" data-number="18.1">
+<h2 data-number="18.1" class="anchored" data-anchor-id="scenario-1-filter-one-isscaap-group-keep-species-separate-and-aggregate-geographical-areas"><span class="header-section-number">18.1</span> Scenario 1: Filter one ISSCAAP group, keep species separate and aggregate geographical areas</h2>
 <p><strong>Objective:</strong> restrict the data to species belonging to one ISSCAAP group, keep the individual species separate, and combine the selected geographical areas into one output.</p>
 <p><strong>Procedure:</strong></p>
 <ol type="1">
@@ -2441,8 +2417,8 @@ Species C</code></pre>
 <p>At the same time, the selected geographical areas are combined according to the geographical-area aggregation setting.</p>
 <p>The final output therefore contains separate results for the individual species within <code>1501</code>, while the selected geographical areas are aggregated.</p>
 </section>
-<section id="scenario-2-aggregate-species-by-the-direct-isscaap-groups" class="level2" data-number="19.2">
-<h2 data-number="19.2" class="anchored" data-anchor-id="scenario-2-aggregate-species-by-the-direct-isscaap-groups"><span class="header-section-number">19.2</span> Scenario 2: Aggregate species by the direct ISSCAAP groups</h2>
+<section id="scenario-2-aggregate-species-by-the-direct-isscaap-groups" class="level2" data-number="18.2">
+<h2 data-number="18.2" class="anchored" data-anchor-id="scenario-2-aggregate-species-by-the-direct-isscaap-groups"><span class="header-section-number">18.2</span> Scenario 2: Aggregate species by the direct ISSCAAP groups</h2>
 <p><strong>Objective:</strong> produce separate aggregated results for the direct groups under <code>ISSCAAP</code>.</p>
 <p><strong>Procedure:</strong></p>
 <ol type="1">
@@ -2463,8 +2439,8 @@ Species C</code></pre>
 <p>Each output includes the species belonging to that direct-child branch.</p>
 <p>The application therefore does <strong>not</strong> create one single <code>ISSCAAP</code> total. Instead, the selected parent determines the level immediately below it that is used for the aggregation.</p>
 </section>
-<section id="scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" class="level2" data-number="19.3">
-<h2 data-number="19.3" class="anchored" data-anchor-id="scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic"><span class="header-section-number">19.3</span> Scenario 3: Filter species using ISSCAAP and aggregate them using TAXONOMIC</h2>
+<section id="scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic" class="level2" data-number="18.3">
+<h2 data-number="18.3" class="anchored" data-anchor-id="scenario-3-filter-species-using-isscaap-and-aggregate-them-using-taxonomic"><span class="header-section-number">18.3</span> Scenario 3: Filter species using ISSCAAP and aggregate them using TAXONOMIC</h2>
 <p><strong>Objective:</strong> select species through one classification and summarize the selected species through another classification.</p>
 <p>Suppose the user first restricts the data to species belonging to ISSCAAP group <code>1501</code>, but then wants to examine those species according to their taxonomic groups.</p>
 <p><strong>Procedure:</strong></p>
@@ -2486,8 +2462,8 @@ Species D    ISSCAAP 1502    Family Z    40</code></pre>
 Family Y    20</code></pre>
 <p>This illustrates that the hierarchy used for <strong>filtering</strong> does not have to be the same hierarchy used for <strong>aggregation</strong>.</p>
 </section>
-<section id="scenario-4-apply-different-aggregation-rules-to-several-dimensions" class="level2" data-number="19.4">
-<h2 data-number="19.4" class="anchored" data-anchor-id="scenario-4-apply-different-aggregation-rules-to-several-dimensions"><span class="header-section-number">19.4</span> Scenario 4: Apply different aggregation rules to several dimensions</h2>
+<section id="scenario-4-apply-different-aggregation-rules-to-several-dimensions" class="level2" data-number="18.4">
+<h2 data-number="18.4" class="anchored" data-anchor-id="scenario-4-apply-different-aggregation-rules-to-several-dimensions"><span class="header-section-number">18.4</span> Scenario 4: Apply different aggregation rules to several dimensions</h2>
 <p><strong>Objective:</strong> combine several aggregation settings in the same run.</p>
 <p>Suppose the user wants to:</p>
 <ul>
@@ -2528,11 +2504,11 @@ Total all selected years into one period</code></pre>
 <p>This scenario shows how the final result is determined by the <strong>combination of all aggregation settings</strong>, rather than by one dimension at a time.</p>
 </section>
 </section>
-<section id="validation-and-error-handling" class="level1" data-number="20">
-<h1 data-number="20"><span class="header-section-number">20</span> Validation and error handling</h1>
+<section id="validation-and-error-handling" class="level1" data-number="19">
+<h1 data-number="19"><span class="header-section-number">19</span> Validation and error handling</h1>
 <p>Before and during aggregation, the application performs a number of checks to prevent incomplete or ambiguous results.</p>
-<section id="dataset-and-aggregation-checks" class="level2" data-number="20.1">
-<h2 data-number="20.1" class="anchored" data-anchor-id="dataset-and-aggregation-checks"><span class="header-section-number">20.1</span> Dataset and aggregation checks</h2>
+<section id="dataset-and-aggregation-checks" class="level2" data-number="19.1">
+<h2 data-number="19.1" class="anchored" data-anchor-id="dataset-and-aggregation-checks"><span class="header-section-number">19.1</span> Dataset and aggregation checks</h2>
 <p>The application checks that:</p>
 <ul>
 <li>a dataset has been loaded and selected;</li>
@@ -2544,8 +2520,8 @@ Total all selected years into one period</code></pre>
 <p>If no records remain after filtering, the aggregation is not run.</p>
 <p>If a selected measured element has no records after applying the year range and dimension filters, no aggregation is produced for that measured element and a warning is shown instead.</p>
 </section>
-<section id="hierarchy-and-aggregation-checks" class="level2" data-number="20.2">
-<h2 data-number="20.2" class="anchored" data-anchor-id="hierarchy-and-aggregation-checks"><span class="header-section-number">20.2</span> Hierarchy and aggregation checks</h2>
+<section id="hierarchy-and-aggregation-checks" class="level2" data-number="19.2">
+<h2 data-number="19.2" class="anchored" data-anchor-id="hierarchy-and-aggregation-checks"><span class="header-section-number">19.2</span> Hierarchy and aggregation checks</h2>
 <p>For hierarchy-based aggregation, the application checks that:</p>
 <ul>
 <li>the required hierarchy selection has been made;</li>
@@ -2557,8 +2533,8 @@ Total all selected years into one period</code></pre>
 </ul>
 <p>If any of these conditions would make the aggregation ambiguous or cause filtered records to be omitted, the aggregation is stopped and an error message is displayed.</p>
 </section>
-<section id="aggregation-error-diagnostics" class="level2" data-number="20.3">
-<h2 data-number="20.3" class="anchored" data-anchor-id="aggregation-error-diagnostics"><span class="header-section-number">20.3</span> Aggregation error diagnostics</h2>
+<section id="aggregation-error-diagnostics" class="level2" data-number="19.3">
+<h2 data-number="19.3" class="anchored" data-anchor-id="aggregation-error-diagnostics"><span class="header-section-number">19.3</span> Aggregation error diagnostics</h2>
 <p>When an error occurs during aggregation, the application adds information identifying the aggregation setting in which the error occurred.</p>
 <p>Depending on the operation, the error message may include:</p>
 <ul>
@@ -2572,13 +2548,13 @@ Total all selected years into one period</code></pre>
 <p>For example, if an error occurs while creating direct-child groups for a selected species hierarchy, the message identifies the species aggregation and the selected hierarchy parent before reporting the specific problem.</p>
 <p>This additional information is intended mainly for debugging and maintenance, as it makes it possible to identify which aggregation setting caused the failure.</p>
 </section>
-<section id="per-measured-element-warnings" class="level2" data-number="20.4">
-<h2 data-number="20.4" class="anchored" data-anchor-id="per-measured-element-warnings"><span class="header-section-number">20.4</span> Per-measured-element warnings</h2>
+<section id="per-measured-element-warnings" class="level2" data-number="19.4">
+<h2 data-number="19.4" class="anchored" data-anchor-id="per-measured-element-warnings"><span class="header-section-number">19.4</span> Per-measured-element warnings</h2>
 <p>An error affecting one measured element may produce a warning tab for that element while other measured elements continue processing.</p>
 </section>
 </section>
-<section id="current-implementation-constraints" class="level1" data-number="21">
-<h1 data-number="21"><span class="header-section-number">21</span> Current implementation constraints</h1>
+<section id="current-implementation-constraints" class="level1" data-number="20">
+<h1 data-number="20"><span class="header-section-number">20</span> Current implementation constraints</h1>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -2636,8 +2612,8 @@ Total all selected years into one period</code></pre>
 </div>
 </div>
 </section>
-<section id="main-functions-in-the-application" class="level1" data-number="22">
-<h1 data-number="22"><span class="header-section-number">22</span> Main functions in the application</h1>
+<section id="main-functions-in-the-application" class="level1" data-number="21">
+<h1 data-number="21"><span class="header-section-number">21</span> Main functions in the application</h1>
 <div class="cell">
 <div id="tbl-technical-functions" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2710,8 +2686,8 @@ Table&nbsp;17: Main functions in the application
 </div>
 </div>
 </section>
-<section id="maintenance-guidance-trigger-link-and-repository" class="level1" data-number="23">
-<h1 data-number="23"><span class="header-section-number">23</span> Maintenance guidance, trigger link and repository</h1>
+<section id="maintenance-guidance-trigger-link-and-repository" class="level1" data-number="22">
+<h1 data-number="22"><span class="header-section-number">22</span> Maintenance guidance, trigger link and repository</h1>
 <p>The documentation should be revised whenever any of the following changes:</p>
 <ul>
 <li><code>DATASET_CONFIG</code>;</li>
@@ -2742,8 +2718,8 @@ Table&nbsp;17: Main functions in the application
 <p>The GitHub repository:<br>
 <a href="https://github.com/un-fao/sws-stat-fisheries-aggregation">Open the GitHub repository</a></p>
 </section>
-<section id="conclusion" class="level1" data-number="24">
-<h1 data-number="24"><span class="header-section-number">24</span> Conclusion</h1>
+<section id="conclusion" class="level1" data-number="23">
+<h1 data-number="23"><span class="header-section-number">23</span> Conclusion</h1>
 <p>The Fisheries Aggregation Shiny App provides a flexible workflow for selecting, aggregating, comparing and analysing Fisheries data.</p>
 <p>A key feature of the application is the separation between <strong>filtering</strong> and <strong>aggregation</strong>. Filters determine which data are included in the analysis, while aggregation settings determine how the selected data are grouped in the final output. This makes it possible, for example, to select data through one hierarchy and aggregate them through another.</p>
 <p>Hierarchical filters and aggregation rules can be applied independently across several dimensions, including geographical area, species, fishing area and production source. Measured elements are processed separately, while year and observation-flag aggregation can be applied when required.</p>
