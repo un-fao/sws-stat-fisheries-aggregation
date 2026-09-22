@@ -5973,6 +5973,21 @@ server <- function(input, output, session) {
     dt[]
   }
   
+  # Prepare the loaded dataset once using the configured
+  # codelist hierarchies and dataset roots.
+  base_analysis_data <- reactive({
+    
+    req(
+      dataset_data(),
+      loaded_dataset_info()
+    )
+    
+    restrict_to_active_configured_codes(
+      data = dataset_data(),
+      dataset_info = loaded_dataset_info()
+    )
+  })
+  
   #Build the available top-level aggregation choices from the roots configured for the selected dataset dimension.
   get_aggregation_root_choices <- function(meta) {
     
@@ -9933,7 +9948,7 @@ server <- function(input, output, session) {
     tree_dt <- as.data.table(tree_dt)
     id_cols <- get_tree_id_cols(tree_dt)
     
-    if (length(id_cols) == 0) {
+    if (length(id_cols) == 0L) {
       return(character(0))
     }
     
@@ -9941,43 +9956,89 @@ server <- function(input, output, session) {
       filtered_raw_codes
     )
     
-    if (length(filtered_raw_codes) == 0) {
+    if (length(filtered_raw_codes) == 0L) {
       return(character(0))
     }
     
-    tree_codes <- clean_non_empty_codes(
+    # Work only with the hierarchy ID columns.
+    tree_ids <- copy(
+      tree_dt[, ..id_cols]
+    )
+    
+    # Convert hierarchy codes to character once.
+    for (column_i in id_cols) {
+      set(
+        tree_ids,
+        j = column_i,
+        value = as.character(
+          tree_ids[[column_i]]
+        )
+      )
+    }
+    
+    # Keep only filtered codes that actually occur
+    # somewhere in the hierarchy.
+    tree_codes <- unique(
       unlist(
-        tree_dt[, ..id_cols],
+        tree_ids,
         recursive = TRUE,
         use.names = FALSE
       )
     )
     
-    # Codes absent from the codelist hierarchy cannot be offered
-    # as hierarchy aggregation choices.
+    tree_codes <- tree_codes[
+      !is.na(tree_codes) &
+        nzchar(tree_codes)
+    ]
+    
     filtered_raw_codes <- intersect(
       filtered_raw_codes,
       tree_codes
     )
     
-    if (length(filtered_raw_codes) == 0) {
+    if (length(filtered_raw_codes) == 0L) {
       return(character(0))
     }
     
-    ancestor_codes <- clean_non_empty_codes(
-      unlist(
-        lapply(
-          filtered_raw_codes,
-          function(code_i) {
-            get_ancestors_from_codelist_tree(
-              tree_dt = tree_dt,
-              code = code_i
-            )
-          }
-        ),
-        recursive = TRUE,
-        use.names = FALSE
+    ancestor_codes <- character(0)
+    
+    # Find the ancestors of all filtered codes by scanning
+    # each hierarchy level once instead of once per code.
+    for (i in seq_along(id_cols)) {
+      
+      values_i <- tree_ids[[id_cols[i]]]
+      
+      matching_rows <- which(
+        !is.na(values_i) &
+          nzchar(values_i) &
+          values_i %in% filtered_raw_codes
       )
+      
+      if (
+        length(matching_rows) > 0L &&
+        i > 1L
+      ) {
+        
+        ancestor_columns <- id_cols[
+          seq_len(i - 1L)
+        ]
+        
+        ancestor_codes <- c(
+          ancestor_codes,
+          unlist(
+            tree_ids[
+              matching_rows,
+              ..ancestor_columns
+            ],
+            recursive = TRUE,
+            use.names = FALSE
+          )
+        )
+      }
+    }
+    
+    ancestor_codes <- clean_non_empty_codes(
+      ancestor_codes
     )
     
     unique(
@@ -12249,11 +12310,8 @@ server <- function(input, output, session) {
     
     debug_lines <- character(0)
     
-    dt <- copy(dataset_data())
-    
-    dt <- restrict_to_active_configured_codes(
-      data = dt,
-      dataset_info = loaded_dataset_info()
+    dt <- copy(
+      base_analysis_data()
     )
     
     debug_lines <- c(
