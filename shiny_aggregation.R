@@ -1793,34 +1793,64 @@ get_sws_tree_root_codes_from_codelist_tree <- function(tree_dt, codes = NULL) {
 }
 
 #Builds the nested hierarchy displayed in the app from the flattened SWS codelist tree.
+# Build the nested hierarchy displayed in the app from the flattened
+# SWS codelist tree, using a precomputed parent-child lookup.
 build_sws_codelist_tree_from_codelist_tree <- function(
     tree_dt,
     codes,
     max_depth = 50,
     root_codes = NULL
 ) {
+  
   tree_dt <- as.data.table(tree_dt)
   codes <- as.data.table(codes)
-  codes[, id := as.character(id)]
   
-  display_labels <- make_tree_display_labels(codes)
+  codes[
+    ,
+    id := as.character(id)
+  ]
+  
+  id_cols <- get_tree_id_cols(
+    tree_dt
+  )
+  
+  display_labels <- make_tree_display_labels(
+    codes
+  )
+  
   
   label_for_code <- function(code_id) {
-    code_id <- as.character(code_id)
-    out <- unname(display_labels[code_id])
     
-    if (length(out) == 0 || is.na(out) || !nzchar(out)) {
+    code_id <- as.character(code_id)
+    
+    out <- unname(
+      display_labels[code_id]
+    )
+    
+    if (
+      length(out) == 0 ||
+      is.na(out) ||
+      !nzchar(out)
+    ) {
       return(code_id)
     }
     
     out
   }
   
+  
   order_codes <- function(code_vector) {
-    code_vector <- as.character(code_vector)
-    code_vector <- code_vector[!is.na(code_vector) & nzchar(code_vector)]
     
-    if (length(code_vector) == 0) {
+    code_vector <- as.character(
+      code_vector
+    )
+    
+    code_vector <- code_vector[
+      !is.na(code_vector) &
+        nzchar(code_vector)
+    ]
+    
+    if (length(code_vector) == 0L) {
       return(character(0))
     }
     
@@ -1832,19 +1862,112 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       id %in% code_vector,
       .(
         id,
-        order_tmp = suppressWarnings(as.numeric(order))
+        order_tmp =
+          suppressWarnings(
+            as.numeric(order)
+          )
       )
     ]
     
-    tmp <- tmp[order(order_tmp, id)]
+    tmp <- tmp[
+      order(
+        order_tmp,
+        id
+      )
+    ]
     
-    # Keep any codes that were not found in codes, just in case.
-    c(tmp$id, setdiff(code_vector, tmp$id))
+    c(
+      tmp$id,
+      setdiff(
+        code_vector,
+        tmp$id
+      )
+    )
   }
   
-  make_node <- function(code_id,
-                        depth = 1,
-                        visited = character(0)) {
+  
+  # ------------------------------------------------------------
+  # Build the parent-child relationships once.
+  #
+  # The previous version searched the complete flattened tree
+  # every time make_node() requested the children of one node.
+  # ------------------------------------------------------------
+  
+  parent_child_pairs <- data.table(
+    parent = character(0),
+    child = character(0)
+  )
+  
+  if (length(id_cols) >= 2L) {
+    
+    parent_child_pairs <- rbindlist(
+      lapply(
+        seq_len(
+          length(id_cols) - 1L
+        ),
+        function(i) {
+          
+          parent_values <- as.character(
+            tree_dt[[id_cols[i]]]
+          )
+          
+          child_values <- as.character(
+            tree_dt[[id_cols[i + 1L]]]
+          )
+          
+          keep <- (
+            !is.na(parent_values) &
+              nzchar(parent_values) &
+              !is.na(child_values) &
+              nzchar(child_values)
+          )
+          
+          data.table(
+            parent = parent_values[keep],
+            child = child_values[keep]
+          )
+        }
+      ),
+      use.names = TRUE,
+      fill = TRUE
+    )
+    
+    parent_child_pairs <- unique(
+      parent_child_pairs
+    )
+  }
+  
+  
+  child_lookup <- split(
+    parent_child_pairs$child,
+    parent_child_pairs$parent
+  )
+  
+  
+  get_children <- function(code_id) {
+    
+    code_id <- as.character(code_id)
+    
+    children <- child_lookup[
+      [code_id]
+    ]
+    
+    if (is.null(children)) {
+      return(character(0))
+    }
+    
+    unique(
+      as.character(children)
+    )
+  }
+  
+  
+  make_node <- function(
+    code_id,
+    depth = 1L,
+    visited = character(0)
+  ) {
+    
     code_id <- as.character(code_id)
     
     if (code_id %in% visited) {
@@ -1855,24 +1978,31 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       return("")
     }
     
-    children <- get_direct_children_from_codelist_tree(
-      tree_dt = tree_dt,
-      parent_code = code_id
+    # Retrieve children from the precomputed lookup instead
+    # of scanning the complete hierarchy again.
+    children <- get_children(
+      code_id
     )
     
-    children <- order_codes(children)
+    children <- order_codes(
+      children
+    )
     
-    if (length(children) == 0) {
+    if (length(children) == 0L) {
       return("")
     }
     
     child_nodes <- lapply(
       children,
       function(child_id) {
+        
         make_node(
           code_id = child_id,
-          depth = depth + 1,
-          visited = c(visited, code_id)
+          depth = depth + 1L,
+          visited = c(
+            visited,
+            code_id
+          )
         )
       }
     )
@@ -1884,24 +2014,31 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       USE.NAMES = FALSE
     )
     
-    stats::setNames(child_nodes, child_labels)
+    stats::setNames(
+      child_nodes,
+      child_labels
+    )
   }
+  
   
   if (
     is.null(root_codes) ||
-    length(root_codes) == 0
+    length(root_codes) == 0L
   ) {
     
-    root_codes <- get_sws_tree_root_codes_from_codelist_tree(
-      tree_dt = tree_dt,
-      codes = codes
-    )
+    root_codes <-
+      get_sws_tree_root_codes_from_codelist_tree(
+        tree_dt = tree_dt,
+        codes = codes
+      )
     
   } else {
     
     root_codes <- unique(
       trimws(
-        as.character(root_codes)
+        as.character(
+          root_codes
+        )
       )
     )
     
@@ -1912,11 +2049,15 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     ]
   }
   
-  root_codes <- order_codes(root_codes)
   
-  if (length(root_codes) == 0) {
+  root_codes <- order_codes(
+    root_codes
+  )
+  
+  if (length(root_codes) == 0L) {
     return(list())
   }
+  
   
   root_nodes <- lapply(
     root_codes,
@@ -1925,6 +2066,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     }
   )
   
+  
   root_labels <- vapply(
     root_codes,
     label_for_code,
@@ -1932,7 +2074,11 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     USE.NAMES = FALSE
   )
   
-  stats::setNames(root_nodes, root_labels)
+  
+  stats::setNames(
+    root_nodes,
+    root_labels
+  )
 }
 
 
@@ -4537,7 +4683,7 @@ ui <- page_navbar(
         tags$strong("Aggregation setup. "),
         
         paste0(
-          "Select the years and filters, define how the filtered records BLAH BLAH ",
+          "Select the years and filters, define how the filtered records ",
           "should be aggregated, and then run the aggregation."
         )
       ),
