@@ -4537,7 +4537,7 @@ ui <- page_navbar(
         tags$strong("Aggregation setup. "),
         
         paste0(
-          "Select the years and filters, define how the filtered records ",
+          "Select the years and filters, define how the filtered records BLAH BLAH ",
           "should be aggregated, and then run the aggregation."
         )
       ),
