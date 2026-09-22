@@ -1792,7 +1792,6 @@ get_sws_tree_root_codes_from_codelist_tree <- function(tree_dt, codes = NULL) {
   root_codes
 }
 
-#Builds the nested hierarchy displayed in the app from the flattened SWS codelist tree.
 # Build the nested hierarchy displayed in the app from the flattened
 # SWS codelist tree, using a precomputed parent-child lookup.
 build_sws_codelist_tree_from_codelist_tree <- function(
@@ -1805,18 +1804,11 @@ build_sws_codelist_tree_from_codelist_tree <- function(
   tree_dt <- as.data.table(tree_dt)
   codes <- as.data.table(codes)
   
-  codes[
-    ,
-    id := as.character(id)
-  ]
+  codes[, id := as.character(id)]
   
-  id_cols <- get_tree_id_cols(
-    tree_dt
-  )
+  id_cols <- get_tree_id_cols(tree_dt)
   
-  display_labels <- make_tree_display_labels(
-    codes
-  )
+  display_labels <- make_tree_display_labels(codes)
   
   
   label_for_code <- function(code_id) {
@@ -1841,9 +1833,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
   
   order_codes <- function(code_vector) {
     
-    code_vector <- as.character(
-      code_vector
-    )
+    code_vector <- as.character(code_vector)
     
     code_vector <- code_vector[
       !is.na(code_vector) &
@@ -1862,18 +1852,14 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       id %in% code_vector,
       .(
         id,
-        order_tmp =
-          suppressWarnings(
-            as.numeric(order)
-          )
+        order_tmp = suppressWarnings(
+          as.numeric(order)
+        )
       )
     ]
     
     tmp <- tmp[
-      order(
-        order_tmp,
-        id
-      )
+      order(order_tmp, id)
     ]
     
     c(
@@ -1886,13 +1872,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
   }
   
   
-  # ------------------------------------------------------------
-  # Build the parent-child relationships once.
-  #
-  # The previous version searched the complete flattened tree
-  # every time make_node() requested the children of one node.
-  # ------------------------------------------------------------
-  
+  # Build all direct parent-child relationships once.
   parent_child_pairs <- data.table(
     parent = character(0),
     child = character(0)
@@ -1902,9 +1882,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     
     parent_child_pairs <- rbindlist(
       lapply(
-        seq_len(
-          length(id_cols) - 1L
-        ),
+        seq_len(length(id_cols) - 1L),
         function(i) {
           
           parent_values <- as.character(
@@ -1938,6 +1916,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
   }
   
   
+  # Store the children associated with each parent.
   child_lookup <- split(
     parent_child_pairs$child,
     parent_child_pairs$parent
@@ -1948,9 +1927,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     
     code_id <- as.character(code_id)
     
-    children <- child_lookup[
-      [code_id]
-    ]
+    children <- child_lookup[[code_id]]
     
     if (is.null(children)) {
       return(character(0))
@@ -1978,8 +1955,6 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       return("")
     }
     
-    # Retrieve children from the precomputed lookup instead
-    # of scanning the complete hierarchy again.
     children <- get_children(
       code_id
     )
@@ -2036,9 +2011,7 @@ build_sws_codelist_tree_from_codelist_tree <- function(
     
     root_codes <- unique(
       trimws(
-        as.character(
-          root_codes
-        )
+        as.character(root_codes)
       )
     )
     
