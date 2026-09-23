@@ -12204,6 +12204,18 @@ server <- function(input, output, session) {
         flat_tree
       })
       
+      # Build the ASFIS filter tree even while its accordion is closed.
+      if (identical(current_dim, "species")) {
+        outputOptions(
+          output,
+          paste0("filter_tree_", current_dim),
+          suspendWhenHidden = FALSE
+        )
+      }
+      
+      
+      
+      
       output[[
         paste0(
           "selected_filter_summary_",
