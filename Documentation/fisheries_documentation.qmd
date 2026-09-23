@@ -154,7 +154,7 @@ knitr::kable(app_pages)
 
 6. **Comparison** page allows the user to select a comparison data source and the corresponding disseminated or tagged dataset. It provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.
 
-7. **Outlier Analysis** page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension.
+7. **Outlier Analysis** page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.
 
 
 # Supported datasets
@@ -1666,6 +1666,15 @@ When the selected measured-element output contains at least two periods, two add
 
 * **Year-on-year absolute change**;
 * **Year-on-year percentage change**.
+
+There is no test that the periods are consecutive. So if a series has:
+
+```text
+2018
+2019
+2022
+```
+the 2022 change will be calculated against 2019 and called year-on-year, even though it is a three-year gap.
 
 If the aggregation has combined all selected years into a single period, the change metrics are not available because there is no earlier period with which to calculate a change.
 
