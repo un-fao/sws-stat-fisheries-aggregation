@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-09-18">
+<meta name="dcterms.date" content="2026-09-23">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -287,7 +287,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 18, 2026</p>
+      <p class="date">September 23, 2026</p>
     </div>
   </div>
   
@@ -450,7 +450,7 @@ Table&nbsp;1: Application navigation pages
 <li><p><strong>Dataset Table</strong> page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.</p></li>
 <li><p><strong>Graphs</strong> page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.</p></li>
 <li><p><strong>Comparison</strong> page allows the user to select a comparison data source and the corresponding disseminated or tagged dataset. It provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.</p></li>
-<li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension.</p></li>
+<li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.</p></li>
 </ol>
 </section>
 <section id="supported-datasets" class="level1" data-number="4">
@@ -2212,6 +2212,11 @@ Selected group value: 380</code></pre>
 <li><strong>Year-on-year absolute change</strong>;</li>
 <li><strong>Year-on-year percentage change</strong>.</li>
 </ul>
+<p>There is no test that the periods are consecutive. So if a series has:</p>
+<pre class="text"><code>2018
+2019
+2022</code></pre>
+<p>the 2022 change will be calculated against 2019 and called year-on-year, even though it is a three-year gap.</p>
 <p>If the aggregation has combined all selected years into a single period, the change metrics are not available because there is no earlier period with which to calculate a change.</p>
 <section id="value" class="level3" data-number="17.3.1">
 <h3 data-number="17.3.1" class="anchored" data-anchor-id="value"><span class="header-section-number">17.3.1</span> Value</h3>
