@@ -1810,6 +1810,17 @@ build_sws_codelist_tree_from_codelist_tree <- function(
   
   display_labels <- make_tree_display_labels(codes)
   
+  # Prepare code IDs and ordering once for repeated tree-node ordering.
+  code_ids <- as.character(codes$id)
+  
+  code_order_values <- NULL
+  
+  if ("order" %in% names(codes)) {
+    code_order_values <- suppressWarnings(
+      as.numeric(codes$order)
+    )
+  }
+  
   
   label_for_code <- function(code_id) {
     
@@ -1844,29 +1855,40 @@ build_sws_codelist_tree_from_codelist_tree <- function(
       return(character(0))
     }
     
-    if (!"order" %in% names(codes)) {
+    if (is.null(code_order_values)) {
       return(code_vector)
     }
     
-    tmp <- codes[
-      id %in% code_vector,
-      .(
-        id,
-        order_tmp = suppressWarnings(
-          as.numeric(order)
-        )
-      )
+    matched <- match(
+      code_vector,
+      code_ids
+    )
+    
+    found <- !is.na(matched)
+    
+    found_codes <- code_vector[
+      found
     ]
     
-    tmp <- tmp[
-      order(order_tmp, id)
+    found_order <- code_order_values[
+      matched[found]
     ]
+    
+    if (length(found_codes) > 0L) {
+      
+      found_codes <- found_codes[
+        base::order(
+          found_order,
+          found_codes
+        )
+      ]
+    }
     
     c(
-      tmp$id,
+      found_codes,
       setdiff(
         code_vector,
-        tmp$id
+        found_codes
       )
     )
   }
@@ -4870,6 +4892,11 @@ ui <- page_navbar(
   nav_panel(
     "7. Outlier analysis",
     
+    div(
+      class = "alert alert-info",
+      "Outlier analysis is used here as a screening tool to explore unusually large values and year-on-year changes in the aggregated output, rather than as a formal statistical outlier-detection procedure."
+    ),
+    
     layout_sidebar(
       sidebar = sidebar(
         width = 320,
@@ -4924,14 +4951,14 @@ ui <- page_navbar(
         ),
         
         nav_panel(
-          "Largest / strongest records",
+          "Largest records",
           value = "largest",
           
           card(
             full_screen = TRUE,
             
             card_header(
-              "Largest / strongest records"
+              "Largest records"
             ),
             
             card_body(
@@ -14647,17 +14674,34 @@ server <- function(input, output, session) {
       return(data.table())
     }
     
+    saved_state <- last_comparison_state()
+    
+    group_by_observation_flag <- (
+      !is.null(saved_state) &&
+        isTRUE(saved_state$group_by_observation_flag)
+    )
+    
+    excluded_id_cols <- c(
+      cfg$value_col,
+      cfg$year_col,
+      cfg$method_flag_col,
+      "value_tmp",
+      "period_tmp",
+      "year_tmp"
+    )
+    
+    # Use observation flag to define separate time series only when
+    # the aggregation was explicitly performed separately by flag.
+    if (!group_by_observation_flag) {
+      excluded_id_cols <- c(
+        excluded_id_cols,
+        cfg$observation_flag_col
+      )
+    }
+    
     id_cols <- setdiff(
       names(dt),
-      c(
-        cfg$value_col,
-        cfg$year_col,
-        cfg$observation_flag_col,
-        cfg$method_flag_col,
-        "value_tmp",
-        "period_tmp",
-        "year_tmp"
-      )
+      excluded_id_cols
     )
     
     id_cols <- id_cols[
