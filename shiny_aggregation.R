@@ -5469,71 +5469,7 @@ split_aggregated_outputs_by_measured_element <- function(aggr, cfg) {
 }
 
 
-# Resolve configured measured-element roots to the measured elements
-# that should actually be read from the dataset.
-get_effective_measured_elements <- function(
-    dataset_info,
-    data,
-    measured_col
-) {
-  
-  dt <- as.data.table(data)
-  
-  configured_roots <- get_dataset_dimension_roots(
-    dataset_info = dataset_info,
-    dimension_id = measured_col
-  )
-  
-  configured_roots <- clean_code_vector(
-    configured_roots
-  )
-  
-  if (length(configured_roots) == 0L) {
-    return(character(0))
-  }
-  
-  codes <- as.data.table(
-    get_codelist_codes(
-      "measuredElement"
-    )
-  )
-  
-  codes[, id := as.character(id)]
-  
-  effective_elements <- unique(
-    unlist(
-      lapply(
-        configured_roots,
-        function(root_i) {
-          
-          children_i <- get_direct_children(
-            codes = codes,
-            parent_code = root_i
-          )
-          
-          if (length(children_i) > 0L) {
-            children_i
-          } else {
-            root_i
-          }
-        }
-      ),
-      use.names = FALSE
-    )
-  )
-  
-  effective_elements <- clean_code_vector(
-    effective_elements
-  )
-  
-  # Keep only measured elements actually present in the dataset.
-  intersect(
-    effective_elements,
-    clean_code_vector(
-      dt[[measured_col]]
-    )
-  )
-}
+
 
 ##########################################
 # Server
@@ -5648,6 +5584,75 @@ server <- function(input, output, session) {
     
     unique(roots)
   }
+  
+  
+  
+  # Resolve configured measured-element roots to the measured elements
+  # that should actually be read from the dataset.
+  get_effective_measured_elements <- function(
+    dataset_info,
+    data,
+    measured_col
+  ) {
+    
+    dt <- as.data.table(data)
+    
+    configured_roots <- get_dataset_dimension_roots(
+      dataset_info = dataset_info,
+      dimension_id = measured_col
+    )
+    
+    configured_roots <- clean_code_vector(
+      configured_roots
+    )
+    
+    if (length(configured_roots) == 0L) {
+      return(character(0))
+    }
+    
+    codes <- as.data.table(
+      get_codelist_codes(
+        "measuredElement"
+      )
+    )
+    
+    codes[, id := as.character(id)]
+    
+    effective_elements <- unique(
+      unlist(
+        lapply(
+          configured_roots,
+          function(root_i) {
+            
+            children_i <- get_direct_children(
+              codes = codes,
+              parent_code = root_i
+            )
+            
+            if (length(children_i) > 0L) {
+              children_i
+            } else {
+              root_i
+            }
+          }
+        ),
+        use.names = FALSE
+      )
+    )
+    
+    effective_elements <- clean_code_vector(
+      effective_elements
+    )
+    
+    # Keep only measured elements actually present in the dataset.
+    intersect(
+      effective_elements,
+      clean_code_vector(
+        dt[[measured_col]]
+      )
+    )
+  }
+  
   
   #Retrieve and clean the configured roots associated with an aggregation dimension.
   get_configured_roots_for_dimension <- function(meta) {
