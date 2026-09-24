@@ -9578,8 +9578,6 @@ server <- function(input, output, session) {
       input$dataset_id
     )
     
-    # Prevent the summary from using metadata belonging
-    # to a previously loaded dataset.
     req(
       identical(
         loaded_dataset_id(),
@@ -9587,30 +9585,50 @@ server <- function(input, output, session) {
       )
     )
     
-    dt <- copy(dataset_data())
-    cfg <- get_dataset_config(input$dataset_id)
+    dt <- copy(
+      dataset_data()
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
     
     measured_col <- cfg$measured_element_col
     
-    # Read the measured-element roots configured in SWS.
-    measured_elements <- get_dataset_dimension_roots(
+    
+    # ------------------------------------------------------------
+    # Configured measured-element roots from SWS metadata.
+    # ------------------------------------------------------------
+    
+    configured_roots <- get_dataset_dimension_roots(
       dataset_info = loaded_dataset_info(),
       dimension_id = measured_col
     )
     
-    measured_elements <- sort(
-      unique(
-        as.character(measured_elements)
-      )
+    configured_roots <- clean_code_vector(
+      configured_roots
     )
     
-    measured_elements <- measured_elements[
-      !is.na(measured_elements) &
-        nzchar(measured_elements)
-    ]
     
-    # Restrict the summary data to the configured
-    # measured-element roots.
+    # ------------------------------------------------------------
+    # Resolve configured roots to the measured elements that
+    # actually occur in the dataset.
+    #
+    # If a configured root has children, use its children.
+    # If it has no children, use the root itself.
+    # ------------------------------------------------------------
+    
+    effective_measured_elements <- get_effective_measured_elements(
+      dataset_info = loaded_dataset_info(),
+      data = dt,
+      measured_col = measured_col
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Restrict summary data to the effective measured elements.
+    # ------------------------------------------------------------
+    
     dt_summary <- copy(dt)
     
     if (
@@ -9618,60 +9636,58 @@ server <- function(input, output, session) {
       measured_col %in% names(dt_summary)
     ) {
       
-      if (length(measured_elements) > 0) {
+      if (length(effective_measured_elements) > 0L) {
         
         dt_summary <- dt_summary[
-          as.character(get(measured_col)) %in%
-            measured_elements
+          as.character(
+            get(measured_col)
+          ) %in%
+            effective_measured_elements
         ]
         
       } else {
         
-        # The dataset has a measured-element dimension,
-        # but no measured-element roots are configured.
         dt_summary <- dt_summary[0]
       }
     }
     
-    # Among the configured SWS roots, identify those that
-    # actually have at least one usable row.
-    measured_elements_with_data <- character(0)
     
-    if (
-      !is.null(measured_col) &&
-      measured_col %in% names(dt_summary) &&
-      nrow(dt_summary) > 0L
-    ) {
-      
-      measured_elements_with_data <- intersect(
-        measured_elements,
-        sort(
-          clean_code_vector(
-            dt_summary[[measured_col]]
-          )
-        )
-      )
-    }
+    # ------------------------------------------------------------
+    # Calculate available years from the actual measured elements.
+    # ------------------------------------------------------------
     
-    # Calculate the year range only from records belonging
-    # to the configured measured-element roots.
     years <- get_year_values(
       data = dt_summary,
       year_col = cfg$year_col
     )
     
-    # Add measured-element labels and units.
-    measured_element_labels <- measured_elements
     
-    if (length(measured_elements) > 0) {
-      
-      codes <- tryCatch(
-        get_codelist_codes("measuredElement"),
-        error = function(e) NULL
-      )
+    # ------------------------------------------------------------
+    # Read measured-element codelist for labels and hierarchy.
+    # ------------------------------------------------------------
+    
+    codes <- tryCatch(
+      get_codelist_codes(
+        "measuredElement"
+      ),
+      error = function(e) NULL
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Labels for configured roots.
+    # ------------------------------------------------------------
+    
+    configured_root_labels <- configured_roots
+    
+    if (
+      length(configured_roots) > 0L &&
+      !is.null(codes)
+    ) {
       
       roots_dt <- data.table(
-        measured_element_root = measured_elements
+        measured_element_root =
+          configured_roots
       )
       
       setnames(
@@ -9680,40 +9696,132 @@ server <- function(input, output, session) {
         measured_col
       )
       
-      measured_element_choices <- make_filter_choices_from_data(
+      root_choices <- make_filter_choices_from_data(
         data = roots_dt,
         column_name = measured_col,
         codes = codes
       )
       
-      if (length(measured_element_choices) > 0) {
-        measured_element_labels <- names(
-          measured_element_choices
+      if (length(root_choices) > 0L) {
+        configured_root_labels <- names(
+          root_choices
         )
       }
     }
     
     
-    measured_element_labels_with_data <-
-      measured_elements_with_data
+    # ------------------------------------------------------------
+    # Labels for effective measured elements.
+    # ------------------------------------------------------------
     
-    if (length(measured_elements_with_data) > 0L) {
+    effective_element_labels <-
+      effective_measured_elements
+    
+    if (
+      length(effective_measured_elements) > 0L &&
+      !is.null(codes)
+    ) {
       
-      matched_root_positions <- match(
-        measured_elements_with_data,
-        measured_elements
+      effective_dt <- data.table(
+        measured_element =
+          effective_measured_elements
       )
       
-      matched_roots <- !is.na(
-        matched_root_positions
+      setnames(
+        effective_dt,
+        "measured_element",
+        measured_col
       )
       
-      measured_element_labels_with_data[matched_roots] <-
-        measured_element_labels[
-          matched_root_positions[matched_roots]
-        ]
+      effective_choices <-
+        make_filter_choices_from_data(
+          data = effective_dt,
+          column_name = measured_col,
+          codes = codes
+        )
+      
+      if (length(effective_choices) > 0L) {
+        effective_element_labels <- names(
+          effective_choices
+        )
+      }
     }
     
+    
+    # ------------------------------------------------------------
+    # Identify which configured roots have usable data underneath.
+    # ------------------------------------------------------------
+    
+    configured_roots_with_data <-
+      character(0)
+    
+    if (
+      length(configured_roots) > 0L &&
+      !is.null(codes) &&
+      !is.null(measured_col) &&
+      measured_col %in% names(dt)
+    ) {
+      
+      data_measured_elements <- clean_code_vector(
+        dt[[measured_col]]
+      )
+      
+      configured_roots_with_data <- configured_roots[
+        vapply(
+          configured_roots,
+          function(root_i) {
+            
+            children_i <- get_direct_children(
+              codes = codes,
+              parent_code = root_i
+            )
+            
+            effective_i <- if (
+              length(children_i) > 0L
+            ) {
+              children_i
+            } else {
+              root_i
+            }
+            
+            any(
+              effective_i %in%
+                data_measured_elements
+            )
+          },
+          logical(1)
+        )
+      ]
+    }
+    
+    
+    configured_root_labels_with_data <-
+      configured_roots_with_data
+    
+    if (
+      length(configured_roots_with_data) > 0L
+    ) {
+      
+      root_positions <- match(
+        configured_roots_with_data,
+        configured_roots
+      )
+      
+      matched <- !is.na(
+        root_positions
+      )
+      
+      configured_root_labels_with_data[
+        matched
+      ] <- configured_root_labels[
+        root_positions[matched]
+      ]
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Other available dimensions.
+    # ------------------------------------------------------------
     
     available_dimensions <- c(
       "Geographical area",
@@ -9723,15 +9831,19 @@ server <- function(input, output, session) {
     
     if (
       !is.null(cfg$production_source_col) &&
-      cfg$production_source_col %in% names(dt)
+      cfg$production_source_col %in%
+      names(dt)
     ) {
+      
       available_dimensions <- c(
         available_dimensions,
         "Production source / environment type"
       )
     }
     
+    
     tagList(
+      
       tags$p(
         tags$strong("Dataset: "),
         paste0(
@@ -9765,7 +9877,7 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong("Years available: "),
-        if (length(years) > 0) {
+        if (length(years) > 0L) {
           paste0(
             min(years),
             "–",
@@ -9780,16 +9892,20 @@ server <- function(input, output, session) {
         tags$strong(
           "Number of configured measured-element roots: "
         ),
-        length(measured_elements)
+        length(
+          configured_roots
+        )
       ),
       
       tags$p(
         tags$strong(
           "Configured measured-element roots: "
         ),
-        if (length(measured_element_labels) > 0) {
+        if (
+          length(configured_root_labels) > 0L
+        ) {
           paste(
-            measured_element_labels,
+            configured_root_labels,
             collapse = ", "
           )
         } else {
@@ -9799,10 +9915,26 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong(
+          "Measured elements available under configured roots: "
+        ),
+        if (
+          length(effective_element_labels) > 0L
+        ) {
+          paste(
+            effective_element_labels,
+            collapse = ", "
+          )
+        } else {
+          "None"
+        }
+      ),
+      
+      tags$p(
+        tags$strong(
           "Number of configured roots with usable data: "
         ),
         length(
-          measured_elements_with_data
+          configured_roots_with_data
         )
       ),
       
@@ -9812,11 +9944,11 @@ server <- function(input, output, session) {
         ),
         if (
           length(
-            measured_element_labels_with_data
+            configured_root_labels_with_data
           ) > 0L
         ) {
           paste(
-            measured_element_labels_with_data,
+            configured_root_labels_with_data,
             collapse = ", "
           )
         } else {
@@ -9825,7 +9957,9 @@ server <- function(input, output, session) {
       ),
       
       tags$p(
-        tags$strong("Main dimensions available: "),
+        tags$strong(
+          "Main dimensions available: "
+        ),
         paste(
           available_dimensions,
           collapse = ", "
@@ -9835,8 +9969,9 @@ server <- function(input, output, session) {
       tags$div(
         class = "alert alert-info",
         paste0(
-          "This summary is restricted to the measured-element roots ",
-          "configured for the loaded dataset in SWS."
+          "Measured-element roots are read from the dataset configuration. ",
+          "When a configured root contains child measured elements, ",
+          "the summary uses the child elements available in the dataset."
         )
       )
     )
