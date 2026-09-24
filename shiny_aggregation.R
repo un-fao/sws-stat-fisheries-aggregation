@@ -8968,6 +8968,136 @@ server <- function(input, output, session) {
   }
   
   
+  # Order aggregation outputs consistently for display.
+  order_aggregation_output_for_display <- function(data, cfg) {
+    
+    dt <- copy(
+      as.data.table(data)
+    )
+    
+    sort_columns <- c(
+      cfg$geographical_area_col,
+      cfg$production_source_col,
+      cfg$species_col,
+      cfg$fishing_area_col
+    )
+    
+    sort_columns <- sort_columns[
+      !is.null(sort_columns) &
+        sort_columns %in% names(dt)
+    ]
+    
+    temporary_columns <- character(0)
+    
+    for (column_i in sort_columns) {
+      
+      values <- as.character(
+        dt[[column_i]]
+      )
+      
+      prefix <- paste0(
+        ".__sort_",
+        column_i
+      )
+      
+      type_col <- paste0(
+        prefix,
+        "_type"
+      )
+      
+      numeric_col <- paste0(
+        prefix,
+        "_numeric"
+      )
+      
+      text_col <- paste0(
+        prefix,
+        "_text"
+      )
+      
+      # Custom aggregations first, ordinary codes next, Other last.
+      dt[
+        ,
+        (type_col) := fifelse(
+          grepl(
+            "^Custom Aggregation",
+            values
+          ),
+          0L,
+          fifelse(
+            grepl(
+              "^Other",
+              values
+            ),
+            2L,
+            1L
+          )
+        )
+      ]
+      
+      dt[
+        ,
+        (numeric_col) :=
+          suppressWarnings(
+            as.numeric(values)
+          )
+      ]
+      
+      dt[
+        ,
+        (text_col) := values
+      ]
+      
+      temporary_columns <- c(
+        temporary_columns,
+        type_col,
+        numeric_col,
+        text_col
+      )
+    }
+    
+    # Keep years in chronological order within each aggregation combination.
+    year_sort_col <- NULL
+    
+    if (
+      !is.null(cfg$year_col) &&
+      cfg$year_col %in% names(dt)
+    ) {
+      
+      year_sort_col <- ".__sort_year"
+      
+      dt[
+        ,
+        (year_sort_col) :=
+          period_start_value(
+            get(cfg$year_col)
+          )
+      ]
+      
+      temporary_columns <- c(
+        temporary_columns,
+        year_sort_col
+      )
+    }
+    
+    if (length(temporary_columns) > 0L) {
+      
+      setorderv(
+        dt,
+        temporary_columns,
+        na.last = TRUE
+      )
+      
+      dt[
+        ,
+        (temporary_columns) := NULL
+      ]
+    }
+    
+    dt[]
+  }
+  
+  
   format_dimension_codes_for_display <- function(data) {
     dt <- remove_internal_aggregation_columns(data)
     
@@ -13575,10 +13705,20 @@ server <- function(input, output, session) {
         download_id_local <- download_id
         
         output[[table_id_local]] <- renderDT({
-          dt_to_show <- format_dimension_codes_for_display(
-            aggregated_outputs()[[
+          
+          cfg <- get_dataset_config(
+            input$dataset_id
+          )
+          
+          dt_to_show <- order_aggregation_output_for_display(
+            data = aggregated_outputs()[[
               output_name_local
-            ]]
+            ]],
+            cfg = cfg
+          )
+          
+          dt_to_show <- format_dimension_codes_for_display(
+            dt_to_show
           )
           
           datatable(
