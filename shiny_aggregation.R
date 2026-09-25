@@ -5485,7 +5485,7 @@ CODELIST_CACHE_DIR <- file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_ap
 #   showWarnings = FALSE
 # )
 
-if(!dir.exist(CODELIST_CACHE_DIR)){
+if(!dir.exists(CODELIST_CACHE_DIR)){
   stop( "Shared cache folder does not exist:", CODELIST_CACHE_DIR)
 }
 
