@@ -5476,14 +5476,16 @@ split_aggregated_outputs_by_measured_element <- function(aggr, cfg) {
 
 R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
 
-
 CODELIST_CACHE_DIR <- file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_app")
+file_path = file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_app/iris.csv")
 
-# dir.create(
-#   CODELIST_CACHE_DIR,
-#   recursive = TRUE,
-#   showWarnings = FALSE
-# )
+dir.create(
+   CODELIST_CACHE_DIR,
+   recursive = TRUE,
+   showWarnings = TRUE
+ )
+
+
 
 if(!dir.exists(CODELIST_CACHE_DIR)){
   stop( "Shared cache folder does not exist:", CODELIST_CACHE_DIR)
@@ -5491,7 +5493,7 @@ if(!dir.exists(CODELIST_CACHE_DIR)){
 
 # Also keep already-read cache objects in the current R process.
 # This avoids repeatedly reading the same RDS file from the shared drive.
-PROCESS_CODELIST_CACHE <- new.env(parent = eptyenv())
+PROCESS_CODELIST_CACHE <- new.env(parent = emptyenv())
 
 
 # Build the file path used for one cached object.
