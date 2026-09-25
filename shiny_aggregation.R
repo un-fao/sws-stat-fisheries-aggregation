@@ -5470,6 +5470,203 @@ split_aggregated_outputs_by_measured_element <- function(aggr, cfg) {
 
 
 
+# -------------------------------------------------------------------------
+# Shared daily codelist cache
+# -------------------------------------------------------------------------
+
+R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
+
+
+CODELIST_CACHE_DIR <- file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_app")
+
+# dir.create(
+#   CODELIST_CACHE_DIR,
+#   recursive = TRUE,
+#   showWarnings = FALSE
+# )
+
+if(!dir.exist(CODELIST_CACHE_DIR)){
+  stop( "Shared cache folder does not exist:", CODELIST_CACHE_DIR)
+}
+
+# Also keep already-read cache objects in the current R process.
+# This avoids repeatedly reading the same RDS file from the shared drive.
+PROCESS_CODELIST_CACHE <- new.env(parent = eptyenv())
+
+
+# Build the file path used for one cached object.
+get_daily_cache_path <- function(
+    cache_id,
+    cache_date = Sys.Date()
+) {
+  
+  safe_id <- gsub(
+    "[^A-Za-z0-9_-]",
+    "_",
+    cache_id
+  )
+  
+  file.path(
+    CODELIST_CACHE_DIR,
+    paste0(
+      safe_id,
+      "__",
+      as.character(cache_date),
+      ".rds"
+    )
+  )
+}
+
+
+# Retrieve today's cached object.
+get_daily_shared_cache <- function(
+    cache_id
+) {
+  
+  today <- as.character(
+    Sys.Date()
+  )
+  
+  memory_entry <- PROCESS_CODELIST_CACHE[[
+    cache_id
+  ]]
+  
+  if (
+    !is.null(memory_entry) &&
+    identical(
+      memory_entry$cache_date,
+      today
+    )
+  ) {
+    return(
+      memory_entry$value
+    )
+  }
+  
+  cache_file <- get_daily_cache_path(
+    cache_id = cache_id
+  )
+  
+  if (!file.exists(cache_file)) {
+    return(NULL)
+  }
+  
+  value <- tryCatch(
+    readRDS(
+      cache_file
+    ),
+    error = function(e) {
+      NULL
+    }
+  )
+  
+  if (is.null(value)) {
+    return(NULL)
+  }
+  
+  PROCESS_CODELIST_CACHE[[
+    cache_id
+  ]] <- list(
+    cache_date = today,
+    value = value
+  )
+  
+  value
+}
+
+
+# Save today's cached object.
+set_daily_shared_cache <- function(
+    cache_id,
+    value
+) {
+  
+  today <- as.character(Sys.Date())
+  
+  cache_file <- get_daily_cache_path(
+    cache_id = cache_id
+  )
+  
+  temp_file <- paste0(
+    cache_file,
+    ".tmp_",
+    Sys.getpid()
+  )
+  
+  saveRDS(
+    value,
+    temp_file
+  )
+  
+  if (!file.rename(
+    temp_file,
+    cache_file
+  )) {
+    
+    file.copy(
+      from = temp_file,
+      to = cache_file,
+      overwrite = TRUE
+    )
+    
+    unlink(
+      temp_file
+    )
+  }
+  
+  PROCESS_CODELIST_CACHE[[
+    cache_id
+  ]] <- list(
+    cache_date = today,
+    value = value
+  )
+  
+  invisible(
+    value
+  )
+}
+
+# Clean the old cached data every two days 
+clean_old_codelist_cache <- function(
+    keep_days = 2L
+) {
+  
+  cache_files <- list.files(
+    CODELIST_CACHE_DIR,
+    pattern = "\\.rds$",
+    full.names = TRUE
+  )
+  
+  if (length(cache_files) == 0L) {
+    return(
+      invisible(NULL)
+    )
+  }
+  
+  file_age_days <- as.numeric(
+    difftime(
+      Sys.time(),
+      file.info(cache_files)$mtime,
+      units = "days"
+    )
+  )
+  
+  old_files <- cache_files[
+    !is.na(file_age_days) &
+      file_age_days > keep_days
+  ]
+  
+  if (length(old_files) > 0L) {
+    unlink(
+      old_files
+    )
+  }
+  
+  invisible(NULL)
+}
+
+clean_old_codelist_cache()
+
 
 ##########################################
 # Server
@@ -5482,7 +5679,7 @@ server <- function(input, output, session) {
   # Stores the result returned by getDatasetInfo()
   loaded_dataset_info <- reactiveVal(NULL)
   
-  aggregated_data <- reactiveVal(NULL)     # combined aggregated output
+  #aggregated_data <- reactiveVal(NULL)     # combined aggregated output
   aggregated_outputs <- reactiveVal(list()) # separate outputs by measured element
   comparison_data <- reactiveVal(NULL)
   comparison_metadata <- reactiveVal(NULL)
@@ -5538,8 +5735,8 @@ server <- function(input, output, session) {
   # used to create the most recent aggregation output.
   last_comparison_state <- reactiveVal(NULL)
   
-  codelist_cache <- reactiveValues()
-  codelist_tree_cache <- reactiveValues()
+  # codelist_cache <- reactiveValues()
+  # codelist_tree_cache <- reactiveValues()
   
   
   get_dataset_dimension_roots <- function(dataset_info, dimension_id) {
@@ -5682,212 +5879,131 @@ server <- function(input, output, session) {
     
     roots
   }
-  #Retrieve and cache codelist codes, removing expired codes when required.
-  get_regular_codelist_codes <- function(codelist_id) {
-    cache_id <- paste0("regular_codes__", codelist_id)
+
+  # Retrieve and cache codelist codes once per day on the shared drive.
+  get_regular_codelist_codes <- function(
+    codelist_id
+  ) {
     
-    if (is.null(codelist_cache[[cache_id]])) {
-      showNotification(
-        paste("Reading codelist:", codelist_id),
-        type = "default"
-      )
-      
-      codelist_info <- getCodelistInfo(codelist_id)
-      
-      codes <- as.data.table(codelist_info$codes)
-      codes[, id := as.character(id)]
-      
-      if (
-        !codelist_id %in%
-        KEEP_EXPIRED_CODELISTS
-      ) {
-        
-        codes <- drop_expired_codelist_codes(
-          codes
-        )
-      }
-      
-      codelist_cache[[cache_id]] <- codes
-    }
-    
-    codelist_cache[[cache_id]]
-  }
-  
-  #Retrieve and cache a codelist hierarchy, removing expired hierarchy paths when required.
-  get_regular_codelist_tree_cached <- function(codelist_id) {
-    cache_id <- paste0("regular_tree__", codelist_id)
-    
-    if (is.null(codelist_tree_cache[[cache_id]])) {
-      showNotification(
-        paste("Reading codelist tree:", codelist_id),
-        type = "default"
-      )
-      
-      tree_dt <- as.data.table(getCodelistTree(codelist_id))
-      
-      if (
-        !codelist_id %in%
-        KEEP_EXPIRED_CODELISTS
-      ) {
-        
-        active_codes <-
-          get_regular_codelist_codes(
-            codelist_id
-          )
-        
-        tree_dt <-
-          drop_expired_codes_from_codelist_tree(
-            tree_dt = tree_dt,
-            active_codes = active_codes
-          )
-      }
-      
-      codelist_tree_cache[[cache_id]] <- tree_dt
-    }
-    
-    codelist_tree_cache[[cache_id]]
-  }
-  
-  #Retrieve the Economic Commission branch from the M49 hierarchy together with the codes needed to display it.
-  get_m49_economic_commission_branch <- function() {
-    
-    tree_m49 <- as.data.table(
-      getCodelistTree("geographicAreaM49")
+    cache_id <- paste0(
+      "regular_codes__",
+      codelist_id
     )
     
-    codes_m49 <- as.data.table(
-      getCodelistInfo("geographicAreaM49")$codes
+    cached <- get_daily_shared_cache(
+      cache_id
     )
     
-    codes_m49[, id := as.character(id)]
-    
-    id_cols <- get_tree_id_cols(tree_m49)
-    
-    if (length(id_cols) == 0) {
+    if (!is.null(cached)) {
       return(
-        list(
-          branch_tree = data.table(),
-          branch_codes = data.table()
-        )
+        cached
       )
     }
     
-    for (col_i in id_cols) {
-      tree_m49[, (col_i) := as.character(get(col_i))]
-    }
-    
-    branch_tree <- tree_m49[
-      as.character(level_1_id) == "ECC"
-    ]
-    
-    if (nrow(branch_tree) == 0) {
-      return(
-        list(
-          branch_tree = data.table(),
-          branch_codes = data.table()
-        )
-      )
-    }
-    
-    branch_tree <- unique(branch_tree)
-    
-    branch_ids <- unique(
-      as.character(
-        unlist(
-          branch_tree[, ..id_cols],
-          use.names = FALSE
-        )
-      )
+    showNotification(
+      paste(
+        "Reading codelist:",
+        codelist_id
+      ),
+      type = "default"
     )
     
-    branch_ids <- branch_ids[
-      !is.na(branch_ids) &
-        nzchar(branch_ids)
-    ]
-    
-    branch_codes <- codes_m49[
-      id %in% branch_ids
-    ]
-    
-    missing_ids <- setdiff(branch_ids, branch_codes$id)
-    
-    if (length(missing_ids) > 0) {
-      
-      tree_labels <- rbindlist(
-        lapply(
-          id_cols,
-          function(id_col_i) {
-            label_col_i <- sub("_id$", "_label", id_col_i)
-            
-            data.table(
-              id = as.character(branch_tree[[id_col_i]]),
-              label_en = if (label_col_i %in% names(branch_tree)) {
-                as.character(branch_tree[[label_col_i]])
-              } else {
-                NA_character_
-              }
-            )
-          }
-        ),
-        fill = TRUE
-      )
-      
-      tree_labels <- tree_labels[
-        id %in% missing_ids
-      ]
-      
-      tree_labels <- tree_labels[
-        !is.na(id) & nzchar(id)
-      ]
-      
-      tree_labels <- unique(tree_labels, by = "id")
-      
-      tree_labels[
-        is.na(label_en) | !nzchar(label_en),
-        label_en := id
-      ]
-      
-      branch_codes <- rbindlist(
-        list(
-          branch_codes,
-          tree_labels
-        ),
-        fill = TRUE
-      )
-    }
-    
-    branch_codes <- unique(branch_codes, by = "id")
-    
-    if (!"display_id" %in% names(branch_codes)) {
-      branch_codes[, display_id := NA_character_]
-    }
-    
-    if ("order" %in% names(branch_codes)) {
-      branch_codes[
-        id == "ECC" & !is.na(order),
-        display_id := as.character(order)
-      ]
-      
-      branch_codes[
-        id == "ECC",
-        order := NA_real_
-      ]
-    }
-    
-    branch_codes[
-      id == "ECC" & (is.na(display_id) | !nzchar(display_id)),
-      display_id := id
-    ]
-    
-    list(
-      branch_tree = branch_tree,
-      branch_codes = branch_codes
+    codelist_info <- getCodelistInfo(
+      codelist_id
     )
+    
+    codes <- as.data.table(
+      codelist_info$codes
+    )
+    
+    codes[
+      ,
+      id := as.character(id)
+    ]
+    
+    if (
+      !codelist_id %in%
+      KEEP_EXPIRED_CODELISTS
+    ) {
+      
+      codes <- drop_expired_codelist_codes(
+        codes
+      )
+    }
+    
+    set_daily_shared_cache(
+      cache_id = cache_id,
+      value = codes
+    )
+    
+    codes
   }
   
-  #Retrieve the codelist codes used by the app, adding synthetic hierarchy codes 
-  #or the M49 Economic Commission branch when required.
-  get_codelist_codes <- function(codelist_id) {
+  # Retrieve and cache a codelist hierarchy once per day on the shared drive.
+  get_regular_codelist_tree_cached <- function(
+    codelist_id
+  ) {
+    
+    cache_id <- paste0(
+      "regular_tree__",
+      codelist_id
+    )
+    
+    cached <- get_daily_shared_cache(
+      cache_id
+    )
+    
+    if (!is.null(cached)) {
+      return(
+        cached
+      )
+    }
+    
+    showNotification(
+      paste(
+        "Reading codelist tree:",
+        codelist_id
+      ),
+      type = "default"
+    )
+    
+    tree_dt <- as.data.table(
+      getCodelistTree(
+        codelist_id
+      )
+    )
+    
+    if (
+      !codelist_id %in%
+      KEEP_EXPIRED_CODELISTS
+    ) {
+      
+      active_codes <- get_regular_codelist_codes(
+        codelist_id
+      )
+      
+      tree_dt <- drop_expired_codes_from_codelist_tree(
+        tree_dt = tree_dt,
+        active_codes = active_codes
+      )
+    }
+    
+    set_daily_shared_cache(
+      cache_id = cache_id,
+      value = tree_dt
+    )
+    
+    tree_dt
+  }
+  
+  
+  
+  # Retrieve the codelist codes used by the app,
+  # adding synthetic hierarchy codes when required.
+  get_codelist_codes <- function(
+    codelist_id
+  ) {
+    
     if (
       uses_augmented_all_root(
         codelist_id
@@ -5899,69 +6015,46 @@ server <- function(input, output, session) {
         codelist_id
       )
       
-      if (
-        is.null(
-          codelist_cache[[cache_id]]
+      cached <- get_daily_shared_cache(
+        cache_id
+      )
+      
+      if (!is.null(cached)) {
+        return(
+          cached
         )
-      ) {
-        
-        original_codes <- copy(
-          get_regular_codelist_codes(
-            codelist_id
-          )
-        )
-        
-        out <- add_synthetic_all_codes(
-          original_codes
-        )
-        
-        codelist_cache[[cache_id]] <- out
       }
       
+      original_codes <- copy(
+        get_regular_codelist_codes(
+          codelist_id
+        )
+      )
+      
+      out <- add_synthetic_all_codes(
+        original_codes
+      )
+      
+      set_daily_shared_cache(
+        cache_id = cache_id,
+        value = out
+      )
+      
       return(
-        codelist_cache[[cache_id]]
+        out
       )
     }
     
-    if (identical(codelist_id, "geographicAreaM49_fi")) {
-      
-      cache_id <- "augmented_codes__geographicAreaM49_fi_plus_economic_commissions"
-      
-      if (is.null(codelist_cache[[cache_id]])) {
-        
-        codes_fi <- copy(
-          get_regular_codelist_codes("geographicAreaM49_fi")
-        )
-        
-        codes_fi[, id := as.character(id)]
-        
-        branch <- get_m49_economic_commission_branch()
-        
-        out <- rbindlist(
-          list(
-            codes_fi,
-            branch$branch_codes
-          ),
-          fill = TRUE
-        )
-        
-        out <- unique(out, by = "id")
-        
-        if ("virtual" %in% names(out)) {
-          out[id %in% branch$branch_codes$id, virtual := NA_character_]
-        }
-        
-        codelist_cache[[cache_id]] <- out
-      }
-      
-      return(codelist_cache[[cache_id]])
-    }
-    
-    get_regular_codelist_codes(codelist_id)
+    get_regular_codelist_codes(
+      codelist_id
+    )
   }
   
-  #Retrieve the hierarchy used by the app, adding synthetic branches or the M49 Economic Commission branch when required.
-  get_codelist_tree_cached <- function(codelist_id) {
+  # Retrieve the hierarchy used by the app,
+  # adding synthetic branches when required.
+  get_codelist_tree_cached <- function(
+    codelist_id
+  ) {
     
     if (
       uses_augmented_all_root(
@@ -5974,67 +6067,46 @@ server <- function(input, output, session) {
         codelist_id
       )
       
-      if (
-        is.null(
-          codelist_tree_cache[[cache_id]]
+      cached <- get_daily_shared_cache(
+        cache_id
+      )
+      
+      if (!is.null(cached)) {
+        return(
+          cached
         )
-      ) {
-        
-        original_tree <- copy(
-          get_regular_codelist_tree_cached(
-            codelist_id
-          )
-        )
-        
-        original_codes <- copy(
-          get_regular_codelist_codes(
-            codelist_id
-          )
-        )
-        
-        out <-
-          add_all_and_expired_branches_to_tree(
-            tree_dt = original_tree,
-            codes = original_codes
-          )
-        
-        codelist_tree_cache[[cache_id]] <- out
       }
       
+      original_tree <- copy(
+        get_regular_codelist_tree_cached(
+          codelist_id
+        )
+      )
+      
+      original_codes <- copy(
+        get_regular_codelist_codes(
+          codelist_id
+        )
+      )
+      
+      out <- add_all_and_expired_branches_to_tree(
+        tree_dt = original_tree,
+        codes = original_codes
+      )
+      
+      set_daily_shared_cache(
+        cache_id = cache_id,
+        value = out
+      )
+      
       return(
-        codelist_tree_cache[[cache_id]]
+        out
       )
     }
     
-    if (identical(codelist_id, "geographicAreaM49_fi")) {
-      
-      cache_id <- "augmented_tree__geographicAreaM49_fi_plus_economic_commissions"
-      
-      if (is.null(codelist_tree_cache[[cache_id]])) {
-        
-        tree_fi <- copy(
-          get_regular_codelist_tree_cached("geographicAreaM49_fi")
-        )
-        
-        branch <- get_m49_economic_commission_branch()
-        
-        out <- rbindlist(
-          list(
-            tree_fi,
-            branch$branch_tree
-          ),
-          fill = TRUE
-        )
-        
-        out <- unique(out)
-        
-        codelist_tree_cache[[cache_id]] <- out
-      }
-      
-      return(codelist_tree_cache[[cache_id]])
-    }
-    
-    get_regular_codelist_tree_cached(codelist_id)
+    get_regular_codelist_tree_cached(
+      codelist_id
+    )
   }
   
   #Restrict dataset records to codes allowed by the configured codelist hierarchies and dataset roots.
@@ -9524,7 +9596,7 @@ server <- function(input, output, session) {
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
         
-        aggregated_data(NULL)
+        #aggregated_data(NULL)
         
         aggregated_outputs(list())
         aggregation_input_data(NULL)
@@ -12617,7 +12689,7 @@ server <- function(input, output, session) {
     dt <- dataset_data()
     
     # Clear outputs/results, but keep the loaded dataset.
-    aggregated_data(NULL)
+    #aggregated_data(NULL)
     aggregated_outputs(list())
     filter_debug(NULL)
     aggregation_input_data(NULL)
@@ -12798,9 +12870,7 @@ server <- function(input, output, session) {
     
     debug_lines <- character(0)
     
-    dt <- copy(
-      base_analysis_data()
-    )
+    dt <- base_analysis_data()
     
     debug_lines <- c(
       debug_lines,
@@ -13590,7 +13660,7 @@ server <- function(input, output, session) {
             # Invalidate the previous aggregation immediately.
             # A failed new run must not leave the old aggregation
             # available to the Comparison page.
-            aggregated_data(NULL)
+            #aggregated_data(NULL)
             aggregated_outputs(list())
             aggregation_input_data(NULL)
             last_aggregation_specs(NULL)
@@ -13796,15 +13866,15 @@ server <- function(input, output, session) {
               stop("No output was produced.")
             }
             
-            if (length(successful_outputs) > 0) {
-              aggr_all <- rbindlist(
-                successful_outputs,
-                use.names = TRUE,
-                fill = TRUE
-              )
-            } else {
-              aggr_all <- data.table()
-            }
+            # if (length(successful_outputs) > 0) {
+            #   aggr_all <- rbindlist(
+            #     successful_outputs,
+            #     use.names = TRUE,
+            #     fill = TRUE
+            #   )
+            # } else {
+            #   aggr_all <- data.table()
+            # }
             
             incProgress(
               amount = 0.05,
@@ -15515,38 +15585,38 @@ server <- function(input, output, session) {
       )
   })
   
-  output$download_csv <- downloadHandler(
-    filename = function() {
-      selected_dims <- names(Filter(
-        isTRUE,
-        list(
-          species = input$apply_species,
-          geographical_area = input$apply_geographical_area,
-          fishing_area = input$apply_fishing_area,
-          production_source = input$apply_production_source,
-          observation_status = input$apply_observation_flag
-        )
-      ))
-      
-      if (length(selected_dims) == 0) {
-        selected_dims <- "no_aggregation"
-      } else {
-        selected_dims <- paste(selected_dims, collapse = "_")
-      }
-      
-      paste0(
-        "aggregated_",
-        input$dataset_id %||% "dataset",
-        "_",
-        selected_dims,
-        ".csv"
-      )
-    },
-    content = function(file) {
-      req(aggregated_data())
-      fwrite(aggregated_data(), file)
-    }
-  )
+  # output$download_csv <- downloadHandler(
+  #   filename = function() {
+  #     selected_dims <- names(Filter(
+  #       isTRUE,
+  #       list(
+  #         species = input$apply_species,
+  #         geographical_area = input$apply_geographical_area,
+  #         fishing_area = input$apply_fishing_area,
+  #         production_source = input$apply_production_source,
+  #         observation_status = input$apply_observation_flag
+  #       )
+  #     ))
+  #     
+  #     if (length(selected_dims) == 0) {
+  #       selected_dims <- "no_aggregation"
+  #     } else {
+  #       selected_dims <- paste(selected_dims, collapse = "_")
+  #     }
+  #     
+  #     paste0(
+  #       "aggregated_",
+  #       input$dataset_id %||% "dataset",
+  #       "_",
+  #       selected_dims,
+  #       ".csv"
+  #     )
+  #   },
+  #   content = function(file) {
+  #     req(aggregated_data())
+  #     fwrite(aggregated_data(), file)
+  #   }
+  # )
 }
 
 shinyApp(ui, server)
