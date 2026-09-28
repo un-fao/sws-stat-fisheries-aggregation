@@ -13883,7 +13883,7 @@ server <- function(input, output, session) {
               detail = "Saving aggregation results..."
             )
             
-            aggregated_data(aggr_all)
+            # aggregated_data(aggr_all)
             aggregated_outputs(output_list)
             
             # Save the exact data, aggregation specifications and filter state
@@ -13931,14 +13931,16 @@ server <- function(input, output, session) {
   selected_aggregated_data <- reactive({
     outputs <- aggregated_outputs()
     
-    if (length(outputs) == 0) {
-      req(aggregated_data())
-      return(aggregated_data())
+    if (length(outputs) == 0L) {
+      return(data.table())
     }
     
     selected_output <- input$aggregation_output_id
     
-    if (is.null(selected_output) || !selected_output %in% names(outputs)) {
+    if (
+      is.null(selected_output) ||
+      !selected_output %in% names(outputs)
+    ) {
       selected_output <- names(outputs)[1]
     }
     
@@ -14106,14 +14108,16 @@ server <- function(input, output, session) {
   selected_graph_data <- reactive({
     outputs <- aggregated_outputs()
     
-    if (length(outputs) == 0) {
-      req(aggregated_data())
-      return(aggregated_data())
+    if (length(outputs) == 0L) {
+      return(data.table())
     }
     
     selected <- selected_graph_output_name()
     
-    if (is.null(selected) || !selected %in% names(outputs)) {
+    if (
+      is.null(selected) ||
+      !selected %in% names(outputs)
+    ) {
       return(data.table())
     }
     
@@ -14825,14 +14829,16 @@ server <- function(input, output, session) {
   selected_outlier_data <- reactive({
     outputs <- aggregated_outputs()
     
-    if (length(outputs) == 0) {
-      req(aggregated_data())
-      return(aggregated_data())
+    if (length(outputs) == 0L) {
+      return(data.table())
     }
     
     selected <- selected_outlier_output_name()
     
-    if (is.null(selected) || !selected %in% names(outputs)) {
+    if (
+      is.null(selected) ||
+      !selected %in% names(outputs)
+    ) {
       return(data.table())
     }
     
