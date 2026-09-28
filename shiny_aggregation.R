@@ -12535,21 +12535,76 @@ server <- function(input, output, session) {
         # ------------------------------------------------------------
         if (!is.null(meta$codelist)) {
           
-          raw_codes <- clean_non_empty_codes(
-            dt[[meta$dataset_column]]
+          raw_codes <- sort(
+            clean_non_empty_codes(
+              dt[[meta$dataset_column]]
+            )
           )
           
-          if (length(raw_codes) == 0) {
+          if (length(raw_codes) == 0L) {
             return(list())
           }
           
+          
+          # ----------------------------------------------------------
+          # Clean the configured roots before checking the cached tree.
+          # ----------------------------------------------------------
+          configured_roots_clean <- sort(
+            clean_non_empty_codes(
+              configured_roots
+            )
+          )
+          
+          
+          # ----------------------------------------------------------
+          # Check whether the final filter tree has already been built
+          # today for exactly the same dataset values and roots.
+          # ----------------------------------------------------------
+          filter_tree_cache_id <- paste0(
+            "filter_tree__",
+            input$dataset_id,
+            "__",
+            current_dim,
+            "__",
+            meta$codelist
+          )
+          
+          cached_filter_tree <- get_daily_shared_cache(
+            filter_tree_cache_id
+          )
+          
+          if (
+            !is.null(cached_filter_tree) &&
+            is.list(cached_filter_tree) &&
+            identical(
+              cached_filter_tree$raw_codes,
+              raw_codes
+            ) &&
+            identical(
+              cached_filter_tree$configured_roots,
+              configured_roots_clean
+            )
+          ) {
+            return(
+              cached_filter_tree$tree
+            )
+          }
+          
+          
+          # ----------------------------------------------------------
+          # No valid final-tree cache exists.
+          # Build the tree exactly as before.
+          # ----------------------------------------------------------
           codes <- as.data.table(
             get_codelist_codes(
               meta$codelist
             )
           )
           
-          codes[, id := as.character(id)]
+          codes[
+            ,
+            id := as.character(id)
+          ]
           
           complete_tree_dt <- get_codelist_tree_cached(
             meta$codelist
@@ -12560,7 +12615,7 @@ server <- function(input, output, session) {
             filtered_raw_codes = raw_codes
           )
           
-          if (length(relevant_codes) == 0) {
+          if (length(relevant_codes) == 0L) {
             return(list())
           }
           
@@ -12570,17 +12625,13 @@ server <- function(input, output, session) {
               relevant_codes = relevant_codes
             )
           
-          if (nrow(filtered_tree_dt) == 0) {
+          if (nrow(filtered_tree_dt) == 0L) {
             return(list())
           }
           
           relevant_codelist_codes <- codes[
             id %in% relevant_codes
           ]
-          
-          configured_roots_clean <- clean_non_empty_codes(
-            configured_roots
-          )
           
           tree_root_codes <- get_display_roots_for_tree(
             codelist_id = meta$codelist,
@@ -12589,22 +12640,44 @@ server <- function(input, output, session) {
             purpose = "filter"
           )
           
-          if (
-            length(tree_root_codes) == 0L
-          ) {
+          if (length(tree_root_codes) == 0L) {
             return(list())
           }
           
-          return(
-            build_sws_codelist_tree_from_codelist_tree(
-              tree_dt = filtered_tree_dt,
-              codes = relevant_codelist_codes,
-              max_depth =
-                get_codelist_tree_display_depth(
-                  filtered_tree_dt
-                ),
-              root_codes = tree_root_codes
+          
+          # ----------------------------------------------------------
+          # Build the final tree.
+          # ----------------------------------------------------------
+          final_tree <- build_sws_codelist_tree_from_codelist_tree(
+            tree_dt = filtered_tree_dt,
+            codes = relevant_codelist_codes,
+            max_depth =
+              get_codelist_tree_display_depth(
+                filtered_tree_dt
+              ),
+            root_codes = tree_root_codes
+          )
+          
+          
+          # ----------------------------------------------------------
+          # Save the final tree in today's shared cache.
+          #
+          # Store the exact raw codes and configured roots used to
+          # create it so that a cached tree is reused only when its
+          # inputs are identical.
+          # ----------------------------------------------------------
+          set_daily_shared_cache(
+            cache_id = filter_tree_cache_id,
+            value = list(
+              raw_codes = raw_codes,
+              configured_roots = configured_roots_clean,
+              tree = final_tree
             )
+          )
+          
+          
+          return(
+            final_tree
           )
         }
         
