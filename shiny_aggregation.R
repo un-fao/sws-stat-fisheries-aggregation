@@ -5677,6 +5677,8 @@ server <- function(input, output, session) {
   user <- reactiveVal(NULL)
   dataset_data <- reactiveVal(NULL)
   loaded_dataset_id <- reactiveVal(NULL)
+  dataset_loading <- reactiveVal(FALSE)
+  comparison_dataset_loading <- reactiveVal(FALSE)
   
   # Stores the result returned by getDatasetInfo()
   loaded_dataset_info <- reactiveVal(NULL)
@@ -5902,12 +5904,22 @@ server <- function(input, output, session) {
       )
     }
     
-    showNotification(
-      paste(
-        "Reading codelist:",
-        codelist_id
+    loading_notification <- showNotification(
+      paste0(
+        "Loading codelist ",
+        codelist_id,
+        ". Please wait..."
       ),
-      type = "default"
+      type = "default",
+      duration = NULL,
+      closeButton = FALSE
+    )
+    
+    on.exit(
+      removeNotification(
+        loading_notification
+      ),
+      add = TRUE
     )
     
     codelist_info <- getCodelistInfo(
@@ -5961,12 +5973,22 @@ server <- function(input, output, session) {
       )
     }
     
-    showNotification(
-      paste(
-        "Reading codelist tree:",
-        codelist_id
+    loading_notification <- showNotification(
+      paste0(
+        "Loading codelist hierarchy ",
+        codelist_id,
+        ". Please wait..."
       ),
-      type = "default"
+      type = "default",
+      duration = NULL,
+      closeButton = FALSE
+    )
+    
+    on.exit(
+      removeNotification(
+        loading_notification
+      ),
+      add = TRUE
     )
     
     tree_dt <- as.data.table(
@@ -6759,6 +6781,36 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
+    if (isTRUE(comparison_dataset_loading())) {
+      showNotification(
+        "The comparison dataset is already loading. Please wait.",
+        type = "warning",
+        duration = 3
+      )
+      
+      return(NULL)
+    }
+    
+    comparison_dataset_loading(TRUE)
+    
+    loading_notification <- showNotification(
+      "Loading comparison dataset. Please wait...",
+      type = "default",
+      duration = NULL,
+      closeButton = FALSE
+    )
+    
+    on.exit(
+      {
+        comparison_dataset_loading(FALSE)
+        
+        removeNotification(
+          loading_notification
+        )
+      },
+      add = TRUE
+    )
+     
     req(input$comparison_source)
     
     # Remove the previous comparison immediately.
@@ -6778,10 +6830,10 @@ server <- function(input, output, session) {
         if (identical(input$comparison_source, "disseminated")) {
           req(input$comparison_dataset_id)
           
-          showNotification(
-            paste0("Loading disseminated comparison dataset: ", input$comparison_dataset_id),
-            type = "default"
-          )
+          # showNotification(
+          #   paste0("Loading disseminated comparison dataset: ", input$comparison_dataset_id),
+          #   type = "default"
+          # )
           
           dt <- as.data.table(
             readDataset(
@@ -6808,10 +6860,10 @@ server <- function(input, output, session) {
         if (identical(input$comparison_source, "tagged")) {
           req(input$comparison_base_dataset_id, input$comparison_tag_id)
           
-          showNotification(
-            paste0("Loading tagged comparison dataset: ", input$comparison_tag_id),
-            type = "default"
-          )
+          # showNotification(
+          #   paste0("Loading tagged comparison dataset: ", input$comparison_tag_id),
+          #   type = "default"
+          # )
           
           dt <- as.data.table(
             getTagData(
@@ -9560,15 +9612,45 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$load_dataset, {
+    
     req(input$dataset_id)
+    
+    if (isTRUE(dataset_loading())) {
+      showNotification(
+        "The dataset is already loading. Please wait.",
+        type = "warning",
+        duration = 3
+      )
+      
+      return(NULL)
+    }
+    
+    dataset_loading(TRUE)
+    
+    loading_notification <- showNotification(
+      paste0(
+        "Loading dataset ",
+        input$dataset_id,
+        ". Please wait..."
+      ),
+      type = "default",
+      duration = NULL,
+      closeButton = FALSE
+    )
+    
+    on.exit(
+      {
+        dataset_loading(FALSE)
+        
+        removeNotification(
+          loading_notification
+        )
+      },
+      add = TRUE
+    )
     
     tryCatch(
       {
-        showNotification(
-          paste("Reading dataset:", input$dataset_id),
-          type = "default"
-        )
-        
         dataset_info <- getDatasetInfo(
           input$dataset_id
         )
@@ -9598,8 +9680,6 @@ server <- function(input, output, session) {
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
         
-        #aggregated_data(NULL)
-        
         aggregated_outputs(list())
         aggregation_input_data(NULL)
         last_aggregation_specs(NULL)
@@ -9618,7 +9698,10 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         showNotification(
-          paste0("Dataset loading failed: ", e$message),
+          paste0(
+            "Dataset loading failed: ",
+            e$message
+          ),
           type = "error"
         )
       }
