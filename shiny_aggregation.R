@@ -2337,7 +2337,8 @@ build_classification_map_with_remainder <- function(
           build_direct_child_aggregation_map(
             tree_dt = tree_dt,
             root_code = parent_code_i,
-            codes = codes
+            codes = codes,
+            filtered_raw_codes = filtered_raw_codes
           ),
           error = function(e) {
             stop(
@@ -2501,7 +2502,8 @@ build_classification_map_with_remainder <- function(
 build_direct_child_aggregation_map <- function(
     tree_dt,
     root_code,
-    codes = NULL
+    codes = NULL,
+    filtered_raw_codes = NULL
 ) {
   
   tree_dt <- as.data.table(tree_dt)
@@ -2688,13 +2690,30 @@ build_direct_child_aggregation_map <- function(
     ]
   )
   
+  # Keep only codes that are actually present in the filtered dataset
+  # before checking whether a code belongs to multiple output groups.
+  if (!is.null(filtered_raw_codes)) {
+    
+    filtered_raw_codes <- clean_code_vector(
+      filtered_raw_codes
+    )
+    
+    aggregation_map <- aggregation_map[
+      raw_code %in% filtered_raw_codes
+    ]
+  }
+  
   ambiguous_codes <- aggregation_map[
     ,
     .(
-      number_of_groups = uniqueN(group_code)
+      number_of_groups = uniqueN(
+        group_code
+      )
     ),
     by = raw_code
-  ][number_of_groups > 1L]
+  ][
+    number_of_groups > 1L
+  ]
   
   if (nrow(ambiguous_codes) > 0L) {
     
