@@ -14260,6 +14260,85 @@ server <- function(input, output, session) {
     selected
   })
   
+  # Return the y-axis label associated with the selected measured element.
+  get_graph_y_axis_label <- function() {
+    
+    selected_element <- selected_graph_output_name()
+    
+    if (
+      is.null(selected_element) ||
+      !nzchar(selected_element)
+    ) {
+      return("Aggregated value")
+    }
+    
+    codes <- tryCatch(
+      as.data.table(
+        get_codelist_codes(
+          "measuredElement"
+        )
+      ),
+      error = function(e) NULL
+    )
+    
+    if (
+      is.null(codes) ||
+      !"id" %in% names(codes) ||
+      !"unit" %in% names(codes)
+    ) {
+      return("Aggregated value")
+    }
+    
+    codes[
+      ,
+      id := as.character(id)
+    ]
+    
+    unit_value <- codes[
+      id == as.character(selected_element),
+      as.character(unit)
+    ]
+    
+    unit_value <- trimws(
+      unit_value[
+        !is.na(unit_value) &
+          nzchar(unit_value)
+      ]
+    )
+    
+    if (length(unit_value) == 0L) {
+      return("Aggregated value")
+    }
+    
+    unit_value <- unit_value[1L]
+    
+    if (
+      tolower(unit_value) %in%
+      c("t", "tonne", "tonnes")
+    ) {
+      return("Quantity (tonnes)")
+    }
+    
+    if (
+      tolower(unit_value) %in%
+      c(
+        "number",
+        "numbers",
+        "no",
+        "no."
+      )
+    ) {
+      return("Quantity (numbers)")
+    }
+    
+    paste0(
+      "Quantity (",
+      unit_value,
+      ")"
+    )
+  }
+  
+  
   
   selected_graph_data <- reactive({
     outputs <- aggregated_outputs()
@@ -14436,13 +14515,20 @@ server <- function(input, output, session) {
       scale_y_continuous(labels = scales::label_number()) +
       labs(
         x = "Year",
-        y = "Total aggregated value",
+        y = get_graph_y_axis_label(),
         title = paste0(
           "Aggregated total time series — ",
           selected_element
         )
       ) +
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(
+          angle = 90,
+          vjust = 0.5,
+          hjust = 1
+        )
+      )
   })
   
   
@@ -14567,6 +14653,208 @@ server <- function(input, output, session) {
       selected = selected_value
     )
   })
+  
+  # Add descriptive labels to graph category codes when available.
+  add_graph_category_labels <- function(
+    plot_data,
+    selected_category
+  ) {
+    
+    dt <- copy(
+      as.data.table(plot_data)
+    )
+    
+    if (
+      nrow(dt) == 0L ||
+      !"category" %in% names(dt)
+    ) {
+      return(dt)
+    }
+    
+    dt[
+      ,
+      category_label := as.character(category)
+    ]
+    
+    
+    # ------------------------------------------------------------
+    # Aggregation composition.
+    # ------------------------------------------------------------
+    if (
+      !is.null(selected_category) &&
+      startsWith(
+        selected_category,
+        "agg:"
+      )
+    ) {
+      
+      dim_id <- sub(
+        "^agg:",
+        "",
+        selected_category
+      )
+      
+      specs <- last_aggregation_specs() %||% list()
+      
+      if (dim_id %in% names(specs)) {
+        
+        codelist_id <- specs[[dim_id]]$codelist
+        
+        codes <- tryCatch(
+          as.data.table(
+            get_codelist_codes(
+              codelist_id
+            )
+          ),
+          error = function(e) NULL
+        )
+        
+        if (
+          !is.null(codes) &&
+          "id" %in% names(codes)
+        ) {
+          
+          codes[
+            ,
+            id := as.character(id)
+          ]
+          
+          label_col <- intersect(
+            c(
+              "label_en",
+              "label",
+              "description"
+            ),
+            names(codes)
+          )[1]
+          
+          if (!is.na(label_col)) {
+            
+            label_lookup <- codes[
+              ,
+              .(
+                id,
+                category_label = paste0(
+                  id,
+                  " - ",
+                  as.character(
+                    get(label_col)
+                  )
+                )
+              )
+            ]
+            
+            matched <- match(
+              dt$category,
+              label_lookup$id
+            )
+            
+            has_match <- !is.na(matched)
+            
+            dt$category_label[has_match] <-
+              label_lookup$category_label[
+                matched[has_match]
+              ]
+          }
+        }
+      }
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Final-result dataset column.
+    # ------------------------------------------------------------
+    if (
+      !is.null(selected_category) &&
+      startsWith(
+        selected_category,
+        "col:"
+      )
+    ) {
+      
+      selected_col <- sub(
+        "^col:",
+        "",
+        selected_category
+      )
+      
+      dimension_match <- Filter(
+        function(meta) {
+          identical(
+            meta$dataset_column,
+            selected_col
+          )
+        },
+        AGGREGATION_DIMENSIONS
+      )
+      
+      if (length(dimension_match) > 0L) {
+        
+        codelist_id <-
+          dimension_match[[1L]]$codelist
+        
+        codes <- tryCatch(
+          as.data.table(
+            get_codelist_codes(
+              codelist_id
+            )
+          ),
+          error = function(e) NULL
+        )
+        
+        if (
+          !is.null(codes) &&
+          "id" %in% names(codes)
+        ) {
+          
+          codes[
+            ,
+            id := as.character(id)
+          ]
+          
+          label_col <- intersect(
+            c(
+              "label_en",
+              "label",
+              "description"
+            ),
+            names(codes)
+          )[1]
+          
+          if (!is.na(label_col)) {
+            
+            label_lookup <- codes[
+              ,
+              .(
+                id,
+                category_label = paste0(
+                  id,
+                  " - ",
+                  as.character(
+                    get(label_col)
+                  )
+                )
+              )
+            ]
+            
+            matched <- match(
+              dt$category,
+              label_lookup$id
+            )
+            
+            has_match <- !is.na(matched)
+            
+            dt$category_label[has_match] <-
+              label_lookup$category_label[
+                matched[has_match]
+              ]
+          }
+        }
+      }
+    }
+    
+    dt[]
+  }
   
   get_plot_category_data <- function() {
     req(input$dataset_id)
@@ -14710,6 +14998,11 @@ server <- function(input, output, session) {
     }
     
     plot_data <- get_plot_category_data()
+    plot_data <- add_graph_category_labels(
+      plot_data = plot_data,
+      selected_category = input$plot_category
+    )
+    
     
     if (nrow(plot_data) == 0 || !"year" %in% names(plot_data)) {
       return(NULL)
@@ -14752,6 +15045,10 @@ server <- function(input, output, session) {
     }
     
     plot_data <- get_plot_category_data()
+    plot_data <- add_graph_category_labels(
+      plot_data = plot_data,
+      selected_category = input$plot_category
+    )
     
     if (nrow(plot_data) == 0) {
       plot.new()
@@ -14797,7 +15094,7 @@ server <- function(input, output, session) {
       treemap_data,
       aes(
         area = total_value,
-        fill = category,
+        fill = category_label,
         label = label
       )
     ) +
@@ -14843,6 +15140,10 @@ server <- function(input, output, session) {
     }
     
     plot_data <- get_plot_category_data()
+    plot_data <- add_graph_category_labels(
+      plot_data = plot_data,
+      selected_category = input$plot_category
+    )
     
     if (nrow(plot_data) == 0) {
       plot.new()
@@ -14868,7 +15169,7 @@ server <- function(input, output, session) {
       aes(
         x = factor(year),
         y = proportion,
-        fill = category
+        fill = category_label
       )
     ) +
       geom_col() +
@@ -14899,6 +15200,10 @@ server <- function(input, output, session) {
     }
     
     plot_data <- get_plot_category_data()
+    plot_data <- add_graph_category_labels(
+      plot_data = plot_data,
+      selected_category = input$plot_category
+    )
     
     if (nrow(plot_data) == 0) {
       plot.new()
@@ -14913,8 +15218,8 @@ server <- function(input, output, session) {
       aes(
         x = year,
         y = total_value,
-        colour = category,
-        group = category
+        colour = category_label,
+        group = category_label
       )
     ) +
       geom_line() +
@@ -14922,14 +15227,21 @@ server <- function(input, output, session) {
       scale_y_continuous(labels = scales::label_number()) +
       labs(
         x = "Year",
-        y = "Aggregated value",
+        y = get_graph_y_axis_label(),
         colour = "Category",
         title = paste0(
           "Component time series by selected category — ",
           selected_element
         )
       ) +
-      theme_minimal()
+      theme_minimal() +
+      theme(
+        axis.text.x = element_text(
+          angle = 90,
+          vjust = 0.5,
+          hjust = 1
+        )
+      )
   })
   
   
@@ -15715,6 +16027,10 @@ server <- function(input, output, session) {
     }
     
     plot_data <- get_plot_category_data()
+    plot_data <- add_graph_category_labels(
+      plot_data = plot_data,
+      selected_category = input$plot_category
+    )
     
     if (nrow(plot_data) == 0) {
       plot.new()
@@ -15729,14 +16045,14 @@ server <- function(input, output, session) {
       aes(
         x = factor(year),
         y = total_value,
-        fill = category
+        fill = category_label
       )
     ) +
       geom_col() +
       scale_y_continuous(labels = scales::label_number()) +
       labs(
         x = "Year",
-        y = "Aggregated value",
+        y = get_graph_y_axis_label(),
         fill = "Category",
         title = paste0(
           "Composition by selected category — ",
