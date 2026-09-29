@@ -15060,9 +15060,15 @@ server <- function(input, output, session) {
       as.character(year) ==
         as.character(input$treemap_year),
       .(
-        total_value = sum(total_value, na.rm = TRUE)
+        total_value = sum(
+          total_value,
+          na.rm = TRUE
+        )
       ),
-      by = category
+      by = .(
+        category,
+        category_label
+      )
     ]
     
     treemap_data <- treemap_data[!is.na(total_value) & total_value > 0]
@@ -15081,7 +15087,7 @@ server <- function(input, output, session) {
     treemap_data[
       ,
       label := paste0(
-        category,
+        category_label,
         "\n",
         round(100 * share, 1),
         "%"
