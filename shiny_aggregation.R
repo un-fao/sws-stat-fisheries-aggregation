@@ -9913,7 +9913,7 @@ server <- function(input, output, session) {
     )
   })
   
-  
+  # Do not remove NAs before plotting
   output$comparison_time_series_plot <- renderPlot({
     
     dt <- copy(
@@ -10014,48 +10014,46 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Separate the two datasets explicitly
+    # Check that each dataset has at least two available values.
+    # NA values are intentionally kept in dt so that geom_line()
+    # breaks the line wherever one dataset has no corresponding value.
     # ------------------------------------------------------------
-    
-    current_dt <- dt[
-      !is.na(current_value)
-    ]
-    
-    comparison_dt <- dt[
-      !is.na(comparison_value)
-    ]
-    
     
     validate(
       need(
-        nrow(current_dt) >= 2,
-        "The current dataset has fewer than two observations, so a line cannot be drawn."
+        sum(!is.na(dt$current_value)) >= 2,
+        "The current dataset has fewer than two available observations, so a line cannot be drawn."
       ),
       need(
-        nrow(comparison_dt) >= 2,
-        "The comparison dataset has fewer than two observations, so a line cannot be drawn."
+        sum(!is.na(dt$comparison_value)) >= 2,
+        "The comparison dataset has fewer than two available observations, so a line cannot be drawn."
       )
     )
     
     
     # ------------------------------------------------------------
-    # Plot exactly two time-series lines
+    # Plot exactly two time-series lines.
+    # Missing values remain NA, so the corresponding line is broken.
     # ------------------------------------------------------------
     
     ggplot() +
       
       geom_line(
-        data = current_dt,
+        data = dt,
         aes(
           x = year_numeric,
           y = current_value,
-          colour = "Current dataset"
+          colour = "Current dataset",
+          group = 1
         ),
-        linewidth = 1.1
+        linewidth = 1.1,
+        na.rm = FALSE
       ) +
       
       geom_point(
-        data = current_dt,
+        data = dt[
+          !is.na(current_value)
+        ],
         aes(
           x = year_numeric,
           y = current_value,
@@ -10065,17 +10063,21 @@ server <- function(input, output, session) {
       ) +
       
       geom_line(
-        data = comparison_dt,
+        data = dt,
         aes(
           x = year_numeric,
           y = comparison_value,
-          colour = "Comparison dataset"
+          colour = "Comparison dataset",
+          group = 1
         ),
-        linewidth = 1.1
+        linewidth = 1.1,
+        na.rm = FALSE
       ) +
       
       geom_point(
-        data = comparison_dt,
+        data = dt[
+          !is.na(comparison_value)
+        ],
         aes(
           x = year_numeric,
           y = comparison_value,
