@@ -5088,18 +5088,17 @@ KEEP_EXPIRED_CODELISTS <- c(
   "fisheriesCatchArea"
 )
 
-CODELISTS_WITH_ALL_ROOT <- c(
+CODELISTS_WITH_EXPIRED_ROOTS <- c(
   "fisheriesAsfis",
   "fisheriesCatchArea"
 )
 
-SYNTHETIC_ALL_ROOT_ID <- "__ALL__"
 SYNTHETIC_EXPIRED_ROOTS_ID <- "__EXPIRED_ROOTS__"
 
-#Check whether a codelist uses the additional synthetic All hierarchy root.
-uses_augmented_all_root <- function(codelist_id) {
+#Check whether a codelist uses the synthetic Expired roots branch.
+uses_expired_roots_branch <- function(codelist_id) {
   as.character(codelist_id) %in%
-    CODELISTS_WITH_ALL_ROOT
+    CODELISTS_WITH_EXPIRED_ROOTS
 }
 
 #Retrieve the original top-level codes from a codelist tree.
@@ -5240,11 +5239,18 @@ prepend_tree_levels <- function(
   out[]
 }
 
-#Add synthetic All and Expired roots entries to a codelist.
-add_synthetic_all_codes <- function(codes) {
+
+#Add the synthetic Expired roots entry to a codelist.
+add_synthetic_expired_root_code <- function(codes) {
   
-  codes <- copy(as.data.table(codes))
-  codes[, id := as.character(id)]
+  codes <- copy(
+    as.data.table(codes)
+  )
+  
+  codes[
+    ,
+    id := as.character(id)
+  ]
   
   label_col <- get_codelist_label_column(
     codes
@@ -5255,31 +5261,25 @@ add_synthetic_all_codes <- function(codes) {
     label_col <- "label_en"
   }
   
-  codes[, synthetic_label_only := FALSE]
+  codes[
+    ,
+    synthetic_label_only := FALSE
+  ]
   
-  synthetic_codes <- data.table(
-    id = c(
-      SYNTHETIC_ALL_ROOT_ID,
-      SYNTHETIC_EXPIRED_ROOTS_ID
-    ),
-    synthetic_label_only = c(
-      TRUE,
-      TRUE
-    )
+  synthetic_code <- data.table(
+    id = SYNTHETIC_EXPIRED_ROOTS_ID,
+    synthetic_label_only = TRUE
   )
   
-  synthetic_codes[
+  synthetic_code[
     ,
-    (label_col) := c(
-      "All",
-      "Expired roots"
-    )
+    (label_col) := "Expired roots"
   ]
   
   out <- rbindlist(
     list(
       codes,
-      synthetic_codes
+      synthetic_code
     ),
     use.names = TRUE,
     fill = TRUE
@@ -5291,16 +5291,24 @@ add_synthetic_all_codes <- function(codes) {
   )
 }
 
-#Add an All branch to the hierarchy and place expired roots under All > Expired roots.
-add_all_and_expired_branches_to_tree <- function(
+#Keep current hierarchy roots at the top level and group expired roots
+#under the synthetic Expired roots branch.
+add_expired_roots_branch_to_tree <- function(
     tree_dt,
     codes
 ) {
   
-  tree_dt <- copy(as.data.table(tree_dt))
-  codes <- copy(as.data.table(codes))
+  tree_dt <- copy(
+    as.data.table(tree_dt)
+  )
   
-  id_cols <- get_tree_id_cols(tree_dt)
+  codes <- copy(
+    as.data.table(codes)
+  )
+  
+  id_cols <- get_tree_id_cols(
+    tree_dt
+  )
   
   if (length(id_cols) == 0L) {
     return(tree_dt)
@@ -5313,7 +5321,8 @@ add_all_and_expired_branches_to_tree <- function(
   
   original_root_column <- id_cols[1L]
   
-  # Keep the current roots exactly where they currently are.
+  
+  # Keep current hierarchy roots at the original top level.
   current_top_level_paths <- tree_dt[
     as.character(
       get(original_root_column)
@@ -5321,7 +5330,8 @@ add_all_and_expired_branches_to_tree <- function(
     ..id_cols
   ]
   
-  # Expired roots will no longer appear independently at the top level.
+  
+  # Retrieve hierarchy paths belonging to expired roots.
   expired_original_paths <- tree_dt[
     as.character(
       get(original_root_column)
@@ -5329,31 +5339,23 @@ add_all_and_expired_branches_to_tree <- function(
     ..id_cols
   ]
   
-  # Duplicate the current hierarchy under All.
-  current_paths_under_all <- prepend_tree_levels(
-    tree_dt = current_top_level_paths,
-    prefix_codes = SYNTHETIC_ALL_ROOT_ID
+  
+  # Place expired roots under one synthetic Expired roots branch.
+  expired_paths <- prepend_tree_levels(
+    tree_dt = expired_original_paths,
+    prefix_codes = SYNTHETIC_EXPIRED_ROOTS_ID
   )
   
-  # Put expired roots under All > Expired roots.
-  expired_paths_under_all <- prepend_tree_levels(
-    tree_dt = expired_original_paths,
-    prefix_codes = c(
-      SYNTHETIC_ALL_ROOT_ID,
-      SYNTHETIC_EXPIRED_ROOTS_ID
-    )
-  )
   
   expired_branch_header <- data.table(
-    level_1_id = SYNTHETIC_ALL_ROOT_ID,
-    level_2_id = SYNTHETIC_EXPIRED_ROOTS_ID
+    level_1_id = SYNTHETIC_EXPIRED_ROOTS_ID
   )
+  
   
   out <- rbindlist(
     list(
       current_top_level_paths,
-      current_paths_under_all,
-      expired_paths_under_all,
+      expired_paths,
       expired_branch_header
     ),
     use.names = TRUE,
@@ -5399,28 +5401,16 @@ get_display_roots_for_tree <- function(
       nzchar(relevant_codes)
   ]
   
-  if (uses_augmented_all_root(codelist_id)) {
+  if (uses_expired_roots_branch(codelist_id)) {
     
-    if (identical(purpose, "classification")) {
-      
-      # Existing roots stay, and Expired roots is added.
-      roots <- unique(
-        c(
-          configured_roots,
-          SYNTHETIC_EXPIRED_ROOTS_ID
-        )
+    # Keep configured current roots and add Expired roots
+    # at the same top level.
+    roots <- unique(
+      c(
+        configured_roots,
+        SYNTHETIC_EXPIRED_ROOTS_ID
       )
-      
-    } else {
-      
-      # Existing roots stay, and All is added.
-      roots <- unique(
-        c(
-          configured_roots,
-          SYNTHETIC_ALL_ROOT_ID
-        )
-      )
-    }
+    )
     
   } else {
     
@@ -6048,13 +6038,13 @@ server <- function(input, output, session) {
   ) {
     
     if (
-      uses_augmented_all_root(
+      uses_expired_roots_branch(
         codelist_id
       )
     ) {
       
       cache_id <- paste0(
-        "augmented_codes__current_roots_plus_all__",
+        "augmented_codes__current_plus_expired__",
         codelist_id
       )
       
@@ -6074,7 +6064,7 @@ server <- function(input, output, session) {
         )
       )
       
-      out <- add_synthetic_all_codes(
+      out <- add_synthetic_expired_root_code(
         original_codes
       )
       
@@ -6100,13 +6090,13 @@ server <- function(input, output, session) {
   ) {
     
     if (
-      uses_augmented_all_root(
+      uses_expired_roots_branch(
         codelist_id
       )
     ) {
       
       cache_id <- paste0(
-        "augmented_tree__current_roots_plus_all__",
+        "augmented_tree__current_plus_expired__",
         codelist_id
       )
       
@@ -6132,7 +6122,7 @@ server <- function(input, output, session) {
         )
       )
       
-      out <- add_all_and_expired_branches_to_tree(
+      out <- add_expired_roots_branch_to_tree(
         tree_dt = original_tree,
         codes = original_codes
       )
@@ -6202,10 +6192,7 @@ server <- function(input, output, session) {
         codes[
           !is.na(id) &
             nzchar(id) &
-            !id %in% c(
-              SYNTHETIC_ALL_ROOT_ID,
-              SYNTHETIC_EXPIRED_ROOTS_ID
-            ),
+            id != SYNTHETIC_EXPIRED_ROOTS_ID,
           id
         ]
       )
@@ -6236,7 +6223,7 @@ server <- function(input, output, session) {
       )
       
       if (
-        uses_augmented_all_root(
+        uses_expired_roots_branch(
           codelist_id
         )
       ) {
@@ -10954,10 +10941,7 @@ server <- function(input, output, session) {
     # codelist classification roots here.
     codelist_root_codes <- setdiff(
       codelist_root_codes,
-      c(
-        SYNTHETIC_ALL_ROOT_ID,
-        SYNTHETIC_EXPIRED_ROOTS_ID
-      )
+      SYNTHETIC_EXPIRED_ROOTS_ID
     )
     
     # Preserve the configured dataset roots first, then append any
