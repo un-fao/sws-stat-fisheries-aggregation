@@ -5001,6 +5001,15 @@ ui <- page_navbar(
         )
       )
     )
+  ),
+  
+  nav_item(
+    tags$a(
+      "Documentation",
+      href = "https://sws.qa.fao.org/link/FisheriesAggregation-doc/",
+      target = "_blank",
+      class = "nav-link"
+    )
   )
 )
 
