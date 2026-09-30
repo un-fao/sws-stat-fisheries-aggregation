@@ -323,7 +323,7 @@ The summary includes:
 - the configured roots with usable data;
 - the main dimensions available in the dataset.
 
-The summary is restricted to the measured-element roots configured for the loaded dataset in SWS.
+The summary is restricted to the measured-element roots configured for the loaded dataset in SWS. Therefore, if 
 
 ![Dataset summary](./images/data_summary_loaded_dataset.png){#fig-dataset-summary width="50%"}
 
@@ -396,6 +396,19 @@ The following dimensions use hierarchy trees:
 ![Asfis filter](./images/asfis_filter.png){#fig-asfis-filter width="100%"}
 
 ![Fishing area filter](./images/fishing_area_filter.png){#fig-fishing-area-filter width="100%"}
+
+### Current and expired hierarchy roots
+
+For the **species / ASFIS** and **fishing-area** dimensions, the application distinguishes between current and expired hierarchy classifications using the `end_date` of the top-level hierarchy root.
+
+- hierarchy roots with no `end_date` are displayed as current classifications;
+- hierarchy roots with an `end_date` are grouped under the synthetic **Expired roots** branch.
+
+Some active species or fishing-area codes may still occur under an expired hierarchy because they were included in an older classification. If such a code has **no `end_date`** and is also represented under a current hierarchy, only its current-hierarchy occurrence is displayed; the duplicate occurrence inherited from the expired hierarchy is excluded from **Expired roots**.
+
+Codes that themselves have an `end_date` remain represented through the expired hierarchy.
+
+This prevents active codes from appearing both under current classifications and under **Expired roots**, while preserving genuinely expired codes within the obsolete classifications to which they belong.
 
 Selecting a hierarchy node includes:
   
