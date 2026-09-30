@@ -4900,6 +4900,31 @@ ui <- page_navbar(
           nav_panel(
             "Differences only",
             uiOutput("comparison_differences_tables")
+          ),
+          
+          nav_panel(
+            "Chart",
+            
+            layout_sidebar(
+              
+              sidebar = sidebar(
+                width = 340,
+                
+                uiOutput("comparison_plot_output_selector"),
+                
+                uiOutput("comparison_plot_series_selector")
+              ),
+              
+              card(
+                full_screen = TRUE,
+                card_header("Current vs comparison dataset"),
+                
+                plotOutput(
+                  "comparison_time_series_plot",
+                  height = 480
+                )
+              )
+            )
           )
         )
       )
@@ -9668,6 +9693,407 @@ server <- function(input, output, session) {
       differences_only = TRUE
     )
   })
+  
+  # -------------------------------------------------------------------------
+  # Comparison chart
+  # -------------------------------------------------------------------------
+  
+  
+  # Measured element to display in the comparison chart.
+  output$comparison_plot_output_selector <- renderUI({
+    
+    results <- comparison_results()
+    
+    if (is.null(results) || length(results) == 0) {
+      return(
+        helpText(
+          "Run the comparison first to display a chart."
+        )
+      )
+    }
+    
+    # Do not offer warning outputs as plottable measured elements.
+    valid_outputs <- names(results)[
+      !vapply(
+        results,
+        function(x) {
+          isTRUE(
+            attr(
+              x,
+              "is_warning_output"
+            )
+          )
+        },
+        logical(1)
+      )
+    ]
+    
+    if (length(valid_outputs) == 0) {
+      return(
+        helpText(
+          "No comparison output is available for plotting."
+        )
+      )
+    }
+    
+    selectInput(
+      "comparison_plot_output_id",
+      "Measured element",
+      choices = valid_outputs,
+      selected = valid_outputs[1]
+    )
+  })
+  
+  
+  # Return the comparison result selected for plotting.
+  selected_comparison_plot_data <- reactive({
+    
+    results <- comparison_results()
+    
+    req(
+      !is.null(results),
+      length(results) > 0,
+      input$comparison_plot_output_id
+    )
+    
+    output_name <- input$comparison_plot_output_id
+    
+    req(output_name %in% names(results))
+    
+    dt <- copy(
+      results[[output_name]]
+    )
+    
+    req(
+      !isTRUE(
+        attr(
+          dt,
+          "is_warning_output"
+        )
+      )
+    )
+    
+    dt[]
+  })
+  
+  
+  
+  # Identify the columns that distinguish separate comparison time series.
+  comparison_plot_group_columns <- reactive({
+    
+    dt <- selected_comparison_plot_data()
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    # These are possible analytical dimensions in the comparison result.
+    candidate_columns <- unique(
+      na.omit(
+        c(
+          cfg$geographical_area_col,
+          cfg$species_col,
+          cfg$fishing_area_col,
+          cfg$production_source_col,
+          cfg$currency_flag_col
+        )
+      )
+    )
+    
+    candidate_columns <- intersect(
+      candidate_columns,
+      names(dt)
+    )
+    
+    # Keep only dimensions that actually vary.
+    candidate_columns[
+      vapply(
+        candidate_columns,
+        function(column_i) {
+          
+          values <- unique(
+            as.character(
+              dt[[column_i]]
+            )
+          )
+          
+          values <- values[
+            !is.na(values) &
+              nzchar(values)
+          ]
+          
+          length(values) > 1L
+        },
+        logical(1)
+      )
+    ]
+  })
+  
+  comparison_plot_series_data <- reactive({
+    
+    dt <- copy(
+      selected_comparison_plot_data()
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    group_columns <- comparison_plot_group_columns()
+    
+    # If no dimension varies, the whole result is already one time series.
+    if (length(group_columns) == 0L) {
+      
+      dt[
+        ,
+        comparison_series_id := "All data"
+      ]
+      
+      return(dt[])
+    }
+    
+    # Use display labels instead of raw codes where possible.
+    display_dt <- format_dimension_codes_for_display(
+      dt
+    )
+    
+    series_labels <- apply(
+      display_dt[
+        ,
+        ..group_columns
+      ],
+      1,
+      function(row_i) {
+        
+        paste(
+          paste0(
+            group_columns,
+            ": ",
+            row_i
+          ),
+          collapse = " | "
+        )
+      }
+    )
+    
+    dt[
+      ,
+      comparison_series_id := series_labels
+    ]
+    
+    dt[]
+  })
+  
+  output$comparison_plot_series_selector <- renderUI({
+    
+    dt <- comparison_plot_series_data()
+    
+    series_choices <- unique(
+      dt$comparison_series_id
+    )
+    
+    series_choices <- series_choices[
+      !is.na(series_choices) &
+        nzchar(series_choices)
+    ]
+    
+    if (length(series_choices) <= 1L) {
+      return(NULL)
+    }
+    
+    selectizeInput(
+      "comparison_plot_series_id",
+      "Time series",
+      choices = series_choices,
+      selected = series_choices[1],
+      options = list(
+        placeholder = "Choose the time series to compare",
+        maxOptions = 5000
+      )
+    )
+  })
+  
+  
+  output$comparison_time_series_plot <- renderPlot({
+    
+    dt <- copy(
+      comparison_plot_series_data()
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    year_col <- cfg$year_col
+    
+    validate(
+      need(
+        !is.null(year_col) &&
+          year_col %in% names(dt),
+        "The comparison output does not contain a time dimension."
+      )
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Select one time series when several dimension combinations
+    # are available.
+    # ------------------------------------------------------------
+    
+    available_series <- unique(
+      dt$comparison_series_id
+    )
+    
+    available_series <- available_series[
+      !is.na(available_series) &
+        nzchar(available_series)
+    ]
+    
+    if (length(available_series) > 1L) {
+      
+      selected_series <- input$comparison_plot_series_id
+      
+      if (
+        is.null(selected_series) ||
+        !selected_series %in% available_series
+      ) {
+        selected_series <- available_series[1]
+      }
+      
+      dt <- dt[
+        comparison_series_id == selected_series
+      ]
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Check that the output really represents a time series.
+    # ------------------------------------------------------------
+    
+    year_values <- as.character(
+      dt[[year_col]]
+    )
+    
+    validate(
+      need(
+        !all(year_values == "Selected period"),
+        paste0(
+          "The selected aggregation combines all selected years into one period. ",
+          "A time-series comparison cannot be displayed."
+        )
+      )
+    )
+    
+    
+    # Convert the two comparison columns to long format.
+    plot_dt <- melt(
+      dt,
+      id.vars = year_col,
+      measure.vars = c(
+        "current_value",
+        "comparison_value"
+      ),
+      variable.name = "dataset",
+      value.name = "value"
+    )
+    
+    plot_dt[
+      ,
+      dataset := fifelse(
+        dataset == "current_value",
+        "Current dataset",
+        "Comparison dataset"
+      )
+    ]
+    
+    
+    # Create a numeric year variable when possible,
+    # while retaining the original year labels.
+    plot_dt[
+      ,
+      year_numeric := suppressWarnings(
+        as.numeric(
+          as.character(
+            get(year_col)
+          )
+        )
+      )
+    ]
+    
+    
+    # ------------------------------------------------------------
+    # Plot
+    # ------------------------------------------------------------
+    
+    if (all(!is.na(plot_dt$year_numeric))) {
+      
+      p <- ggplot(
+        plot_dt,
+        aes(
+          x = year_numeric,
+          y = value,
+          colour = dataset,
+          group = dataset
+        )
+      )
+      
+    } else {
+      
+      plot_dt[
+        ,
+        year_display := factor(
+          as.character(
+            get(year_col)
+          ),
+          levels = unique(
+            as.character(
+              get(year_col)
+            )
+          )
+        )
+      ]
+      
+      p <- ggplot(
+        plot_dt,
+        aes(
+          x = year_display,
+          y = value,
+          colour = dataset,
+          group = dataset
+        )
+      )
+    }
+    
+    
+    p +
+      geom_line(
+        linewidth = 1
+      ) +
+      geom_point(
+        size = 2
+      ) +
+      labs(
+        x = "Year",
+        y = "Value",
+        colour = NULL,
+        title = paste0(
+          "Comparison — measured element ",
+          input$comparison_plot_output_id
+        )
+      ) +
+      theme_minimal() +
+      theme(
+        legend.position = "top",
+        plot.title = element_text(
+          face = "bold"
+        ),
+        axis.title = element_text(
+          face = "bold"
+        )
+      )
+  })
+  
+  
   
   
   output$client <- renderTable({
