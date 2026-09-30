@@ -5293,6 +5293,8 @@ add_synthetic_expired_root_code <- function(codes) {
 
 #Keep current hierarchy roots at the top level and group expired roots
 #under the synthetic Expired roots branch.
+#Remove active terminal codes from expired paths when the same code
+#also belongs to a current hierarchy.
 add_expired_roots_branch_to_tree <- function(
     tree_dt,
     codes
@@ -5306,6 +5308,13 @@ add_expired_roots_branch_to_tree <- function(
     as.data.table(codes)
   )
   
+  codes[
+    ,
+    id := trimws(
+      as.character(id)
+    )
+  ]
+  
   id_cols <- get_tree_id_cols(
     tree_dt
   )
@@ -5313,6 +5322,7 @@ add_expired_roots_branch_to_tree <- function(
   if (length(id_cols) == 0L) {
     return(tree_dt)
   }
+  
   
   root_info <- get_current_and_expired_tree_roots(
     tree_dt = tree_dt,
@@ -5340,7 +5350,70 @@ add_expired_roots_branch_to_tree <- function(
   ]
   
   
-  # Place expired roots under one synthetic Expired roots branch.
+  # Identify every code that belongs to a current hierarchy.
+  current_hierarchy_codes <- clean_code_vector(
+    unlist(
+      current_top_level_paths[
+        ,
+        ..id_cols
+      ],
+      recursive = TRUE,
+      use.names = FALSE
+    )
+  )
+  
+  
+  # Identify codes that are themselves still active.
+  active_ids <- codes[
+    is_active_codelist_code(codes) &
+      !is.na(id) &
+      nzchar(id),
+    id
+  ]
+  
+  
+  # Identify the terminal code of every path under an expired root.
+  expired_terminal_codes <- rep(
+    NA_character_,
+    nrow(expired_original_paths)
+  )
+  
+  for (column_i in rev(id_cols)) {
+    
+    values_i <- trimws(
+      as.character(
+        expired_original_paths[[column_i]]
+      )
+    )
+    
+    fill_i <- (
+      is.na(expired_terminal_codes) &
+        !is.na(values_i) &
+        nzchar(values_i)
+    )
+    
+    expired_terminal_codes[fill_i] <-
+      values_i[fill_i]
+  }
+  
+  
+  # Remove active terminal codes from Expired roots when the same
+  # code already belongs to a current hierarchy.
+  remove_from_expired <- (
+    expired_terminal_codes %in%
+      current_hierarchy_codes &
+      expired_terminal_codes %in%
+      active_ids
+  )
+  
+  expired_original_paths <-
+    expired_original_paths[
+      !remove_from_expired
+    ]
+  
+  
+  # Place the remaining expired paths under one synthetic
+  # Expired roots branch.
   expired_paths <- prepend_tree_levels(
     tree_dt = expired_original_paths,
     prefix_codes = SYNTHETIC_EXPIRED_ROOTS_ID
@@ -5362,8 +5435,10 @@ add_expired_roots_branch_to_tree <- function(
     fill = TRUE
   )
   
+  
   unique(out)
 }
+
 
 #Select the hierarchy roots to display according to the codelist, tree purpose, configured roots, and relevant codes.
 get_display_roots_for_tree <- function(
@@ -6096,7 +6171,7 @@ server <- function(input, output, session) {
     ) {
       
       cache_id <- paste0(
-        "augmented_tree__current_plus_expired__",
+        "augmented_tree__current_plus_expired_v2__",
         codelist_id
       )
       
@@ -12647,7 +12722,7 @@ server <- function(input, output, session) {
           # today for exactly the same dataset values and roots.
           # ----------------------------------------------------------
           filter_tree_cache_id <- paste0(
-            "filter_tree__",
+            "filter_tree_v2__",
             input$dataset_id,
             "__",
             current_dim,
