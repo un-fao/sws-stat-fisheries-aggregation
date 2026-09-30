@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-09-23">
+<meta name="dcterms.date" content="2026-09-30">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -76,7 +76,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="fisheries_documentation_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="fisheries_documentation_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="fisheries_documentation_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="fisheries_documentation_files/libs/bootstrap/bootstrap-8872178e3d44aeba0b26a99db51cb85f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="fisheries_documentation_files/libs/bootstrap/bootstrap-f204e25d08cb8099aca141a60908d47d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <style>html{ scroll-behavior: smooth; }</style>
 <script src="fisheries_documentation_files/libs/quarto-diagram/mermaid.min.js"></script>
 <script src="fisheries_documentation_files/libs/quarto-diagram/mermaid-init.js"></script>
@@ -152,7 +152,8 @@ window.Quarto = {
   <li><a href="#measured-element-filter" id="toc-measured-element-filter" class="nav-link" data-scroll-target="#measured-element-filter"><span class="header-section-number">7.3</span> Measured-element filter</a></li>
   <li><a href="#hierarchical-filters" id="toc-hierarchical-filters" class="nav-link" data-scroll-target="#hierarchical-filters"><span class="header-section-number">7.4</span> Hierarchical filters</a>
   <ul class="collapse">
-  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">7.4.1</span> Example</a></li>
+  <li><a href="#current-and-expired-hierarchy-roots" id="toc-current-and-expired-hierarchy-roots" class="nav-link" data-scroll-target="#current-and-expired-hierarchy-roots"><span class="header-section-number">7.4.1</span> Current and expired hierarchy roots</a></li>
+  <li><a href="#example" id="toc-example" class="nav-link" data-scroll-target="#example"><span class="header-section-number">7.4.2</span> Example</a></li>
   </ul></li>
   <li><a href="#most-specific-filter-selection-rule" id="toc-most-specific-filter-selection-rule" class="nav-link" data-scroll-target="#most-specific-filter-selection-rule"><span class="header-section-number">7.5</span> Most-specific filter-selection rule</a>
   <ul class="collapse">
@@ -287,7 +288,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 23, 2026</p>
+      <p class="date">September 30, 2026</p>
     </div>
   </div>
   
@@ -712,7 +713,7 @@ Figure&nbsp;1: Client initialisation
 <li>the configured roots with usable data;</li>
 <li>the main dimensions available in the dataset.</li>
 </ul>
-<p>The summary is restricted to the measured-element roots configured for the loaded dataset in SWS.</p>
+<p>The summary is restricted to the measured-element roots configured for the loaded dataset in SWS. Therefore, if</p>
 <div id="fig-dataset-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dataset-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -819,13 +820,24 @@ Figure&nbsp;6: Fishing area filter
 </figcaption>
 </figure>
 </div>
+<section id="current-and-expired-hierarchy-roots" class="level3" data-number="7.4.1">
+<h3 data-number="7.4.1" class="anchored" data-anchor-id="current-and-expired-hierarchy-roots"><span class="header-section-number">7.4.1</span> Current and expired hierarchy roots</h3>
+<p>For the <strong>species / ASFIS</strong> and <strong>fishing-area</strong> dimensions, the application distinguishes between current and expired hierarchy classifications using the <code>end_date</code> of the top-level hierarchy root.</p>
+<ul>
+<li>hierarchy roots with no <code>end_date</code> are displayed as current classifications;</li>
+<li>hierarchy roots with an <code>end_date</code> are grouped under the synthetic <strong>Expired roots</strong> branch.</li>
+</ul>
+<p>Some active species or fishing-area codes may still occur under an expired hierarchy because they were included in an older classification. If such a code has <strong>no <code>end_date</code></strong> and is also represented under a current hierarchy, only its current-hierarchy occurrence is displayed; the duplicate occurrence inherited from the expired hierarchy is excluded from <strong>Expired roots</strong>.</p>
+<p>Codes that themselves have an <code>end_date</code> remain represented through the expired hierarchy.</p>
+<p>This prevents active codes from appearing both under current classifications and under <strong>Expired roots</strong>, while preserving genuinely expired codes within the obsolete classifications to which they belong.</p>
 <p>Selecting a hierarchy node includes:</p>
 <ul>
 <li>the selected node itself;</li>
 <li>all descendant codes under that node.</li>
 </ul>
-<section id="example" class="level3" data-number="7.4.1">
-<h3 data-number="7.4.1" class="anchored" data-anchor-id="example"><span class="header-section-number">7.4.1</span> Example</h3>
+</section>
+<section id="example" class="level3" data-number="7.4.2">
+<h3 data-number="7.4.2" class="anchored" data-anchor-id="example"><span class="header-section-number">7.4.2</span> Example</h3>
 <p>Assume the hierarchy is:</p>
 <pre class="text"><code>ISSCAAP
 ├── 1501
