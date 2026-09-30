@@ -9967,7 +9967,7 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Check that the output really represents a time series.
+    # Check that years have not been aggregated into one period.
     # ------------------------------------------------------------
     
     year_values <- as.character(
@@ -9985,31 +9985,11 @@ server <- function(input, output, session) {
     )
     
     
-    # Convert the two comparison columns to long format.
-    plot_dt <- melt(
-      dt,
-      id.vars = year_col,
-      measure.vars = c(
-        "current_value",
-        "comparison_value"
-      ),
-      variable.name = "dataset",
-      value.name = "value"
-    )
+    # ------------------------------------------------------------
+    # Prepare years
+    # ------------------------------------------------------------
     
-    plot_dt[
-      ,
-      dataset := fifelse(
-        dataset == "current_value",
-        "Current dataset",
-        "Comparison dataset"
-      )
-    ]
-    
-    
-    # Create a numeric year variable when possible,
-    # while retaining the original year labels.
-    plot_dt[
+    dt[
       ,
       year_numeric := suppressWarnings(
         as.numeric(
@@ -10020,58 +10000,90 @@ server <- function(input, output, session) {
       )
     ]
     
+    validate(
+      need(
+        all(!is.na(dt$year_numeric)),
+        "The year values cannot be converted to numeric values."
+      )
+    )
+    
+    setorder(
+      dt,
+      year_numeric
+    )
+    
     
     # ------------------------------------------------------------
-    # Plot
+    # Separate the two datasets explicitly
     # ------------------------------------------------------------
     
-    if (all(!is.na(plot_dt$year_numeric))) {
+    current_dt <- dt[
+      !is.na(current_value)
+    ]
+    
+    comparison_dt <- dt[
+      !is.na(comparison_value)
+    ]
+    
+    
+    validate(
+      need(
+        nrow(current_dt) >= 2,
+        "The current dataset has fewer than two observations, so a line cannot be drawn."
+      ),
+      need(
+        nrow(comparison_dt) >= 2,
+        "The comparison dataset has fewer than two observations, so a line cannot be drawn."
+      )
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Plot exactly two time-series lines
+    # ------------------------------------------------------------
+    
+    ggplot() +
       
-      p <- ggplot(
-        plot_dt,
+      geom_line(
+        data = current_dt,
         aes(
           x = year_numeric,
-          y = value,
-          colour = dataset,
-          group = dataset
-        )
-      )
-      
-    } else {
-      
-      plot_dt[
-        ,
-        year_display := factor(
-          as.character(
-            get(year_col)
-          ),
-          levels = unique(
-            as.character(
-              get(year_col)
-            )
-          )
-        )
-      ]
-      
-      p <- ggplot(
-        plot_dt,
-        aes(
-          x = year_display,
-          y = value,
-          colour = dataset,
-          group = dataset
-        )
-      )
-    }
-    
-    
-    p +
-      geom_line(
-        linewidth = 1
+          y = current_value,
+          colour = "Current dataset"
+        ),
+        linewidth = 1.1
       ) +
+      
       geom_point(
-        size = 2
+        data = current_dt,
+        aes(
+          x = year_numeric,
+          y = current_value,
+          colour = "Current dataset"
+        ),
+        size = 2.5
       ) +
+      
+      geom_line(
+        data = comparison_dt,
+        aes(
+          x = year_numeric,
+          y = comparison_value,
+          colour = "Comparison dataset"
+        ),
+        linewidth = 1.1
+      ) +
+      
+      geom_point(
+        data = comparison_dt,
+        aes(
+          x = year_numeric,
+          y = comparison_value,
+          colour = "Comparison dataset"
+        ),
+        size = 2.5
+      ) +
+      
       labs(
         x = "Year",
         y = "Value",
@@ -10081,7 +10093,17 @@ server <- function(input, output, session) {
           input$comparison_plot_output_id
         )
       ) +
+      
+      scale_x_continuous(
+        breaks = sort(
+          unique(
+            dt$year_numeric
+          )
+        )
+      ) +
+      
       theme_minimal() +
+      
       theme(
         legend.position = "top",
         plot.title = element_text(
