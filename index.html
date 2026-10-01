@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-09-30">
+<meta name="dcterms.date" content="2026-10-01">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -196,7 +196,7 @@ window.Quarto = {
   <ul>
   <li><a href="#value-calculation" id="toc-value-calculation" class="nav-link" data-scroll-target="#value-calculation"><span class="header-section-number">10.1</span> Value calculation</a></li>
   </ul></li>
-  <li><a href="#flag-aggregation" id="toc-flag-aggregation" class="nav-link" data-scroll-target="#flag-aggregation"><span class="header-section-number">11</span> Flag aggregation</a></li>
+  <li><a href="#flag-observation" id="toc-flag-observation" class="nav-link" data-scroll-target="#flag-observation"><span class="header-section-number">11</span> Flag observation</a></li>
   <li><a href="#year-aggregation" id="toc-year-aggregation" class="nav-link" data-scroll-target="#year-aggregation"><span class="header-section-number">12</span> Year aggregation</a></li>
   <li><a href="#measured-element-processing" id="toc-measured-element-processing" class="nav-link" data-scroll-target="#measured-element-processing"><span class="header-section-number">13</span> Measured-element processing</a></li>
   <li><a href="#aggregation-output-tables" id="toc-aggregation-output-tables" class="nav-link" data-scroll-target="#aggregation-output-tables"><span class="header-section-number">14</span> Aggregation output tables</a></li>
@@ -288,7 +288,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">September 30, 2026</p>
+      <p class="date">October 1, 2026</p>
     </div>
   </div>
   
@@ -1489,6 +1489,8 @@ Table&nbsp;12: Distinction between filtering and aggregation selections
 </figure>
 </div>
 </div>
+<p>Users can apply filters without selecting any aggregation dimension. The application can therefore also be used simply to extract a filtered subset of the dataset.</p>
+<p>When no aggregation is selected, the output contains the filtered records at their original level of detail, with the original observation flags preserved.</p>
 <section id="cross-classification-example" class="level2" data-number="9.1">
 <h2 data-number="9.1" class="anchored" data-anchor-id="cross-classification-example"><span class="header-section-number">9.1</span> Cross-classification example</h2>
 <p>Suppose the dataset contains five species.</p>
@@ -1598,21 +1600,20 @@ V_g = \sum_{i \in g} V_i.
 <p>The aggregated result is rounded to a maximum of four decimal places.</p>
 </section>
 </section>
-<section id="flag-aggregation" class="level1" data-number="11">
-<h1 data-number="11"><span class="header-section-number">11</span> Flag aggregation</h1>
-<p>Numerical values are aggregated according to the selected aggregation rule, while observation flags are aggregated according to the applicable FAO flag rules. The application uses <code>faoswsFlag::aggregateFlagData()</code> to calculate aggregate observation-status and method flags.</p>
-<p>The function is called with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>forceMissingAggregateValues <span class="ot">=</span> <span class="cn">FALSE</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>includeMissingFlags <span class="ot">=</span> <span class="cn">TRUE</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The observation flag can first be filtered like the other filter dimensions. For example, the user may retain only <code>A</code> records, only <code>E</code> records, or several observation-flag categories.</p>
+<section id="flag-observation" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Flag observation</h1>
+<p>The observation flag can first be filtered like the other filter dimensions. If one or more observation-flag values are selected, only records with those flags are retained for the subsequent processing.</p>
 <p>When <strong>Aggregate separately by observation flag</strong> is selected, the observation-flag values remaining after filtering are kept separate during aggregation.</p>
-<p>For example, if <code>A</code>, <code>E</code>, and <code>N</code> remain after filtering:</p>
-<pre class="text"><code>A records are aggregated only with A records.
-E records are aggregated only with E records.
-N records are aggregated only with N records.</code></pre>
-<p>The observation flag is preserved in the output.</p>
-<p>If only <code>A</code> has been retained through the observation-flag filter, then only <code>A</code> records enter the aggregation.</p>
-<p>When <strong>Aggregate separately by observation flag</strong> is not selected, records with different observation flags that remain after filtering may contribute to the same aggregated value, and the resulting aggregate flag is determined according to the FAO flag aggregation rules.</p>
+<p>For example:</p>
+<ul>
+<li><code>A</code> records are aggregated only with <code>A</code> records.</li>
+<li><code>E</code> records are aggregated only with <code>E</code> records.</li>
+<li><code>N</code> records are aggregated only with <code>N</code> records.</li>
+</ul>
+<p>If other aggregation dimensions are also selected, such as geographical area, species, fishing area, or production source, those aggregations are performed separately for each remaining observation-flag category.</p>
+<p>If no other aggregation dimension is selected, the filtered dataset is aggregated directly by observation flag. For example, if only <code>A</code> and <code>E</code> are retained through the observation-flag filter, the output contains a separate aggregated value for <code>A</code> and a separate aggregated value for <code>E</code>.</p>
+<p>If <strong>Aggregate separately by observation flag</strong> is not selected, observation flags do not define separate aggregation groups. When an aggregation is performed, records with different observation flags may contribute to the same aggregated value, and the resulting observation flag is determined according to the FAO flag aggregation rules.</p>
+<p>If no aggregation is selected at all, the application returns the filtered records at their original level of detail and preserves their original observation flags.</p>
 </section>
 <section id="year-aggregation" class="level1" data-number="12">
 <h1 data-number="12"><span class="header-section-number">12</span> Year aggregation</h1>
@@ -1970,22 +1971,22 @@ Figure&nbsp;13: Tagged dataset upload
 <div class="cell">
 <details class="code-fold">
 <summary>Show R code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>comparison_statuses <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Status =</span> <span class="fu">c</span>(</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Same value"</span>,</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Different value"</span>,</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in current output"</span>,</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in comparison output"</span></span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">Meaning =</span> <span class="fu">c</span>(</span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist and their rounded values are equal"</span>,</span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist but their values differ"</span>,</span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the current result"</span>,</span>
-<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the comparison result"</span></span>
-<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_statuses)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>comparison_statuses <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Status =</span> <span class="fu">c</span>(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Same value"</span>,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Different value"</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in current output"</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in comparison output"</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">Meaning =</span> <span class="fu">c</span>(</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist and their rounded values are equal"</span>,</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist but their values differ"</span>,</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the current result"</span>,</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the comparison result"</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_statuses)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="tbl-comparison-statuses" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
@@ -2033,30 +2034,30 @@ Table&nbsp;15: Comparison status categories
 <div class="cell">
 <details class="code-fold">
 <summary>Show R code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>comparison_example <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">"1501"</span>, <span class="st">"1502"</span>, <span class="st">"1503"</span>, <span class="st">"1504"</span>),</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">current_value =</span> <span class="fu">c</span>(<span class="dv">120</span>, <span class="dv">80</span>, <span class="dv">50</span>, <span class="dv">40</span>),</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">comparison_value =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">80</span>, <span class="cn">NA</span>, <span class="dv">60</span>)</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>absolute_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
-<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  current_value <span class="sc">-</span> comparison_value</span>
-<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>percentage_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
-<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
-<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>  <span class="dv">100</span> <span class="sc">*</span> absolute_difference <span class="sc">/</span> comparison_value</span>
-<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>status <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span>,</span>
-<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Same value"</span>,</span>
-<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Only in current output"</span>,</span>
-<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span></span>
-<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_example)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>comparison_example <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">"1501"</span>, <span class="st">"1502"</span>, <span class="st">"1503"</span>, <span class="st">"1504"</span>),</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">current_value =</span> <span class="fu">c</span>(<span class="dv">120</span>, <span class="dv">80</span>, <span class="dv">50</span>, <span class="dv">40</span>),</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">comparison_value =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">80</span>, <span class="cn">NA</span>, <span class="dv">60</span>)</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>absolute_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  current_value <span class="sc">-</span> comparison_value</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>percentage_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  <span class="dv">100</span> <span class="sc">*</span> absolute_difference <span class="sc">/</span> comparison_value</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>status <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span>,</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Same value"</span>,</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Only in current output"</span>,</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_example)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div id="tbl-comparison-example" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
