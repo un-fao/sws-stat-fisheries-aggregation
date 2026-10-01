@@ -808,7 +808,7 @@ make_code_choices <- function(codes) {
 make_filter_choices_from_data <- function(data,
                                           column_name,
                                           codes = NULL) {
-  dt <- copy(data)
+  dt <- data
   # Return no choices if the requested column is not available.
   if (is.null(column_name) || !column_name %in% names(dt)) {
     return(character(0))
@@ -3398,7 +3398,7 @@ aggregate_by_codelist <- function(
 filter_data_by_year <- function(data,
                                 year_range = NULL,
                                 year_col = "timePointYears") {
-  dt <- copy(data)
+  dt <- data
   
   if (!year_col %in% names(dt)) {
     return(dt)
@@ -3408,14 +3408,14 @@ filter_data_by_year <- function(data,
     return(dt)
   }
   
-  dt[, year_tmp := as.integer(get(year_col))]
+  year_values <- suppressWarnings(
+    as.integer(dt[[year_col]])
+  )
   
   dt <- dt[
-    year_tmp >= as.integer(year_range[1]) &
-      year_tmp <= as.integer(year_range[2])
+    year_values >= as.integer(year_range[1]) &
+      year_values <= as.integer(year_range[2])
   ]
-  
-  dt[, year_tmp := NULL]
   
   dt[]
 }
@@ -3424,7 +3424,7 @@ filter_data_by_year <- function(data,
 filter_data_by_measured_element <- function(data,
                                             measured_elements = NULL,
                                             measured_element_col = "measuredElement") {
-  dt <- copy(data)
+  dt <- data
   
   if (is.null(measured_elements) || length(measured_elements) == 0) {
     return(dt)
@@ -3445,7 +3445,7 @@ filter_data_by_measured_element <- function(data,
 filter_data_by_selected_values <- function(data,
                                            selected_values = NULL,
                                            column_name = NULL) {
-  dt <- copy(data)
+  dt <- data
   
   if (is.null(column_name) || !column_name %in% names(dt)) {
     return(dt)
@@ -3627,7 +3627,7 @@ aggregate_by_multiple_dimensions <- function(
     year_total_label = "Selected period"
 ) {
   
-  dt <- copy(data)
+  dt <- data
   
   # No aggregation requested:
   # simply return the filtered dataset.
@@ -8906,13 +8906,6 @@ server <- function(input, output, session) {
             
             comparison_raw <- comparison_data()
             
-            comparison_raw_standardised <- standardise_comparison_columns(
-              data = comparison_raw,
-              cfg = cfg
-            )
-            
-            
-            
             incProgress(
               amount = 0.10,
               detail = "Applying current filters to the comparison dataset."
@@ -8921,7 +8914,7 @@ server <- function(input, output, session) {
             # Apply the same filters to both datasets, but ignore
             # observation flags because old and current flag systems differ.
             comparison_filtered <- apply_saved_filters_to_comparison_data(
-              data = comparison_raw_standardised,
+              data = comparison_raw,
               cfg = cfg,
               comparison_state = comparison_state,
               exclude_dims = c(
@@ -8945,11 +8938,6 @@ server <- function(input, output, session) {
                 "No current rows remain after applying the saved non-flag filters."
               )
             }
-            
-            current_filtered <- standardise_comparison_columns(
-              data = current_filtered,
-              cfg = cfg
-            )
             
             measured_col <- cfg$measured_element_col
             
@@ -9007,7 +8995,7 @@ server <- function(input, output, session) {
                     as.character(me_i)
                 ]
               } else {
-                current_i_raw <- copy(current_filtered)
+                current_i_raw <- current_filtered
               }
               
               if (nrow(current_i_raw) == 0) {
@@ -9061,7 +9049,7 @@ server <- function(input, output, session) {
                     as.character(me_i)
                 ]
               } else {
-                comparison_i_raw <- copy(comparison_filtered)
+                comparison_i_raw <- comparison_filtered
               }
               
               code_warning_messages <- c(
@@ -13508,7 +13496,7 @@ server <- function(input, output, session) {
     
     debug_lines <- character(0)
     
-    dt <- base_analysis_data()
+    dt <- copy(base_analysis_data())
     
     debug_lines <- c(
       debug_lines,
@@ -14843,7 +14831,6 @@ server <- function(input, output, session) {
       return(data.table())
     }
     
-    dt <- copy(dt)
     cfg <- get_dataset_config(input$dataset_id)
     measured_col <- cfg$measured_element_col
     selected <- selected_graph_output_name()
@@ -14865,6 +14852,8 @@ server <- function(input, output, session) {
       isTRUE(saved_state$aggregate_selected_years) &&
       cfg$year_col %in% names(dt)
     ) {
+      
+      dt <- copy(dt)
       dt[
         ,
         (cfg$year_col) := as.character(
