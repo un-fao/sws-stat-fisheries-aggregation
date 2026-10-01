@@ -977,6 +977,11 @@ filter_vs_aggregation <- data.frame(
 knitr::kable(filter_vs_aggregation)
 ```
 
+
+Users can apply filters without selecting any aggregation dimension. The application can therefore also be used simply to extract a filtered subset of the dataset.
+
+When no aggregation is selected, the output contains the filtered records at their original level of detail, with the original observation flags preserved.
+
 ## Cross-classification example
 
 Suppose the dataset contains five species.
@@ -1053,34 +1058,25 @@ $$
 The aggregated result is rounded to a maximum of four decimal places.
 
 
-# Flag aggregation
+# Flag observation
 
-Numerical values are aggregated according to the selected aggregation rule, while observation flags are aggregated according to the applicable FAO flag rules. The application uses `faoswsFlag::aggregateFlagData()` to calculate aggregate observation-status and method flags.
-
-The function is called with:
-  
-  ```r
-forceMissingAggregateValues = FALSE
-includeMissingFlags = TRUE
-```
-
-The observation flag can first be filtered like the other filter dimensions. For example, the user may retain only `A` records, only `E` records, or several observation-flag categories.
+The observation flag can first be filtered like the other filter dimensions. If one or more observation-flag values are selected, only records with those flags are retained for the subsequent processing.
 
 When **Aggregate separately by observation flag** is selected, the observation-flag values remaining after filtering are kept separate during aggregation.
 
-For example, if `A`, `E`, and `N` remain after filtering:
+For example:
 
-```text
-A records are aggregated only with A records.
-E records are aggregated only with E records.
-N records are aggregated only with N records.
-```
+- `A` records are aggregated only with `A` records.
+- `E` records are aggregated only with `E` records.
+- `N` records are aggregated only with `N` records.
 
-The observation flag is preserved in the output.
+If other aggregation dimensions are also selected, such as geographical area, species, fishing area, or production source, those aggregations are performed separately for each remaining observation-flag category.
 
-If only `A` has been retained through the observation-flag filter, then only `A` records enter the aggregation.
+If no other aggregation dimension is selected, the filtered dataset is aggregated directly by observation flag. For example, if only `A` and `E` are retained through the observation-flag filter, the output contains a separate aggregated value for `A` and a separate aggregated value for `E`.
 
-When **Aggregate separately by observation flag** is not selected, records with different observation flags that remain after filtering may contribute to the same aggregated value, and the resulting aggregate flag is determined according to the FAO flag aggregation rules.
+If **Aggregate separately by observation flag** is not selected, observation flags do not define separate aggregation groups. When an aggregation is performed, records with different observation flags may contribute to the same aggregated value, and the resulting observation flag is determined according to the FAO flag aggregation rules.
+
+If no aggregation is selected at all, the application returns the filtered records at their original level of detail and preserves their original observation flags.
 
 
 # Year aggregation
