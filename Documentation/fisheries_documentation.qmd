@@ -1074,9 +1074,12 @@ If other aggregation dimensions are also selected, such as geographical area, sp
 
 If no other aggregation dimension is selected, the filtered dataset is aggregated directly by observation flag. For example, if only `A` and `E` are retained through the observation-flag filter, the output contains a separate aggregated value for `A` and a separate aggregated value for `E`.
 
+If no observation-flag values are selected and **Aggregate separately by observation flag** is selected, all flag categories present in the filtered dataset are retained and aggregated separately. For example, `A` records are aggregated only with `A` records and `E` records only with `E` records, so the original observation flag is preserved for each aggregate and is not recalculated across different flag categories using the FAO flag aggregation rules.
+
 If **Aggregate separately by observation flag** is not selected, observation flags do not define separate aggregation groups. When an aggregation is performed, records with different observation flags may contribute to the same aggregated value, and the resulting observation flag is determined according to the FAO flag aggregation rules.
 
 If no aggregation is selected at all, the application returns the filtered records at their original level of detail and preserves their original observation flags.
+
 
 
 # Year aggregation
