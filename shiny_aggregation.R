@@ -3462,6 +3462,157 @@ filter_data_by_selected_values <- function(data,
   ]
 }
 
+
+# Aggregate the filtered dataset separately by observation flag.
+# Years remain separate unless "Total all selected years into one period"
+# is also selected.
+aggregate_filtered_data_by_observation_flag <- function(
+    data,
+    value_col = "Value",
+    observation_flag = "flagObservationStatus",
+    method_flag = "flagMethod",
+    year_col = "timePointYears"
+) {
+  
+  dt <- copy(data)
+  original_cols <- names(dt)
+  
+  if (!value_col %in% names(dt)) {
+    stop(
+      sprintf(
+        "Column '%s' was not found in the selected dataset.",
+        value_col
+      )
+    )
+  }
+  
+  if (!observation_flag %in% names(dt)) {
+    stop(
+      sprintf(
+        "Column '%s' was not found in the selected dataset.",
+        observation_flag
+      )
+    )
+  }
+  
+  if (!method_flag %in% names(dt)) {
+    stop(
+      sprintf(
+        "Column '%s' was not found in the selected dataset.",
+        method_flag
+      )
+    )
+  }
+  
+  observation_group_col <- "__observation_flag_group__"
+  
+  dt[
+    ,
+    (observation_group_col) :=
+      as.character(get(observation_flag))
+  ]
+  
+  keys_by <- c(
+    observation_group_col,
+    if (year_col %in% names(dt)) {
+      year_col
+    } else {
+      character(0)
+    }
+  )
+  
+  direct_totals <- dt[
+    ,
+    .(
+      direct_value_total = sum_or_na_rounded(
+        get(value_col),
+        digits = VALUE_DECIMAL_DIGITS
+      )
+    ),
+    by = keys_by
+  ]
+  
+  out <- faoswsFlag::aggregateFlagData(
+    data = dt,
+    keys = keys_by,
+    observationFlag = observation_flag,
+    methodFlag = method_flag,
+    forceMissingAggregateValues = FALSE,
+    includeMissingFlags = TRUE
+  )
+  
+  out <- unique(
+    as.data.table(out)
+  )
+  
+  setnames(
+    out,
+    value_col,
+    "faosws_value"
+  )
+  
+  out <- merge(
+    out,
+    direct_totals,
+    by = keys_by,
+    all.x = TRUE,
+    sort = FALSE
+  )
+  
+  out[
+    ,
+    (value_col) := direct_value_total
+  ]
+  
+  out[
+    ,
+    c(
+      "faosws_value",
+      "direct_value_total"
+    ) := NULL
+  ]
+  
+  # Preserve the original flag category.
+  out[
+    ,
+    (observation_flag) :=
+      as.character(get(observation_group_col))
+  ]
+  
+  out[
+    ,
+    (observation_group_col) := NULL
+  ]
+  
+  # Restore the original output structure.
+  # A column is preserved when the filtered data contain only one value;
+  # otherwise it becomes NA because that dimension has been aggregated over.
+  missing_cols <- setdiff(
+    original_cols,
+    names(out)
+  )
+  
+  for (col in missing_cols) {
+    
+    values <- unique(dt[[col]])
+    values <- values[!is.na(values)]
+    
+    if (length(values) == 1) {
+      out[, (col) := values[1]]
+    } else {
+      out[, (col) := NA]
+    }
+  }
+  
+  setcolorder(
+    out,
+    original_cols
+  )
+  
+  out[]
+}
+
+
 #Apply the selected aggregation rules across multiple dimensions and 
 #optionally aggregate years or group separately by observation flag.
 aggregate_by_multiple_dimensions <- function(
@@ -3478,12 +3629,30 @@ aggregate_by_multiple_dimensions <- function(
   
   dt <- copy(data)
   
+  # No aggregation requested:
+  # simply return the filtered dataset.
   if (
     length(aggregation_specs) == 0 &&
     !isTRUE(group_by_observation_flag) &&
     !isTRUE(aggregate_selected_years)
   ) {
     return(dt[])
+  }
+  
+  # Observation-flag aggregation requested without any other
+  # aggregation dimension.
+  if (
+    length(aggregation_specs) == 0 &&
+    isTRUE(group_by_observation_flag)
+  ) {
+    
+    dt <- aggregate_filtered_data_by_observation_flag(
+      data = dt,
+      value_col = value_col,
+      observation_flag = observation_flag,
+      method_flag = method_flag,
+      year_col = year_col
+    )
   }
   
   aggregation_order <- c(
