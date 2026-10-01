@@ -8318,7 +8318,7 @@ server <- function(input, output, session) {
     )
   }
   
-  
+  # Print the mismatches of codes detected during the comparison
   build_comparison_code_warnings <- function(
     current_data,
     comparison_data,
@@ -8397,23 +8397,37 @@ server <- function(input, output, session) {
           target_codes = only_comparison
         )
       
-      comparison_text <- paste0(
-        length(only_comparison),
-        " filtered code(s) occur only in the ",
-        comparison_side_label,
-        "; ",
-        length(only_comparison_with_values),
-        " of them have at least one non-missing value.",
-        format_code_sample(only_comparison)
-      )
+      warning_parts <- character(0)
       
-      current_text <- paste0(
-        length(only_current),
-        " filtered code(s) occur only in the current dataset; ",
-        length(only_current_with_values),
-        " of them have at least one non-missing value.",
-        format_code_sample(only_current)
-      )
+      if (length(only_comparison) > 0) {
+        
+        warning_parts <- c(
+          warning_parts,
+          paste0(
+            length(only_comparison),
+            " filtered code(s) occur only in the ",
+            comparison_side_label,
+            "; ",
+            length(only_comparison_with_values),
+            " of them have at least one non-missing value.",
+            format_code_sample(only_comparison)
+          )
+        )
+      }
+      
+      if (length(only_current) > 0) {
+        
+        warning_parts <- c(
+          warning_parts,
+          paste0(
+            length(only_current),
+            " filtered code(s) occur only in the current dataset; ",
+            length(only_current_with_values),
+            " of them have at least one non-missing value.",
+            format_code_sample(only_current)
+          )
+        )
+      }
       
       warnings <- c(
         warnings,
@@ -8423,9 +8437,10 @@ server <- function(input, output, session) {
           " — ",
           spec$label,
           ": ",
-          comparison_text,
-          " ",
-          current_text
+          paste(
+            warning_parts,
+            collapse = " "
+          )
         )
       )
     }
