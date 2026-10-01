@@ -3592,124 +3592,6 @@ aggregate_rows_by_observation_flag <- function(
 }
 
 
-aggregate_observation_flag_selection <- function(
-    data,
-    mode = "none",
-    selected_flags = character(0),
-    value_col = "Value",
-    observation_flag = "flagObservationStatus",
-    method_flag = "flagMethod"
-) {
-  
-  dt <- copy(data)
-  
-  if (
-    identical(mode, "none") ||
-    !observation_flag %in% names(dt)
-  ) {
-    return(dt[])
-  }
-  
-  available_flags <- unique(
-    as.character(dt[[observation_flag]])
-  )
-  
-  available_flags <- available_flags[
-    !is.na(available_flags) &
-      nzchar(available_flags)
-  ]
-  
-  
-  if (identical(mode, "total")) {
-    
-    flags_to_aggregate <- available_flags
-    
-  } else if (identical(mode, "custom")) {
-    
-    flags_to_aggregate <- intersect(
-      available_flags,
-      as.character(selected_flags)
-    )
-    
-    if (length(flags_to_aggregate) < 2) {
-      return(dt[])
-    }
-    
-  } else {
-    return(dt[])
-  }
-  
-  
-  to_aggregate <- dt[
-    as.character(get(observation_flag)) %in%
-      flags_to_aggregate
-  ]
-  
-  untouched <- dt[
-    !as.character(get(observation_flag)) %in%
-      flags_to_aggregate
-  ]
-  
-  
-  keys_by <- setdiff(
-    names(to_aggregate),
-    c(
-      value_col,
-      observation_flag,
-      method_flag
-    )
-  )
-  
-  
-  totals <- to_aggregate[
-    ,
-    .(
-      aggregated_value = sum_or_na_rounded(
-        get(value_col),
-        digits = VALUE_DECIMAL_DIGITS
-      )
-    ),
-    by = keys_by
-  ]
-  
-  
-  aggregated <- faoswsFlag::aggregateFlagData(
-    data = to_aggregate,
-    keys = keys_by,
-    observationFlag = observation_flag,
-    methodFlag = method_flag,
-    forceMissingAggregateValues = FALSE,
-    includeMissingFlags = TRUE
-  )
-  
-  aggregated <- as.data.table(aggregated)
-  
-  
-  aggregated <- merge(
-    aggregated,
-    totals,
-    by = keys_by,
-    all.x = TRUE,
-    sort = FALSE
-  )
-  
-  aggregated[
-    ,
-    (value_col) := aggregated_value
-  ]
-  
-  aggregated[, aggregated_value := NULL]
-  
-  
-  rbindlist(
-    list(
-      aggregated,
-      untouched
-    ),
-    use.names = TRUE,
-    fill = TRUE
-  )
-}
 
 #Restrict the dataset to the selected inclusive year range.
 filter_data_by_year <- function(data,
@@ -3788,8 +3670,6 @@ aggregate_by_multiple_dimensions <- function(
     observation_flag = "flagObservationStatus",
     method_flag = "flagMethod",
     group_by_observation_flag = FALSE,
-    observation_flag_mode = "none",
-    selected_observation_flags = character(0),
     aggregate_selected_years = FALSE,
     year_col = "timePointYears",
     year_total_label = "Selected period"
@@ -3919,15 +3799,6 @@ aggregate_by_multiple_dimensions <- function(
         group_by_observation_flag
     )
   }
-  
-  dt <- aggregate_observation_flag_selection(
-    data = dt,
-    mode = observation_flag_mode,
-    selected_flags = selected_observation_flags,
-    value_col = value_col,
-    observation_flag = observation_flag,
-    method_flag = method_flag
-  )
   
   technical_cols <- intersect(
     c("raw_code", "group_code"),
@@ -12425,34 +12296,6 @@ server <- function(input, output, session) {
               ]]
             )
           ),
-          
-          div(
-            class = "col-12 col-xl-5",
-            
-            card(
-              fill = FALSE,
-              
-              card_header(
-                "Observation flag aggregation"
-              ),
-              
-              radioButtons(
-                "observation_flag_aggregation_mode",
-                NULL,
-                choices = c(
-                  "Keep filtered flags separate — no aggregation" = "none",
-                  "Combine all filtered flags" = "total",
-                  "Custom aggregation — combine selected flags" = "custom"
-                ),
-                selected = "none"
-              ),
-              
-              conditionalPanel(
-                condition = "input.observation_flag_aggregation_mode == 'custom'",
-                uiOutput("observation_flag_custom_selector")
-              )
-            )
-          )
         )
       )
     }
@@ -13583,18 +13426,6 @@ server <- function(input, output, session) {
       
     }
     
-    updateRadioButtons(
-      session,
-      "observation_flag_aggregation_mode",
-      selected = "none"
-    )
-    
-    updateCheckboxGroupInput(
-      session,
-      "observation_flags_to_aggregate",
-      selected = character(0)
-    )
-    
     
     updateCheckboxInput(
       session,
@@ -14357,41 +14188,6 @@ server <- function(input, output, session) {
   }
   
   
-  output$observation_flag_custom_selector <- renderUI({
-    
-    dt <- get_current_filtered_data(
-      update_debug = FALSE
-    )
-    
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    flag_col <- cfg$observation_flag_col
-    
-    req(
-      !is.null(flag_col),
-      flag_col %in% names(dt)
-    )
-    
-    flags <- sort(
-      unique(
-        as.character(
-          dt[[flag_col]]
-        )
-      )
-    )
-    
-    flags <- flags[
-      !is.na(flags) &
-        nzchar(flags)
-    ]
-    
-    checkboxGroupInput(
-      "observation_flags_to_aggregate",
-      "Observation flags to combine",
-      choices = flags
-    )
-  })
-  
   # output$aggregation_setup_preview_ui <- renderUI({
   #   req(dataset_data())
   #   
@@ -14564,16 +14360,7 @@ server <- function(input, output, session) {
               return(NULL)
             }
             
-            observation_flag_mode <-
-              input$observation_flag_aggregation_mode %||% "none"
-            
-            selected_observation_flags <-
-              input$observation_flags_to_aggregate %||%
-              character(0)
-            
-            # Keep flags separate while the other dimensions are aggregated.
-            # The requested flag aggregation is applied afterwards.
-            group_by_observation_flag <- TRUE
+            group_by_observation_flag <- FALSE
             
             aggregate_selected_years <- isTRUE(
               input$aggregate_selected_years
@@ -14672,8 +14459,6 @@ server <- function(input, output, session) {
                   observation_flag = cfg$observation_flag_col,
                   method_flag = cfg$method_flag_col,
                   group_by_observation_flag = group_by_observation_flag,
-                  observation_flag_mode = observation_flag_mode,
-                  selected_observation_flags = selected_observation_flags,
                   aggregate_selected_years = aggregate_selected_years,
                   year_col = cfg$year_col,
                   year_total_label = year_total_label
