@@ -3391,205 +3391,6 @@ aggregate_by_codelist <- function(
   out[]
 }
 
-#Aggregate records separately by observation flag while preserving the flag categories in the output.
-aggregate_rows_by_observation_flag <- function(
-    data,
-    value_col = "Value",
-    observation_flag = "flagObservationStatus",
-    method_flag = "flagMethod"
-) {
-  dt <- copy(data)
-  original_cols <- names(dt)
-  
-  value_digits <- VALUE_DECIMAL_DIGITS
-  
-  if (!value_col %in% names(dt)) {
-    stop(
-      sprintf(
-        "Column '%s' was not found in the selected dataset.",
-        value_col
-      )
-    )
-  }
-  
-  
-  if (!observation_flag %in% names(dt)) {
-    stop(
-      sprintf(
-        "Column '%s' was not found in the selected dataset.",
-        observation_flag
-      )
-    )
-  }
-  
-  added_method_flag <- FALSE
-  
-  if (!method_flag %in% names(dt)) {
-    method_flag <- "__methodFlag"
-    dt[, (method_flag) := NA_character_]
-    added_method_flag <- TRUE
-  }
-  
-  observation_group_col <- "__observation_flag_group__"
-  
-  dt[
-    ,
-    (observation_group_col) := as.character(
-      get(observation_flag)
-    )
-  ]
-  
-  keys_by <- c(
-    observation_group_col,
-    
-    setdiff(
-      names(dt),
-      c(
-        value_col,
-        observation_flag,
-        method_flag,
-        observation_group_col
-      )
-    )
-  )
-  
-  keys_by <- unique(keys_by)
-  
-  missing_key_value <- "__MISSING_KEY__"
-  key_cols <- intersect(keys_by, names(dt))
-  
-  for (col in key_cols) {
-    dt[, (col) := as.character(get(col))]
-    
-    dt[
-      is.na(get(col)) | !nzchar(get(col)),
-      (col) := missing_key_value
-    ]
-  }
-  
-  
-  deterministic_order_cols <- intersect(
-    c(
-      keys_by,
-      observation_flag,
-      method_flag,
-      value_col
-    ),
-    names(dt)
-  )
-  
-  if (
-    length(deterministic_order_cols) > 0 &&
-    nrow(dt) > 0
-  ) {
-    setorderv(
-      dt,
-      cols = deterministic_order_cols
-    )
-  }
-  
-  direct_value_totals <- dt[
-    ,
-    .(
-      direct_value_total = sum_or_na_rounded(
-        get(value_col),
-        digits = value_digits
-      )
-    ),
-    by = keys_by
-  ]
-  
-  out <- faoswsFlag::aggregateFlagData(
-    data = dt,
-    keys = keys_by,
-    observationFlag = observation_flag,
-    methodFlag = method_flag,
-    forceMissingAggregateValues = FALSE,
-    includeMissingFlags = TRUE
-  )
-  
-  out <- unique(
-    as.data.table(out)
-  )
-  
-  if (!value_col %in% names(out)) {
-    stop(
-      paste0(
-        "faoswsFlag did not return the expected value column '",
-        value_col,
-        "'."
-      )
-    )
-  }
-  
-  setnames(
-    out,
-    value_col,
-    "faosws_value"
-  )
-  
-  out <- merge(
-    out,
-    direct_value_totals,
-    by = keys_by,
-    all.x = TRUE,
-    sort = FALSE
-  )
-  
-  out[
-    ,
-    (value_col) := direct_value_total
-  ]
-  
-  out[
-    ,
-    c(
-      "faosws_value",
-      "direct_value_total"
-    ) := NULL
-  ]
-  
-  out <- out[
-    !is.na(get(value_col))
-  ]
-  
-  for (col in intersect(key_cols, names(out))) {
-    out[
-      get(col) == missing_key_value,
-      (col) := NA_character_
-    ]
-  }
-  
-  # Restore the observation flag used as the grouping category.
-  out[
-    ,
-    (observation_flag) := as.character(
-      get(observation_group_col)
-    )
-  ]
-  
-  out[, (observation_group_col) := NULL]
-  
-  if (
-    isTRUE(added_method_flag) &&
-    method_flag %in% names(out)
-  ) {
-    out[, (method_flag) := NULL]
-  }
-  
-  missing_cols <- setdiff(
-    original_cols,
-    names(out)
-  )
-  
-  for (col in missing_cols) {
-    out[, (col) := NA]
-  }
-  
-  setcolorder(out, original_cols)
-  
-  out[]
-}
 
 
 
@@ -12296,6 +12097,20 @@ server <- function(input, output, session) {
               ]]
             )
           ),
+          
+          div(
+            class = "col-12 col-xl-5",
+            
+            card(
+              fill = FALSE,
+              
+              checkboxInput(
+                "apply_observation_flag",
+                "Aggregate separately by observation flag",
+                value = FALSE
+              )
+            )
+          )
         )
       )
     }
@@ -13426,6 +13241,17 @@ server <- function(input, output, session) {
       
     }
     
+    updateCheckboxInput(
+      session,
+      "apply_observation_flag",
+      value = FALSE
+    )
+    
+    updateCheckboxInput(
+      session,
+      "aggregate_selected_years",
+      value = FALSE
+    )
     
     updateCheckboxInput(
       session,
@@ -14360,7 +14186,9 @@ server <- function(input, output, session) {
               return(NULL)
             }
             
-            group_by_observation_flag <- FALSE
+            group_by_observation_flag <- isTRUE(
+              input$apply_observation_flag
+            )
             
             aggregate_selected_years <- isTRUE(
               input$aggregate_selected_years
