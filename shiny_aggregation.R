@@ -5809,6 +5809,8 @@ server <- function(input, output, session) {
   
   # Stores the result returned by getDatasetInfo()
   loaded_dataset_info <- reactiveVal(NULL)
+  comparison_dataset_info <- reactiveVal(NULL)
+  
   
   #aggregated_data <- reactiveVal(NULL)     # combined aggregated output
   aggregated_outputs <- reactiveVal(list()) # separate outputs by measured element
@@ -6942,6 +6944,7 @@ server <- function(input, output, session) {
     
     # Remove the previous comparison immediately.
     comparison_data(NULL)
+    comparison_dataset_info(NULL)
     comparison_metadata(NULL)
     comparison_results(NULL)
     comparison_compatibility_warning(character(0))
@@ -6957,10 +6960,9 @@ server <- function(input, output, session) {
         if (identical(input$comparison_source, "disseminated")) {
           req(input$comparison_dataset_id)
           
-          # showNotification(
-          #   paste0("Loading disseminated comparison dataset: ", input$comparison_dataset_id),
-          #   type = "default"
-          # )
+          comparison_info <- getDatasetInfo(
+            input$comparison_dataset_id
+          )
           
           dt <- as.data.table(
             readDataset(
@@ -6971,6 +6973,15 @@ server <- function(input, output, session) {
           dt <- normalise_and_drop_empty_values(
             data = dt,
             value_col = current_cfg$value_col
+          )
+          
+          dt <- restrict_to_active_configured_codes(
+            data = dt,
+            dataset_info = comparison_info
+          )
+          
+          comparison_dataset_info(
+            comparison_info
           )
           
           comparison_data(dt)
@@ -6985,12 +6996,14 @@ server <- function(input, output, session) {
         }
         
         if (identical(input$comparison_source, "tagged")) {
-          req(input$comparison_base_dataset_id, input$comparison_tag_id)
+          req(
+            input$comparison_base_dataset_id,
+            input$comparison_tag_id
+          )
           
-          # showNotification(
-          #   paste0("Loading tagged comparison dataset: ", input$comparison_tag_id),
-          #   type = "default"
-          # )
+          comparison_info <- getDatasetInfo(
+            input$comparison_base_dataset_id
+          )
           
           dt <- as.data.table(
             getTagData(
@@ -7001,6 +7014,15 @@ server <- function(input, output, session) {
           dt <- normalise_and_drop_empty_values(
             data = dt,
             value_col = current_cfg$value_col
+          )
+          
+          dt <- restrict_to_active_configured_codes(
+            data = dt,
+            dataset_info = comparison_info
+          )
+          
+          comparison_dataset_info(
+            comparison_info
           )
           
           tag_info <- as.data.table(
