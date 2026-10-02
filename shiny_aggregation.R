@@ -9874,7 +9874,9 @@ server <- function(input, output, session) {
     )
   })
   
-  # Do not remove NAs before plotting
+  # Do not remove NAs before plotting.
+  # Missing values are retained so that differences in time coverage
+  # between the current and comparison datasets remain visible.
   output$comparison_time_series_plot <- renderPlot({
     
     dt <- copy(
@@ -9897,8 +9899,7 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Select one time series when several dimension combinations
-    # are available.
+    # Select one aggregated time series.
     # ------------------------------------------------------------
     
     available_series <- unique(
@@ -9910,6 +9911,13 @@ server <- function(input, output, session) {
         nzchar(available_series)
     ]
     
+    validate(
+      need(
+        length(available_series) > 0L,
+        "No comparison time series is available."
+      )
+    )
+    
     if (length(available_series) > 1L) {
       
       selected_series <- input$comparison_plot_series_id
@@ -9918,12 +9926,111 @@ server <- function(input, output, session) {
         is.null(selected_series) ||
         !selected_series %in% available_series
       ) {
-        selected_series <- available_series[1]
+        selected_series <- available_series[1L]
       }
       
       dt <- dt[
         comparison_series_id == selected_series
       ]
+      
+    } else {
+      
+      selected_series <- available_series[1L]
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Build a complete descriptive title for the selected series.
+    #
+    # IMPORTANT:
+    # comparison_series_id contains only dimensions that vary and
+    # therefore distinguish separate selectable time series.
+    #
+    # For the plot title, however, we want ALL available analytical
+    # dimensions, including dimensions that happen to be constant.
+    # ------------------------------------------------------------
+    
+    display_dt <- format_dimension_codes_for_display(
+      dt
+    )
+    
+    title_dimensions <- list(
+      
+      "Country / geographical area" =
+        cfg$geographical_area_col,
+      
+      "Species / ASFIS" =
+        cfg$species_col,
+      
+      "Fishing area" =
+        cfg$fishing_area_col,
+      
+      "Production source / environment type" =
+        cfg$production_source_col,
+      
+      "Currency flag" =
+        cfg$currency_flag_col
+    )
+    
+    title_parts <- character(0)
+    
+    for (dimension_label in names(title_dimensions)) {
+      
+      column_name <- title_dimensions[[dimension_label]]
+      
+      if (
+        is.null(column_name) ||
+        !column_name %in% names(display_dt)
+      ) {
+        next
+      }
+      
+      values_i <- unique(
+        trimws(
+          as.character(
+            display_dt[[column_name]]
+          )
+        )
+      )
+      
+      values_i <- values_i[
+        !is.na(values_i) &
+          nzchar(values_i)
+      ]
+      
+      if (length(values_i) == 0L) {
+        next
+      }
+      
+      title_parts <- c(
+        title_parts,
+        paste0(
+          dimension_label,
+          ": ",
+          paste(
+            values_i,
+            collapse = ", "
+          )
+        )
+      )
+    }
+    
+    
+    plot_title <- paste0(
+      "Current vs comparison — measured element ",
+      input$comparison_plot_output_id
+    )
+    
+    if (length(title_parts) > 0L) {
+      
+      plot_title <- paste0(
+        plot_title,
+        "\n",
+        paste(
+          title_parts,
+          collapse = " | "
+        )
+      )
     }
     
     
@@ -9947,7 +10054,7 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Prepare years
+    # Prepare years.
     # ------------------------------------------------------------
     
     dt[
@@ -9975,26 +10082,191 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Check that each dataset has at least two available values.
-    # NA values are intentionally kept in dt so that geom_line()
-    # breaks the line wherever one dataset has no corresponding value.
+    # Check data availability on both sides.
     # ------------------------------------------------------------
+    
+    n_current <- sum(
+      !is.na(dt$current_value)
+    )
+    
+    n_comparison <- sum(
+      !is.na(dt$comparison_value)
+    )
     
     validate(
       need(
-        sum(!is.na(dt$current_value)) >= 2,
-        "The current dataset has fewer than two available observations, so a line cannot be drawn."
-      ),
-      need(
-        sum(!is.na(dt$comparison_value)) >= 2,
-        "The comparison dataset has fewer than two available observations, so a line cannot be drawn."
+        n_current > 0L ||
+          n_comparison > 0L,
+        "Neither dataset contains values for the selected aggregated time series."
       )
     )
     
     
     # ------------------------------------------------------------
-    # Plot exactly two time-series lines.
-    # Missing values remain NA, so the corresponding line is broken.
+    # Check how the two datasets relate.
+    # ------------------------------------------------------------
+    
+    comparable_rows <- dt[
+      !is.na(current_value) &
+        !is.na(comparison_value)
+    ]
+    
+    common_values_equal <- (
+      nrow(comparable_rows) > 0L &&
+        all(
+          round(
+            comparable_rows$current_value -
+              comparable_rows$comparison_value,
+            digits = VALUE_DECIMAL_DIGITS
+          ) == 0
+        )
+    )
+    
+    current_years <- dt[
+      !is.na(current_value),
+      year_numeric
+    ]
+    
+    comparison_years <- dt[
+      !is.na(comparison_value),
+      year_numeric
+    ]
+    
+    same_year_coverage <- identical(
+      current_years,
+      comparison_years
+    )
+    
+    completely_identical <- (
+      n_current > 0L &&
+        n_comparison > 0L &&
+        same_year_coverage &&
+        isTRUE(common_values_equal)
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Build explanatory note shown below the title.
+    # ------------------------------------------------------------
+    
+    plot_notes <- character(0)
+    
+    if (
+      n_current == 0L &&
+      n_comparison > 0L
+    ) {
+      
+      plot_notes <- c(
+        plot_notes,
+        paste0(
+          "This time series occurs only in the comparison dataset; ",
+          "no corresponding values are available in the current dataset."
+        )
+      )
+      
+    } else if (
+      n_comparison == 0L &&
+      n_current > 0L
+    ) {
+      
+      plot_notes <- c(
+        plot_notes,
+        paste0(
+          "This time series occurs only in the current dataset; ",
+          "no corresponding values are available in the comparison dataset."
+        )
+      )
+      
+    } else {
+      
+      if (isTRUE(completely_identical)) {
+        
+        plot_notes <- c(
+          plot_notes,
+          paste0(
+            "The current and comparison datasets have identical values ",
+            "for all displayed years."
+          )
+        )
+        
+      } else if (
+        isTRUE(common_values_equal) &&
+        !isTRUE(same_year_coverage)
+      ) {
+        
+        plot_notes <- c(
+          plot_notes,
+          paste0(
+            "Values are identical wherever both datasets contain data, ",
+            "but the two datasets have different year coverage."
+          )
+        )
+      }
+    }
+    
+    
+    if (
+      n_current == 1L &&
+      n_comparison > 0L
+    ) {
+      
+      plot_notes <- c(
+        plot_notes,
+        paste0(
+          "The current dataset contains only one available observation; ",
+          "it is shown as a point."
+        )
+      )
+    }
+    
+    if (
+      n_comparison == 1L &&
+      n_current > 0L
+    ) {
+      
+      plot_notes <- c(
+        plot_notes,
+        paste0(
+          "The comparison dataset contains only one available observation; ",
+          "it is shown as a point."
+        )
+      )
+    }
+    
+    
+    plot_subtitle <- if (
+      length(plot_notes) > 0L
+    ) {
+      
+      paste(
+        plot_notes,
+        collapse = "\n"
+      )
+      
+    } else {
+      
+      NULL
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Plot.
+    #
+    # Dataset identity is represented by THREE visual cues:
+    #
+    # Current dataset:
+    #   - first colour
+    #   - solid line
+    #   - filled circle
+    #
+    # Comparison dataset:
+    #   - second colour
+    #   - dashed line
+    #   - hollow triangle
+    #
+    # Therefore identical overlapping values remain interpretable:
+    # the dashed line is drawn over the solid line, leaving the solid
+    # line visible through the gaps, while point shapes also differ.
     # ------------------------------------------------------------
     
     ggplot() +
@@ -10005,9 +10277,10 @@ server <- function(input, output, session) {
           x = year_numeric,
           y = current_value,
           colour = "Current dataset",
+          linetype = "Current dataset",
           group = 1
         ),
-        linewidth = 1.1,
+        linewidth = 1.15,
         na.rm = FALSE
       ) +
       
@@ -10018,9 +10291,10 @@ server <- function(input, output, session) {
         aes(
           x = year_numeric,
           y = current_value,
-          colour = "Current dataset"
+          colour = "Current dataset",
+          shape = "Current dataset"
         ),
-        size = 2.5
+        size = 2.8
       ) +
       
       geom_line(
@@ -10029,9 +10303,10 @@ server <- function(input, output, session) {
           x = year_numeric,
           y = comparison_value,
           colour = "Comparison dataset",
+          linetype = "Comparison dataset",
           group = 1
         ),
-        linewidth = 1.1,
+        linewidth = 1.15,
         na.rm = FALSE
       ) +
       
@@ -10042,19 +10317,34 @@ server <- function(input, output, session) {
         aes(
           x = year_numeric,
           y = comparison_value,
-          colour = "Comparison dataset"
+          colour = "Comparison dataset",
+          shape = "Comparison dataset"
         ),
-        size = 2.5
+        size = 3
+      ) +
+      
+      scale_linetype_manual(
+        values = c(
+          "Current dataset" = "solid",
+          "Comparison dataset" = "dashed"
+        )
+      ) +
+      
+      scale_shape_manual(
+        values = c(
+          "Current dataset" = 16,
+          "Comparison dataset" = 2
+        )
       ) +
       
       labs(
         x = "Year",
         y = "Value",
-        colour = NULL,
-        title = paste0(
-          "Comparison — measured element ",
-          input$comparison_plot_output_id
-        )
+        colour = "Dataset",
+        linetype = "Dataset",
+        shape = "Dataset",
+        title = plot_title,
+        subtitle = plot_subtitle
       ) +
       
       scale_x_continuous(
@@ -10068,16 +10358,51 @@ server <- function(input, output, session) {
       theme_minimal() +
       
       theme(
+        
         legend.position = "top",
-        plot.title = element_text(
+        
+        legend.title = element_text(
           face = "bold"
         ),
+        
+        plot.title = element_text(
+          face = "bold",
+          size = 13
+        ),
+        
+        plot.subtitle = element_text(
+          size = 10,
+          margin = margin(
+            t = 6,
+            b = 12
+          )
+        ),
+        
         axis.title = element_text(
           face = "bold"
         )
+      ) +
+      
+      guides(
+        
+        colour = guide_legend(
+          order = 1,
+          override.aes = list(
+            linetype = c(
+              "solid",
+              "dashed"
+            ),
+            shape = c(
+              16,
+              2
+            )
+          )
+        ),
+        
+        linetype = "none",
+        shape = "none"
       )
   })
-  
   
   
   
