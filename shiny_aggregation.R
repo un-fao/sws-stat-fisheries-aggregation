@@ -103,8 +103,17 @@ build_dataset_config_from_sws <- function() {
   )
   
   # Keep only datasets belonging to the two domains used by the app.
+  datasets[
+    ,
+    domain_id_clean := tolower(
+      trimws(
+        as.character(domain_id)
+      )
+    )
+  ]
+  
   datasets <- datasets[
-    domain_id %in% c(
+    domain_id_clean %in% c(
       "fisheries",
       "disseminated"
     )
@@ -151,7 +160,7 @@ build_dataset_config_from_sws <- function() {
         
         dataset_group = if (
           identical(
-            as.character(row_i$domain_id),
+            as.character(row_i$domain_id_clean),
             "fisheries"
           )
         ) {
