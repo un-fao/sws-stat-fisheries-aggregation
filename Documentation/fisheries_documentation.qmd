@@ -1600,6 +1600,42 @@ Two views are available:
 
 Each measured element has its own comparison tab and CSV download.
 
+
+## Comparison chart
+
+The **Chart** tab provides a time-series comparison between the current aggregation output and the selected comparison dataset.
+
+The chart is displayed for **one measured element at a time**. When the selected comparison output contains several combinations of analytical dimensions, the **Time series** selector allows the user to choose the specific aggregated series to display.
+
+Each time series corresponds to one combination of the analytical dimensions retained in the comparison output, which may include:
+
+- country or geographical area;
+- species / ASFIS;
+- fishing area;
+- production source / environment type, where available;
+- currency flag, where available.
+
+The chart title identifies the selected measured element together with the analytical dimensions defining the displayed series. Descriptive codelist labels are used where available.
+
+The chart displays:
+
+- the **current dataset** as a solid line with filled points;
+- the **comparison dataset** as a dashed line with a different point shape.
+
+Using both line type and point shape in addition to colour makes the two datasets distinguishable even when their values are identical and the two lines occupy the same coordinates.
+
+When the current and comparison datasets contain identical values for all displayed years, the chart explicitly indicates that the two series are identical.
+
+When values coincide only for the years available in both datasets but the datasets have different year coverage, the chart indicates that the common values are identical while the available periods differ.
+
+If the selected aggregated series exists only in one dataset, the available series is still displayed. A message indicates that no corresponding values are available in the other dataset.
+
+If one dataset contains only one available observation for the selected series, that observation is displayed as a point rather than suppressing the entire chart.
+
+Missing yearly values are retained as missing values in the plotting data. Consequently, a line is interrupted when a dataset has no corresponding value for a particular year rather than connecting observations across the missing period.
+
+The comparison chart is available only when the selected aggregation retains separate years. If **Total all selected years into one period** was used, a time-series comparison cannot be displayed because the selected years have been combined into a single aggregated period.
+
 # Outlier analysis
 
 The **Outlier analysis** page provides tools for examining unusually large aggregated values and unusually large changes over time.
