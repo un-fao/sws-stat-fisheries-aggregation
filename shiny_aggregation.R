@@ -7067,6 +7067,7 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         comparison_data(NULL)
+        comparison_dataset_info(NULL)
         comparison_metadata(NULL)
         comparison_results(NULL)
         comparison_compatibility_warning(character(0))
