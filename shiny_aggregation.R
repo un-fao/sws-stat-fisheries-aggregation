@@ -5823,6 +5823,7 @@ server <- function(input, output, session) {
   dataset_data <- reactiveVal(NULL)
   loaded_dataset_id <- reactiveVal(NULL)
   dataset_loading <- reactiveVal(FALSE)
+  dataset_config_ready <- reactiveVal(FALSE)
   comparison_dataset_loading <- reactiveVal(FALSE)
   
   # Stores the result returned by getDatasetInfo()
@@ -6892,6 +6893,8 @@ server <- function(input, output, session) {
         
         DATASET_CONFIG <<-
           build_dataset_config_from_sws()
+        
+        dataset_config_ready(TRUE)
         
         updateSelectizeInput(
           session,
@@ -10508,9 +10511,16 @@ server <- function(input, output, session) {
   })
   
   output$dataset_count <- renderText({
-    req(input$dataset_group)
+    req(
+      input$dataset_group,
+      dataset_config_ready()
+    )
     
-    n <- length(get_dataset_choices(input$dataset_group))
+    n <- length(
+      get_dataset_choices(
+        input$dataset_group
+      )
+    )
     
     paste0(
       n,
@@ -10521,7 +10531,10 @@ server <- function(input, output, session) {
   })
   
   observe({
-    req(input$dataset_group)
+    req(
+      input$dataset_group,
+      dataset_config_ready()
+    )
     
     updateSelectizeInput(
       session,
