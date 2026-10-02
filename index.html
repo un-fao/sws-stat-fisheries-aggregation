@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-01">
+<meta name="dcterms.date" content="2026-10-02">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -222,6 +222,7 @@ window.Quarto = {
   <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">16.5</span> Comparison statuses</a></li>
   <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">16.6</span> Differences in category coverage</a></li>
   <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">16.7</span> Comparison outputs</a></li>
+  <li><a href="#comparison-chart" id="toc-comparison-chart" class="nav-link" data-scroll-target="#comparison-chart"><span class="header-section-number">16.8</span> Comparison chart</a></li>
   </ul></li>
   <li><a href="#outlier-analysis" id="toc-outlier-analysis" class="nav-link" data-scroll-target="#outlier-analysis"><span class="header-section-number">17</span> Outlier analysis</a>
   <ul>
@@ -288,7 +289,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 1, 2026</p>
+      <p class="date">October 2, 2026</p>
     </div>
   </div>
   
@@ -2171,6 +2172,32 @@ Figure&nbsp;15: Differences only table
 </figure>
 </div>
 <p>Each measured element has its own comparison tab and CSV download.</p>
+</section>
+<section id="comparison-chart" class="level2" data-number="16.8">
+<h2 data-number="16.8" class="anchored" data-anchor-id="comparison-chart"><span class="header-section-number">16.8</span> Comparison chart</h2>
+<p>The <strong>Chart</strong> tab provides a time-series comparison between the current aggregation output and the selected comparison dataset.</p>
+<p>The chart is displayed for <strong>one measured element at a time</strong>. When the selected comparison output contains several combinations of analytical dimensions, the <strong>Time series</strong> selector allows the user to choose the specific aggregated series to display.</p>
+<p>Each time series corresponds to one combination of the analytical dimensions retained in the comparison output, which may include:</p>
+<ul>
+<li>country or geographical area;</li>
+<li>species / ASFIS;</li>
+<li>fishing area;</li>
+<li>production source / environment type, where available;</li>
+<li>currency flag, where available.</li>
+</ul>
+<p>The chart title identifies the selected measured element together with the analytical dimensions defining the displayed series. Descriptive codelist labels are used where available.</p>
+<p>The chart displays:</p>
+<ul>
+<li>the <strong>current dataset</strong> as a solid line with filled points;</li>
+<li>the <strong>comparison dataset</strong> as a dashed line with a different point shape.</li>
+</ul>
+<p>Using both line type and point shape in addition to colour makes the two datasets distinguishable even when their values are identical and the two lines occupy the same coordinates.</p>
+<p>When the current and comparison datasets contain identical values for all displayed years, the chart explicitly indicates that the two series are identical.</p>
+<p>When values coincide only for the years available in both datasets but the datasets have different year coverage, the chart indicates that the common values are identical while the available periods differ.</p>
+<p>If the selected aggregated series exists only in one dataset, the available series is still displayed. A message indicates that no corresponding values are available in the other dataset.</p>
+<p>If one dataset contains only one available observation for the selected series, that observation is displayed as a point rather than suppressing the entire chart.</p>
+<p>Missing yearly values are retained as missing values in the plotting data. Consequently, a line is interrupted when a dataset has no corresponding value for a particular year rather than connecting observations across the missing period.</p>
+<p>The comparison chart is available only when the selected aggregation retains separate years. If <strong>Total all selected years into one period</strong> was used, a time-series comparison cannot be displayed because the selected years have been combined into a single aggregated period.</p>
 </section>
 </section>
 <section id="outlier-analysis" class="level1" data-number="17">
