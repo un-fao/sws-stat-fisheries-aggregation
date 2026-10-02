@@ -333,6 +333,13 @@ get_dataset_config <- function(dataset_id) {
 get_dataset_choices <- function(dataset_group = NULL) {
   configs <- DATASET_CONFIG
   
+  if (
+    is.null(configs) ||
+    length(configs) == 0L
+  ) {
+    return(character(0))
+  }
+  
   if (!is.null(dataset_group)) {
     configs <- configs[
       vapply(
@@ -343,15 +350,26 @@ get_dataset_choices <- function(dataset_group = NULL) {
     ]
   }
   
+  if (length(configs) == 0L) {
+    return(character(0))
+  }
+  
   ids <- names(configs)
   
   labels <- vapply(
     configs,
-    function(x) paste0(x$dataset_id, " - ", x$label),
+    function(x) paste0(
+      x$dataset_id,
+      " - ",
+      x$label
+    ),
     character(1)
   )
   
-  stats::setNames(ids, labels)
+  stats::setNames(
+    ids,
+    labels
+  )
 }
 
 
