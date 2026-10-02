@@ -112,11 +112,50 @@ build_dataset_config_from_sws <- function() {
     )
   ]
   
-  datasets <- datasets[
-    domain_id_clean %in% c(
-      "fisheries",
-      "disseminated"
+  # Standardised dataset IDs for matching.
+  datasets[
+    ,
+    dataset_id_clean := tolower(
+      trimws(
+        as.character(id)
+      )
     )
+  ]
+  
+  # IDs of all datasets belonging to the Fisheries domain.
+  fisheries_ids <- datasets[
+    domain_id_clean == "fisheries",
+    dataset_id_clean
+  ]
+  
+  # Possible disseminated counterpart of each Fisheries dataset.
+  fisheries_disseminated_ids <- paste0(
+    fisheries_ids,
+    "_disseminated"
+  )
+  
+  # Keep:
+  # 1. every dataset from the Fisheries domain;
+  # 2. only Fisheries-related datasets from the Disseminated domain.
+  datasets <- datasets[
+    domain_id_clean == "fisheries" |
+      (
+        domain_id_clean == "disseminated" &
+          (
+            grepl(
+              "fi",
+              dataset_id_clean,
+              fixed = TRUE
+            ) |
+              grepl(
+                "fisheries",
+                dataset_id_clean,
+                fixed = TRUE
+              ) |
+              dataset_id_clean %in%
+              fisheries_disseminated_ids
+          )
+      )
   ]
   
   # Keep published datasets only.
