@@ -92,93 +92,93 @@ make_dataset_config <- function(dataset_id,
 }
 
 
-# Configuration of all Fisheries datasets supported by the application.
-# Each entry defines the dataset metadata and any optional dataset-specific columns.
-DATASET_CONFIG <- list(
-  capture = make_dataset_config(
-    dataset_id = "capture",
-    label = "Capture production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
+# Populated automatically from SWS after client initialisation.
+DATASET_CONFIG <- list()
+
+
+build_dataset_config_from_sws <- function() {
   
-  fi_capture_cecaf = make_dataset_config(
-    dataset_id = "fi_capture_cecaf",
-    label = "CECAF regional capture production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
-  
-  fi_capture_gfcm = make_dataset_config(
-    dataset_id = "fi_capture_gfcm",
-    label = "GFCM regional capture production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
-  
-  fi_capture_recofi = make_dataset_config(
-    dataset_id = "fi_capture_recofi",
-    label = "RECOFI regional capture production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
-  
-  fi_capture_seatl = make_dataset_config(
-    dataset_id = "fi_capture_seatl",
-    label = "SEATL regional capture production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
-  
-  aqua = make_dataset_config(
-    dataset_id = "aqua",
-    label = "Aquaculture production",
-    dataset_group = "current",
-    dataset_type = "quantity",
-    has_production_source = TRUE,
-    has_currency_flag = TRUE
-  ),
-  
-  fi_global_production = make_dataset_config(
-    dataset_id = "fi_global_production",
-    label = "Global production",
-    dataset_group = "current",
-    dataset_type = "quantity"
-  ),
-  
-  capture_price = make_dataset_config(
-    dataset_id = "capture_price",
-    label = "Capture price",
-    dataset_group = "current",
-    dataset_type = "price",
-    has_currency_flag = TRUE
-  ),
-  
-  aquaculture_value = make_dataset_config(
-    dataset_id = "aquaculture_value",
-    label = "Aquaculture value",
-    dataset_group = "current",
-    dataset_type = "value",
-    has_production_source = TRUE,
-    has_currency_flag = TRUE
-  ),
-  
-  aqua_disseminated = make_dataset_config(
-    dataset_id = "aqua_disseminated",
-    label = "Aquaculture production validated",
-    dataset_group = "disseminated",
-    dataset_type = "quantity",
-    has_production_source = TRUE,
-    has_currency_flag = TRUE
-  ),
-  
-  capture_disseminated = make_dataset_config(
-    dataset_id = "capture_disseminated",
-    label = "Capture production disseminated",
-    dataset_group = "disseminated",
-    dataset_type = "quantity"
+  datasets <- as.data.table(
+    getAllDatasets()
   )
-)
+  
+  # Keep only datasets belonging to the two domains used by the app.
+  datasets <- datasets[
+    domain_id %in% c(
+      "fisheries",
+      "disseminated"
+    )
+  ]
+  
+  # Keep published datasets only.
+  datasets <- datasets[
+    state == "published"
+  ]
+  
+  if (nrow(datasets) == 0L) {
+    return(list())
+  }
+  
+  datasets[
+    ,
+    dimensions_clean := lapply(
+      dimensions,
+      function(x) {
+        trimws(
+          unlist(
+            strsplit(
+              as.character(x),
+              ",",
+              fixed = TRUE
+            )
+          )
+        )
+      }
+    )
+  ]
+  
+  configs <- lapply(
+    seq_len(nrow(datasets)),
+    function(i) {
+      
+      row_i <- datasets[i]
+      
+      dims_i <- row_i$dimensions_clean[[1]]
+      
+      make_dataset_config(
+        dataset_id = as.character(row_i$id),
+        label = as.character(row_i$label),
+        
+        dataset_group = if (
+          identical(
+            as.character(row_i$domain_id),
+            "fisheries"
+          )
+        ) {
+          "current"
+        } else {
+          "disseminated"
+        },
+        
+        # Quantity / value / price all currently use the same
+        # aggregation workflow in the app.
+        dataset_type = "fisheries",
+        
+        has_production_source =
+          "fisheriesProductionSource" %in% dims_i,
+        
+        has_currency_flag =
+          "flagCurrency" %in% dims_i
+      )
+    }
+  )
+  
+  names(configs) <- as.character(
+    datasets$id
+  )
+  
+  configs
+}
 
 AGGREGATION_DIMENSIONS <- list(
   geographical_area = list(
@@ -315,19 +315,22 @@ validate_dataset_columns <- function(data, dataset_id) {
   required_cols <- c(
     cfg$year_col,
     cfg$value_col,
-    cfg$geographical_area_col,
-    cfg$species_col,
-    cfg$fishing_area_col,
-    cfg$measured_element_col,
-    cfg$observation_flag_col,
-    cfg$method_flag_col
+    cfg$measured_element_col
   )
   
-  optional_cols <- c(
-    cfg$production_source_col,
-    cfg$currency_flag_col
+  optional_cols <- unique(
+    na.omit(
+      c(
+        cfg$geographical_area_col,
+        cfg$species_col,
+        cfg$fishing_area_col,
+        cfg$observation_flag_col,
+        cfg$method_flag_col,
+        cfg$production_source_col,
+        cfg$currency_flag_col
+      )
+    )
   )
-  
   missing_required <- setdiff(required_cols, names(data))
   missing_optional <- setdiff(optional_cols, names(data))
   
@@ -6819,6 +6822,9 @@ server <- function(input, output, session) {
         
         user(getCurrentUser())
         
+        DATASET_CONFIG <<-
+          build_dataset_config_from_sws()
+        
         updateSelectizeInput(
           session,
           "dataset_id",
@@ -10419,7 +10425,7 @@ server <- function(input, output, session) {
     
     paste0(
       n,
-      " configured datasets available in group '",
+      " datasets available in group '",
       input$dataset_group,
       "'."
     )
