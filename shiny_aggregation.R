@@ -11853,8 +11853,18 @@ server <- function(input, output, session) {
         filtered_raw_codes = filtered_raw_codes
       )
     
+    selected_filter_roots <- get_effective_filter_roots(
+      dim_id = dim_id,
+      meta = meta,
+      codes = codes,
+      tree_dt = complete_tree_dt
+    )
+    
     relevant_codes <- clean_non_empty_codes(
-      data_relevant_codes
+      c(
+        data_relevant_codes,
+        selected_filter_roots
+      )
     )
     
     # Read all real top-level classifications available in the
