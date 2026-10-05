@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-02">
+<meta name="dcterms.date" content="2026-10-05">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -216,13 +216,14 @@ window.Quarto = {
   <li><a href="#dataset-comparison" id="toc-dataset-comparison" class="nav-link" data-scroll-target="#dataset-comparison"><span class="header-section-number">16</span> Dataset comparison</a>
   <ul>
   <li><a href="#eligibility-and-required-sequence" id="toc-eligibility-and-required-sequence" class="nav-link" data-scroll-target="#eligibility-and-required-sequence"><span class="header-section-number">16.1</span> Eligibility and required sequence</a></li>
-  <li><a href="#reuse-of-the-aggregation-state" id="toc-reuse-of-the-aggregation-state" class="nav-link" data-scroll-target="#reuse-of-the-aggregation-state"><span class="header-section-number">16.2</span> Reuse of the aggregation state</a></li>
-  <li><a href="#matching-records-for-comparison" id="toc-matching-records-for-comparison" class="nav-link" data-scroll-target="#matching-records-for-comparison"><span class="header-section-number">16.3</span> Matching records for comparison</a></li>
-  <li><a href="#comparison-values" id="toc-comparison-values" class="nav-link" data-scroll-target="#comparison-values"><span class="header-section-number">16.4</span> Comparison values</a></li>
-  <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">16.5</span> Comparison statuses</a></li>
-  <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">16.6</span> Differences in category coverage</a></li>
-  <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">16.7</span> Comparison outputs</a></li>
-  <li><a href="#comparison-chart" id="toc-comparison-chart" class="nav-link" data-scroll-target="#comparison-chart"><span class="header-section-number">16.8</span> Comparison chart</a></li>
+  <li><a href="#comparison-dataset-loading-and-preprocessing" id="toc-comparison-dataset-loading-and-preprocessing" class="nav-link" data-scroll-target="#comparison-dataset-loading-and-preprocessing"><span class="header-section-number">16.2</span> Comparison dataset loading and preprocessing</a></li>
+  <li><a href="#reuse-of-the-aggregation-state" id="toc-reuse-of-the-aggregation-state" class="nav-link" data-scroll-target="#reuse-of-the-aggregation-state"><span class="header-section-number">16.3</span> Reuse of the aggregation state</a></li>
+  <li><a href="#matching-records-for-comparison" id="toc-matching-records-for-comparison" class="nav-link" data-scroll-target="#matching-records-for-comparison"><span class="header-section-number">16.4</span> Matching records for comparison</a></li>
+  <li><a href="#comparison-values" id="toc-comparison-values" class="nav-link" data-scroll-target="#comparison-values"><span class="header-section-number">16.5</span> Comparison values</a></li>
+  <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">16.6</span> Comparison statuses</a></li>
+  <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">16.7</span> Differences in category coverage</a></li>
+  <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">16.8</span> Comparison outputs</a></li>
+  <li><a href="#comparison-chart" id="toc-comparison-chart" class="nav-link" data-scroll-target="#comparison-chart"><span class="header-section-number">16.9</span> Comparison chart</a></li>
   </ul></li>
   <li><a href="#outlier-analysis" id="toc-outlier-analysis" class="nav-link" data-scroll-target="#outlier-analysis"><span class="header-section-number">17</span> Outlier analysis</a>
   <ul>
@@ -289,7 +290,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 2, 2026</p>
+      <p class="date">October 5, 2026</p>
     </div>
   </div>
   
@@ -321,7 +322,7 @@ window.Quarto = {
 <p>The application provides one common interface for processing multiple Fisheries datasets that share a broadly consistent data structure.</p>
 <p>Users can:</p>
 <ul>
-<li>Select a <strong>current</strong> or <strong>disseminated dataset</strong>;</li>
+<li>Select a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged version of a current Fisheries dataset</strong>;</li>
 <li>Inspect the dataset structure and available measured elements;</li>
 <li>Restrict the data by <strong>year</strong> and <strong>measured element</strong>;</li>
 <li>Aggregate one or more hierarchical dimensions;</li>
@@ -330,7 +331,7 @@ window.Quarto = {
 <li>Aggregate multiple years into a single period;</li>
 <li>Review results separately by measured element;</li>
 <li>Visualize totals and compositions;</li>
-<li>Compare a current dataset with a disseminated or tagged dataset;</li>
+<li>Compare a current Fisheries dataset or a tagged version of a current Fisheries dataset with a current, disseminated or tagged comparison dataset;</li>
 <li>Screen aggregated results for possible outliers;</li>
 <li>Download aggregated, comparison and outlier tables.</li>
 </ul>
@@ -393,7 +394,7 @@ Table&nbsp;1: Application navigation pages
 <colgroup>
 <col style="width: 5%">
 <col style="width: 22%">
-<col style="width: 71%">
+<col style="width: 72%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -431,7 +432,7 @@ Table&nbsp;1: Application navigation pages
 <tr class="even">
 <td style="text-align: right;">6</td>
 <td style="text-align: left;">Comparison</td>
-<td style="text-align: left;">Compare current output with disseminated or tagged data</td>
+<td style="text-align: left;">Compare the main output with a current, disseminated or tagged dataset</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">7</td>
@@ -451,7 +452,7 @@ Table&nbsp;1: Application navigation pages
 <li><p><strong>Filters &amp; Aggregation</strong> page allows the user to select the time period and measured element(s) of interest, apply filters to the available dataset dimensions, and define the desired aggregation settings.</p></li>
 <li><p><strong>Dataset Table</strong> page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.</p></li>
 <li><p><strong>Graphs</strong> page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.</p></li>
-<li><p><strong>Comparison</strong> page allows the user to select a comparison data source and the corresponding disseminated or tagged dataset. It provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.</p></li>
+<li><p><strong>Comparison</strong> page allows the user to compare the aggregation produced from the main loaded dataset with a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged Fisheries dataset</strong>. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.</p></li>
 <li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.</p></li>
 </ol>
 </section>
@@ -459,140 +460,28 @@ Table&nbsp;1: Application navigation pages
 <h1 data-number="4"><span class="header-section-number">4</span> Supported datasets</h1>
 <section id="dataset-registry" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="dataset-registry"><span class="header-section-number">4.1</span> Dataset registry</h2>
-<p>The application supports the following datasets:</p>
-<div class="cell">
-<div id="tbl-supported-datasets" class="cell quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-supported-datasets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;2: Datasets currently registered in the application
-</figcaption>
-<div aria-describedby="tbl-supported-datasets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output-display">
-<table class="cell caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 18%">
-<col style="width: 31%">
-<col style="width: 11%">
-<col style="width: 9%">
-<col style="width: 16%">
-<col style="width: 12%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">Dataset_ID</th>
-<th style="text-align: left;">Label</th>
-<th style="text-align: left;">Group</th>
-<th style="text-align: left;">Data_type</th>
-<th style="text-align: left;">Production_source</th>
-<th style="text-align: left;">Currency_flag</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">capture</td>
-<td style="text-align: left;">Capture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">fi_capture_cecaf</td>
-<td style="text-align: left;">CECAF regional capture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">fi_capture_gfcm</td>
-<td style="text-align: left;">GFCM regional capture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">fi_capture_recofi</td>
-<td style="text-align: left;">RECOFI regional capture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">fi_capture_seatl</td>
-<td style="text-align: left;">SEATL regional capture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">aqua</td>
-<td style="text-align: left;">Aquaculture production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">Yes</td>
-<td style="text-align: left;">Yes</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">fi_global_production</td>
-<td style="text-align: left;">Global production</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">capture_price</td>
-<td style="text-align: left;">Capture price</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Price</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">Yes</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">aquaculture_value</td>
-<td style="text-align: left;">Aquaculture value</td>
-<td style="text-align: left;">Current</td>
-<td style="text-align: left;">Value</td>
-<td style="text-align: left;">Yes</td>
-<td style="text-align: left;">Yes</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">aqua_disseminated</td>
-<td style="text-align: left;">Aquaculture production validated</td>
-<td style="text-align: left;">Disseminated</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">Yes</td>
-<td style="text-align: left;">Yes</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">capture_disseminated</td>
-<td style="text-align: left;">Capture production disseminated</td>
-<td style="text-align: left;">Disseminated</td>
-<td style="text-align: left;">Quantity</td>
-<td style="text-align: left;">No</td>
-<td style="text-align: left;">No</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</figure>
-</div>
-</div>
+<p>The dataset registry is built dynamically when the SWS client is initialized.</p>
+<p>The application retrieves the available SWS datasets and constructs its internal dataset configuration from the published datasets relevant to the Fisheries workflow. The registry includes:</p>
+<ul>
+<li>published datasets belonging to the <strong>Fisheries</strong> domain;</li>
+<li>published Fisheries-related datasets belonging to the <strong>Disseminated</strong> domain.</li>
+</ul>
+<p>For each registered dataset, the application stores the common Fisheries column configuration together with dataset-specific information, such as whether a production-source dimension or currency flag is available.</p>
+<p>Tagged datasets are not registered as separate base datasets. A tag is associated with an existing current Fisheries dataset. When the user selects <strong>Tagged Fisheries datasets</strong>, the application first selects the corresponding current Fisheries base dataset and then retrieves the tags available for that dataset from SWS.</p>
+<p>This approach means that the list of datasets shown by the application is derived from the datasets currently available in SWS rather than from a fixed list written directly into the Shiny source code.</p>
 </section>
 <section id="dataset-groups" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="dataset-groups"><span class="header-section-number">4.2</span> Dataset groups</h2>
-<p>The data-selection page separates datasets into:</p>
+<p>The Data Selection page separates the available data sources into three groups:</p>
 <ul>
 <li><strong>Current Fisheries datasets</strong></li>
 <li><strong>Previous disseminated datasets</strong></li>
+<li><strong>Tagged Fisheries datasets</strong></li>
 </ul>
-<p>A current dataset may be used as the main dataset in the Comparison page.</p>
-<p>A disseminated dataset may be filtered, aggregated, graphed and analysed for outliers, but it cannot currently be used as the main dataset in a comparison.</p>
+<p>For a current or disseminated source, the selected dataset is loaded directly from SWS.</p>
+<p>For a tagged source, the user first selects the corresponding current Fisheries base dataset and then selects one of the tags available for that dataset. The base dataset continues to provide the dataset configuration, column structure and SWS metadata, while the observations themselves are read from the selected tag.</p>
+<p>Current Fisheries datasets and tagged versions of current Fisheries datasets can be used as the <strong>main dataset</strong> for the Comparison page.</p>
+<p>A previous disseminated dataset can be filtered, aggregated, graphed and analysed for outliers, but it cannot currently be used as the main dataset in a comparison.</p>
 </section>
 </section>
 <section id="dataset-structure" class="level1" data-number="5">
@@ -604,7 +493,7 @@ Table&nbsp;2: Datasets currently registered in the application
 <div id="tbl-common-columns" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-common-columns-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;3: Common Fisheries dataset columns
+Table&nbsp;2: Common Fisheries dataset columns
 </figcaption>
 <div aria-describedby="tbl-common-columns-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -685,7 +574,7 @@ Table&nbsp;3: Common Fisheries dataset columns
 <h1 data-number="6"><span class="header-section-number">6</span> Data loading and preprocessing</h1>
 <section id="client-initialization-and-dataset-loading" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="client-initialization-and-dataset-loading"><span class="header-section-number">6.1</span> Client initialization and dataset loading</h2>
-<p>The user must initialize the SWS client before selecting and loading a dataset.</p>
+<p>The user must initialize the SWS client before selecting and loading a dataset. Client initialization also builds the dataset registry from the currently available published Fisheries and Fisheries-related disseminated datasets in SWS.</p>
 <div id="fig-initialisation-and-datasets" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-initialisation-and-datasets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -696,8 +585,14 @@ Figure&nbsp;1: Client initialisation
 </figcaption>
 </figure>
 </div>
-<p>After loading a dataset, the application validates the expected common columns.</p>
-<p>Loading stops when one or more required columns are absent.</p>
+<p>The loading procedure depends on the selected dataset source:</p>
+<ul>
+<li>for a <strong>current Fisheries dataset</strong>, the selected dataset is read directly from SWS;</li>
+<li>for a <strong>previous disseminated dataset</strong>, the selected disseminated dataset is read directly from SWS;</li>
+<li>for a <strong>tagged Fisheries dataset</strong>, the observations are read from the selected tag, while the corresponding current Fisheries dataset remains the base dataset from which dataset configuration and metadata are obtained.</li>
+</ul>
+<p>After the observations are read, the application standardizes the numerical value column and removes rows without a usable numerical value.</p>
+<p>The application then validates the expected common columns. Loading stops when one or more required columns are absent.</p>
 <p>This prevents later filtering or aggregation operations from silently using an incomplete structure.</p>
 </section>
 <section id="dataset-summary" class="level2" data-number="6.2">
@@ -714,7 +609,8 @@ Figure&nbsp;1: Client initialisation
 <li>the configured roots with usable data;</li>
 <li>the main dimensions available in the dataset.</li>
 </ul>
-<p>The summary is restricted to the measured-element roots configured for the loaded dataset in SWS. Therefore, if</p>
+<p>The displayed dataset group reflects the source that was actually loaded: <strong>Current Fisheries dataset</strong>, <strong>Disseminated / previous dataset</strong>, or <strong>Tagged Fisheries dataset</strong>.</p>
+<p>The summary is restricted to the measured-element roots configured for the base dataset in SWS. Only effective measured elements that belong to those configured roots and are actually present in the loaded observations are included in the summary. Consequently, a raw current or tagged dataset may physically contain additional measured-element codes that are outside the configured roots; those codes are not treated as available measured elements by the application.</p>
 <div id="fig-dataset-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dataset-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -868,7 +764,7 @@ Figure&nbsp;6: Fishing area filter
 <div id="tbl-most-specific-filter" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-most-specific-filter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;4: Most-specific hierarchical filtering
+Table&nbsp;3: Most-specific hierarchical filtering
 </figcaption>
 <div aria-describedby="tbl-most-specific-filter-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -943,7 +839,7 @@ Figure&nbsp;7: Observation flag filter
 <div id="tbl-aggregation-dimensions" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-aggregation-dimensions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;5: Hierarchical aggregation dimensions
+Table&nbsp;4: Hierarchical aggregation dimensions
 </figcaption>
 <div aria-describedby="tbl-aggregation-dimensions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -996,7 +892,7 @@ Table&nbsp;5: Hierarchical aggregation dimensions
 <div id="tbl-aggregation-modes" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-aggregation-modes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;6: Aggregation modes available for each hierarchical dimension
+Table&nbsp;5: Aggregation modes available for each hierarchical dimension
 </figcaption>
 <div aria-describedby="tbl-aggregation-modes-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1093,7 +989,7 @@ Output geographical-area code: TOTAL</code></pre>
 <div id="tbl-total-aggregation-input" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-total-aggregation-input-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;7: Values remaining after filtering
+Table&nbsp;6: Values remaining after filtering
 </figcaption>
 <div aria-describedby="tbl-total-aggregation-input-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1133,7 +1029,7 @@ Table&nbsp;7: Values remaining after filtering
 <div id="tbl-total-aggregation-result" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-total-aggregation-result-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;8: Result after total aggregation
+Table&nbsp;7: Result after total aggregation
 </figcaption>
 <div aria-describedby="tbl-total-aggregation-result-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1223,7 +1119,7 @@ Output: that species leaf</code></pre>
 <div id="tbl-direct-child-input" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-direct-child-input-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;9: Illustrative raw species records
+Table&nbsp;8: Illustrative raw species records
 </figcaption>
 <div aria-describedby="tbl-direct-child-input-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1272,7 +1168,7 @@ Table&nbsp;9: Illustrative raw species records
 <div id="tbl-direct-child-output" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-direct-child-output-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;10: Illustrative direct-child aggregation output
+Table&nbsp;9: Illustrative direct-child aggregation output
 </figcaption>
 <div aria-describedby="tbl-direct-child-output-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1404,7 +1300,7 @@ Outputs:
 <div id="tbl-custom-aggregation-example" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-custom-aggregation-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;11: Illustrative custom aggregation
+Table&nbsp;10: Illustrative custom aggregation
 </figcaption>
 <div aria-describedby="tbl-custom-aggregation-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1451,7 +1347,7 @@ Table&nbsp;11: Illustrative custom aggregation
 <div id="tbl-filter-aggregation-distinction" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-filter-aggregation-distinction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;12: Distinction between filtering and aggregation selections
+Table&nbsp;11: Distinction between filtering and aggregation selections
 </figcaption>
 <div aria-describedby="tbl-filter-aggregation-distinction-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1499,7 +1395,7 @@ Table&nbsp;12: Distinction between filtering and aggregation selections
 <div id="tbl-cross-classification" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cross-classification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;13: Illustrative cross-classification of species
+Table&nbsp;12: Illustrative cross-classification of species
 </figcaption>
 <div aria-describedby="tbl-cross-classification-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1560,7 +1456,7 @@ Table&nbsp;13: Illustrative cross-classification of species
 <div id="tbl-cross-classification-output" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-cross-classification-output-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;14: Result of filtering through ISSCAAP 1501 and aggregating by TAXONOMIC family
+Table&nbsp;13: Result of filtering through ISSCAAP 1501 and aggregating by TAXONOMIC family
 </figcaption>
 <div aria-describedby="tbl-cross-classification-output-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -1893,11 +1789,17 @@ Category C    20%</code></pre>
 <h1 data-number="16"><span class="header-section-number">16</span> Dataset comparison</h1>
 <section id="eligibility-and-required-sequence" class="level2" data-number="16.1">
 <h2 data-number="16.1" class="anchored" data-anchor-id="eligibility-and-required-sequence"><span class="header-section-number">16.1</span> Eligibility and required sequence</h2>
-<p>Comparison is available only when the main loaded dataset is a current Fisheries dataset.</p>
-<p>A comparison source may be:</p>
+<p>Comparison is available when the main loaded dataset is either:</p>
 <ul>
-<li>a disseminated dataset;</li>
-<li>a tagged version associated with a base Fisheries dataset.</li>
+<li>a <strong>current Fisheries dataset</strong>; or</li>
+<li>a <strong>tagged version of a current Fisheries dataset</strong>.</li>
+</ul>
+<p>A previous disseminated dataset cannot currently be used as the main dataset for comparison.</p>
+<p>The comparison dataset may be selected from any of the following sources:</p>
+<ul>
+<li>a <strong>current Fisheries dataset</strong>;</li>
+<li>a <strong>previous disseminated dataset</strong>;</li>
+<li>a <strong>tagged Fisheries dataset</strong> associated with a current Fisheries base dataset.</li>
 </ul>
 <div id="fig-tagged-dataset-upload" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -1911,39 +1813,60 @@ Figure&nbsp;13: Tagged dataset upload
 </div>
 <p>The intended workflow is:</p>
 <ol type="1">
-<li>load a current dataset;</li>
+<li>load a current Fisheries dataset or a tagged version of a current Fisheries dataset as the main dataset;</li>
 <li>select filters;</li>
-<li>run aggregation;</li>
+<li>run the main dataset aggregation;</li>
 <li>open the Comparison page;</li>
-<li>load a disseminated or tagged comparison dataset;</li>
-<li>review compatibility warnings;</li>
-<li>run comparison.</li>
+<li>select the comparison source;</li>
+<li>load a current, disseminated or tagged comparison dataset;</li>
+<li>review any compatibility warnings;</li>
+<li>run the comparison.</li>
 </ol>
 </section>
-<section id="reuse-of-the-aggregation-state" class="level2" data-number="16.2">
-<h2 data-number="16.2" class="anchored" data-anchor-id="reuse-of-the-aggregation-state"><span class="header-section-number">16.2</span> Reuse of the aggregation state</h2>
+<section id="comparison-dataset-loading-and-preprocessing" class="level2" data-number="16.2">
+<h2 data-number="16.2" class="anchored" data-anchor-id="comparison-dataset-loading-and-preprocessing"><span class="header-section-number">16.2</span> Comparison dataset loading and preprocessing</h2>
+<p>The three comparison sources differ only in how the observations are retrieved:</p>
+<ul>
+<li>current comparison data are read from the selected current Fisheries dataset;</li>
+<li>disseminated comparison data are read from the selected disseminated dataset;</li>
+<li>tagged comparison data are read from the selected tag, using its current Fisheries base dataset for metadata and configuration.</li>
+</ul>
+<p>After the observations have been retrieved, the same preprocessing logic is applied regardless of source.</p>
+<p>The application:</p>
+<ol type="1">
+<li>standardizes the numerical value column and removes rows without a usable numerical value;</li>
+<li>restricts hierarchical dimensions to codes that are valid under the corresponding dataset configuration and codelist hierarchies;</li>
+<li>identifies the effective measured elements defined by the comparison dataset’s configured measured-element roots;</li>
+<li>removes measured elements that fall outside those configured roots;</li>
+<li>stores the resulting dataset as the comparison dataset used by the subsequent comparison workflow.</li>
+</ol>
+<p>The source of the comparison dataset therefore affects how the data are retrieved, but not how they are subsequently validated and restricted.</p>
+<p>This is particularly important for measured elements. A raw SWS dataset may contain measured-element codes other than those configured for that dataset. Such codes are not considered valid comparison measured elements merely because they are physically present in the raw observations.</p>
+</section>
+<section id="reuse-of-the-aggregation-state" class="level2" data-number="16.3">
+<h2 data-number="16.3" class="anchored" data-anchor-id="reuse-of-the-aggregation-state"><span class="header-section-number">16.3</span> Reuse of the aggregation state</h2>
 <p>The application stores:</p>
 <ul>
-<li>filtered input used for the current aggregation;</li>
+<li>filtered input used for the main dataset aggregation;</li>
 <li>selected measured elements;</li>
 <li>aggregation specifications;</li>
 <li>year-aggregation choice;</li>
 <li>observation-flag grouping choice;</li>
 <li>filter state.</li>
 </ul>
-<p>The comparison dataset is processed using the same analytical setup.</p>
+<p>The comparison dataset is processed using the analytical setup stored from the main dataset aggregation.</p>
 <p>Aggregation maps are rebuilt against the filtered comparison data so that the comparison follows the same requested hierarchy logic while accounting for codes present in the comparison source.</p>
 </section>
-<section id="matching-records-for-comparison" class="level2" data-number="16.3">
-<h2 data-number="16.3" class="anchored" data-anchor-id="matching-records-for-comparison"><span class="header-section-number">16.3</span> Matching records for comparison</h2>
-<p>To compare the current and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.</p>
+<section id="matching-records-for-comparison" class="level2" data-number="16.4">
+<h2 data-number="16.4" class="anchored" data-anchor-id="matching-records-for-comparison"><span class="header-section-number">16.4</span> Matching records for comparison</h2>
+<p>To compare the main and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.</p>
 <p>Only dimensions available in both the current and comparison results are used.</p>
-<p>For example, a current value for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.</p>
+<p>For example, a value from the main dataset for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.</p>
 <p>If one of the relevant categories differs, the records are not treated as the same observation for comparison.</p>
 <p>Observation flags are not used to match records because the current and comparison datasets may use different flag classifications.</p>
 </section>
-<section id="comparison-values" class="level2" data-number="16.4">
-<h2 data-number="16.4" class="anchored" data-anchor-id="comparison-values"><span class="header-section-number">16.4</span> Comparison values</h2>
+<section id="comparison-values" class="level2" data-number="16.5">
+<h2 data-number="16.5" class="anchored" data-anchor-id="comparison-values"><span class="header-section-number">16.5</span> Comparison values</h2>
 <p>For every matched analytical combination, the output contains:</p>
 <ul>
 <li><code>current_value</code>;</li>
@@ -1968,8 +1891,8 @@ Figure&nbsp;13: Tagged dataset upload
 \]</span></p>
 <p>It is calculated only when the comparison value is nonzero.</p>
 </section>
-<section id="comparison-statuses" class="level2" data-number="16.5">
-<h2 data-number="16.5" class="anchored" data-anchor-id="comparison-statuses"><span class="header-section-number">16.5</span> Comparison statuses</h2>
+<section id="comparison-statuses" class="level2" data-number="16.6">
+<h2 data-number="16.6" class="anchored" data-anchor-id="comparison-statuses"><span class="header-section-number">16.6</span> Comparison statuses</h2>
 <div class="cell">
 <details class="code-fold">
 <summary>Show R code</summary>
@@ -1993,7 +1916,7 @@ Figure&nbsp;13: Tagged dataset upload
 <div id="tbl-comparison-statuses" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-statuses-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;15: Comparison status categories
+Table&nbsp;14: Comparison status categories
 </figcaption>
 <div aria-describedby="tbl-comparison-statuses-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -2064,7 +1987,7 @@ Table&nbsp;15: Comparison status categories
 <div id="tbl-comparison-example" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;16: Illustrative comparison output
+Table&nbsp;15: Illustrative comparison output
 </figcaption>
 <div aria-describedby="tbl-comparison-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
@@ -2128,24 +2051,24 @@ Table&nbsp;16: Illustrative comparison output
 </div>
 </div>
 </section>
-<section id="differences-in-category-coverage" class="level2" data-number="16.6">
-<h2 data-number="16.6" class="anchored" data-anchor-id="differences-in-category-coverage"><span class="header-section-number">16.6</span> Differences in category coverage</h2>
+<section id="differences-in-category-coverage" class="level2" data-number="16.7">
+<h2 data-number="16.7" class="anchored" data-anchor-id="differences-in-category-coverage"><span class="header-section-number">16.7</span> Differences in category coverage</h2>
 <p>After applying the filters, the application checks whether the current and comparison datasets contain the same categories for the dimensions that were aggregated.</p>
 <p>For example, suppose the species categories remaining in the two datasets are:</p>
-<pre class="text"><code>Current dataset:      1501, 1502
+<pre class="text"><code>MAin dataset:      1501, 1502
 Comparison dataset:   1501, 1503</code></pre>
 <p>In this case:</p>
 <ul>
 <li><code>1501</code> is present in both datasets;</li>
-<li><code>1502</code> is present only in the current dataset;</li>
+<li><code>1502</code> is present only in the main dataset;</li>
 <li><code>1503</code> is present only in the comparison dataset.</li>
 </ul>
 <p>The application displays a warning identifying these differences. It also indicates how many of the categories found only in one dataset have at least one non-missing numerical value.</p>
 <p>This helps the user identify situations in which the two datasets do not have exactly the same category coverage after filtering.</p>
 <p>The warning does not stop the comparison. The same filters and aggregation rules are still applied, and the comparison continues.</p>
 </section>
-<section id="comparison-outputs" class="level2" data-number="16.7">
-<h2 data-number="16.7" class="anchored" data-anchor-id="comparison-outputs"><span class="header-section-number">16.7</span> Comparison outputs</h2>
+<section id="comparison-outputs" class="level2" data-number="16.8">
+<h2 data-number="16.8" class="anchored" data-anchor-id="comparison-outputs"><span class="header-section-number">16.8</span> Comparison outputs</h2>
 <p>Two views are available:</p>
 <ul>
 <li><strong>All comparison rows</strong></li>
@@ -2173,8 +2096,8 @@ Figure&nbsp;15: Differences only table
 </div>
 <p>Each measured element has its own comparison tab and CSV download.</p>
 </section>
-<section id="comparison-chart" class="level2" data-number="16.8">
-<h2 data-number="16.8" class="anchored" data-anchor-id="comparison-chart"><span class="header-section-number">16.8</span> Comparison chart</h2>
+<section id="comparison-chart" class="level2" data-number="16.9">
+<h2 data-number="16.9" class="anchored" data-anchor-id="comparison-chart"><span class="header-section-number">16.9</span> Comparison chart</h2>
 <p>The <strong>Chart</strong> tab provides a time-series comparison between the current aggregation output and the selected comparison dataset.</p>
 <p>The chart is displayed for <strong>one measured element at a time</strong>. When the selected comparison output contains several combinations of analytical dimensions, the <strong>Time series</strong> selector allows the user to choose the specific aggregated series to display.</p>
 <p>Each time series corresponds to one combination of the analytical dimensions retained in the comparison output, which may include:</p>
@@ -2188,7 +2111,7 @@ Figure&nbsp;15: Differences only table
 <p>The chart title identifies the selected measured element together with the analytical dimensions defining the displayed series. Descriptive codelist labels are used where available.</p>
 <p>The chart displays:</p>
 <ul>
-<li>the <strong>current dataset</strong> as a solid line with filled points;</li>
+<li>the <strong>main dataset</strong> as a solid line with filled points;</li>
 <li>the <strong>comparison dataset</strong> as a dashed line with a different point shape.</li>
 </ul>
 <p>Using both line type and point shape in addition to colour makes the two datasets distinguishable even when their values are identical and the two lines occupy the same coordinates.</p>
@@ -2664,7 +2587,7 @@ Total all selected years into one period</code></pre>
 <div id="tbl-technical-functions" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-technical-functions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;17: Main functions in the application
+Table&nbsp;16: Main functions in the application
 </figcaption>
 <div aria-describedby="tbl-technical-functions-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
