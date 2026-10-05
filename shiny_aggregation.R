@@ -4262,6 +4262,7 @@ prepare_treemap_data <- function(composition,
 # UI
 #############################################
 ui <- page_navbar(
+  id = "main_nav",
   title = "Fisheries Aggregation app",
   fillable = FALSE,
   
@@ -4750,6 +4751,7 @@ ui <- page_navbar(
   
   nav_panel(
     "4. Dataset table",
+    value = "dataset_table",
     
     card(
       full_screen = TRUE,
@@ -14951,6 +14953,11 @@ server <- function(input, output, session) {
             aggregation_input_data(dt)
             last_aggregation_specs(aggregation_specs)
             last_comparison_state(comparison_state)
+            
+            nav_select(
+              id = "main_nav",
+              selected = "dataset_table"
+            )
             
             incProgress(
               amount = 0.05,
