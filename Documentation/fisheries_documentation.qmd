@@ -59,7 +59,7 @@ The application provides one common interface for processing multiple Fisheries 
 
 Users can:
   
-- Select a **current** or **disseminated dataset**;
+- Select a **current Fisheries dataset**, a **previous disseminated dataset**, or a **tagged version of a current Fisheries dataset**;
 - Inspect the dataset structure and available measured elements;
 - Restrict the data by **year** and **measured element**;
 - Aggregate one or more hierarchical dimensions;
@@ -68,7 +68,7 @@ Users can:
 - Aggregate multiple years into a single period;
 - Review results separately by measured element;
 - Visualize totals and compositions;
-- Compare a current dataset with a disseminated or tagged dataset;
+- Compare a current Fisheries dataset or a tagged version of a current Fisheries dataset with a current, disseminated or tagged comparison dataset;
 - Screen aggregated results for possible outliers;
 - Download aggregated, comparison and outlier tables.
 
@@ -133,7 +133,7 @@ app_pages <- data.frame(
     "Select years, apply filters and configure aggregation",
     "Review and download aggregation outputs",
     "Visualize totals and compositions",
-    "Compare current output with disseminated or tagged data",
+    "Compare the main output with a current, disseminated or tagged dataset",
     "Screen aggregated outputs for unusual levels or changes"
   )
 )
@@ -152,7 +152,7 @@ knitr::kable(app_pages)
 
 5. **Graphs** page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.
 
-6. **Comparison** page allows the user to select a comparison data source and the corresponding disseminated or tagged dataset. It provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.
+6. **Comparison** page allows the user to compare the aggregation produced from the main loaded dataset with a **current Fisheries dataset**, a **previous disseminated dataset**, or a **tagged Fisheries dataset**. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.
 
 7. **Outlier Analysis** page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.
 
@@ -161,80 +161,34 @@ knitr::kable(app_pages)
 
 ## Dataset registry
 
-The application supports the following datasets:
+The dataset registry is built dynamically when the SWS client is initialized.
 
-```{r}
-#| label: tbl-supported-datasets
-#| tbl-cap: "Datasets currently registered in the application"
-#| echo: false
-supported_datasets <- data.frame(
-  Dataset_ID = c(
-    "capture",
-    "fi_capture_cecaf",
-    "fi_capture_gfcm",
-    "fi_capture_recofi",
-    "fi_capture_seatl",
-    "aqua",
-    "fi_global_production",
-    "capture_price",
-    "aquaculture_value",
-    "aqua_disseminated",
-    "capture_disseminated"
-  ),
-  Label = c(
-    "Capture production",
-    "CECAF regional capture production",
-    "GFCM regional capture production",
-    "RECOFI regional capture production",
-    "SEATL regional capture production",
-    "Aquaculture production",
-    "Global production",
-    "Capture price",
-    "Aquaculture value",
-    "Aquaculture production validated",
-    "Capture production disseminated"
-  ),
-  Group = c(
-    rep("Current", 9),
-    "Disseminated",
-    "Disseminated"
-  ),
-  Data_type = c(
-    "Quantity",
-    "Quantity",
-    "Quantity",
-    "Quantity",
-    "Quantity",
-    "Quantity",
-    "Quantity",
-    "Price",
-    "Value",
-    "Quantity",
-    "Quantity"
-  ),
-  Production_source = c(
-    "No", "No", "No", "No", "No",
-    "Yes", "No", "No", "Yes", "Yes", "No"
-  ),
-  Currency_flag = c(
-    "No", "No", "No", "No", "No",
-    "Yes", "No", "Yes", "Yes", "Yes", "No"
-  )
-)
+The application retrieves the available SWS datasets and constructs its internal dataset configuration from the published datasets relevant to the Fisheries workflow. The registry includes:
 
-knitr::kable(supported_datasets)
-```
+- published datasets belonging to the **Fisheries** domain;
+- published Fisheries-related datasets belonging to the **Disseminated** domain.
+
+For each registered dataset, the application stores the common Fisheries column configuration together with dataset-specific information, such as whether a production-source dimension or currency flag is available.
+
+Tagged datasets are not registered as separate base datasets. A tag is associated with an existing current Fisheries dataset. When the user selects **Tagged Fisheries datasets**, the application first selects the corresponding current Fisheries base dataset and then retrieves the tags available for that dataset from SWS.
+
+This approach means that the list of datasets shown by the application is derived from the datasets currently available in SWS rather than from a fixed list written directly into the Shiny source code.
 
 ## Dataset groups
 
-The data-selection page separates datasets into:
-  
-  - **Current Fisheries datasets**
-  - **Previous disseminated datasets**
-  
-  A current dataset may be used as the main dataset in the Comparison page.
+The Data Selection page separates the available data sources into three groups:
 
-A disseminated dataset may be filtered, aggregated, graphed and analysed for outliers, but it cannot currently be used as the main dataset in a comparison.
+- **Current Fisheries datasets**
+- **Previous disseminated datasets**
+- **Tagged Fisheries datasets**
+
+For a current or disseminated source, the selected dataset is loaded directly from SWS.
+
+For a tagged source, the user first selects the corresponding current Fisheries base dataset and then selects one of the tags available for that dataset. The base dataset continues to provide the dataset configuration, column structure and SWS metadata, while the observations themselves are read from the selected tag.
+
+Current Fisheries datasets and tagged versions of current Fisheries datasets can be used as the **main dataset** for the Comparison page.
+
+A previous disseminated dataset can be filtered, aggregated, graphed and analysed for outliers, but it cannot currently be used as the main dataset in a comparison.
 
 # Dataset structure
 
@@ -297,16 +251,21 @@ The currency flag is used as a filter where available. It is also retained as an
 
 ## Client initialization and dataset loading
 
-The user must initialize the SWS client before selecting and loading a dataset.
+The user must initialize the SWS client before selecting and loading a dataset. Client initialization also builds the dataset registry from the currently available published Fisheries and Fisheries-related disseminated datasets in SWS.
 
 ![Client initialisation](./images/datasets_initialise.png){#fig-initialisation-and-datasets width="50%"}
 
-After loading a dataset, the application validates the expected common columns.
+The loading procedure depends on the selected dataset source:
 
-Loading stops when one or more required columns are absent.
+- for a **current Fisheries dataset**, the selected dataset is read directly from SWS;
+- for a **previous disseminated dataset**, the selected disseminated dataset is read directly from SWS;
+- for a **tagged Fisheries dataset**, the observations are read from the selected tag, while the corresponding current Fisheries dataset remains the base dataset from which dataset configuration and metadata are obtained.
+
+After the observations are read, the application standardizes the numerical value column and removes rows without a usable numerical value.
+
+The application then validates the expected common columns. Loading stops when one or more required columns are absent.
 
 This prevents later filtering or aggregation operations from silently using an incomplete structure.
-
   
 ## Dataset summary
 
@@ -323,7 +282,9 @@ The summary includes:
 - the configured roots with usable data;
 - the main dimensions available in the dataset.
 
-The summary is restricted to the measured-element roots configured for the loaded dataset in SWS. Therefore, if 
+The displayed dataset group reflects the source that was actually loaded: **Current Fisheries dataset**, **Disseminated / previous dataset**, or **Tagged Fisheries dataset**.
+
+The summary is restricted to the measured-element roots configured for the base dataset in SWS. Only effective measured elements that belong to those configured roots and are actually present in the loaded observations are included in the summary. Consequently, a raw current or tagged dataset may physically contain additional measured-element codes that are outside the configured roots; those codes are not treated as available measured elements by the application.
 
 ![Dataset summary](./images/data_summary_loaded_dataset.png){#fig-dataset-summary width="50%"}
 
@@ -1428,48 +1389,77 @@ The treemap therefore provides a compact view of the relative importance of the 
 
 ## Eligibility and required sequence
 
-Comparison is available only when the main loaded dataset is a current Fisheries dataset.
+Comparison is available when the main loaded dataset is either:
 
-A comparison source may be:
-  
-- a disseminated dataset;
-- a tagged version associated with a base Fisheries dataset.
+- a **current Fisheries dataset**; or
+- a **tagged version of a current Fisheries dataset**.
+
+A previous disseminated dataset cannot currently be used as the main dataset for comparison.
+
+The comparison dataset may be selected from any of the following sources:
+
+- a **current Fisheries dataset**;
+- a **previous disseminated dataset**;
+- a **tagged Fisheries dataset** associated with a current Fisheries base dataset.
 
 ![Tagged dataset upload](./images/tagged_dataset_upload.png){#fig-tagged-dataset-upload width="100%"}
 
-
 The intended workflow is:
-  
-1. load a current dataset;
+
+1. load a current Fisheries dataset or a tagged version of a current Fisheries dataset as the main dataset;
 2. select filters;
-3. run aggregation;
+3. run the main dataset aggregation;
 4. open the Comparison page;
-5. load a disseminated or tagged comparison dataset;
-6. review compatibility warnings;
-7. run comparison.
+5. select the comparison source;
+6. load a current, disseminated or tagged comparison dataset;
+7. review any compatibility warnings;
+8. run the comparison.
+
+
+## Comparison dataset loading and preprocessing
+
+The three comparison sources differ only in how the observations are retrieved:
+
+- current comparison data are read from the selected current Fisheries dataset;
+- disseminated comparison data are read from the selected disseminated dataset;
+- tagged comparison data are read from the selected tag, using its current Fisheries base dataset for metadata and configuration.
+
+After the observations have been retrieved, the same preprocessing logic is applied regardless of source.
+
+The application:
+
+1. standardizes the numerical value column and removes rows without a usable numerical value;
+2. restricts hierarchical dimensions to codes that are valid under the corresponding dataset configuration and codelist hierarchies;
+3. identifies the effective measured elements defined by the comparison dataset's configured measured-element roots;
+4. removes measured elements that fall outside those configured roots;
+5. stores the resulting dataset as the comparison dataset used by the subsequent comparison workflow.
+
+The source of the comparison dataset therefore affects how the data are retrieved, but not how they are subsequently validated and restricted.
+
+This is particularly important for measured elements. A raw SWS dataset may contain measured-element codes other than those configured for that dataset. Such codes are not considered valid comparison measured elements merely because they are physically present in the raw observations.
 
 ## Reuse of the aggregation state
 
 The application stores:
   
-  - filtered input used for the current aggregation;
+- filtered input used for the main dataset aggregation;
 - selected measured elements;
 - aggregation specifications;
 - year-aggregation choice;
 - observation-flag grouping choice;
 - filter state.
 
-The comparison dataset is processed using the same analytical setup.
+The comparison dataset is processed using the analytical setup stored from the main dataset aggregation.
 
 Aggregation maps are rebuilt against the filtered comparison data so that the comparison follows the same requested hierarchy logic while accounting for codes present in the comparison source.
 
 ## Matching records for comparison
 
-To compare the current and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.
+To compare the main and comparison datasets, the application first identifies records that refer to the same combination of analytical dimensions.
 
 Only dimensions available in both the current and comparison results are used.
 
-For example, a current value for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.
+For example, a value from the main dataset for a particular year, geographical area, species and fishing area is compared with the value from the comparison dataset referring to the same combination of these categories.
 
 If one of the relevant categories differs, the records are not treated as the same observation for comparison.
 
@@ -1570,14 +1560,14 @@ After applying the filters, the application checks whether the current and compa
 For example, suppose the species categories remaining in the two datasets are:
 
 ```text
-Current dataset:      1501, 1502
+MAin dataset:      1501, 1502
 Comparison dataset:   1501, 1503
 ```
 
 In this case:
 
 * `1501` is present in both datasets;
-* `1502` is present only in the current dataset;
+* `1502` is present only in the main dataset;
 * `1503` is present only in the comparison dataset.
 
 The application displays a warning identifying these differences. It also indicates how many of the categories found only in one dataset have at least one non-missing numerical value.
@@ -1619,7 +1609,7 @@ The chart title identifies the selected measured element together with the analy
 
 The chart displays:
 
-- the **current dataset** as a solid line with filled points;
+- the **main dataset** as a solid line with filled points;
 - the **comparison dataset** as a dashed line with a different point shape.
 
 Using both line type and point shape in addition to colour makes the two datasets distinguishable even when their values are identical and the two lines occupy the same coordinates.
