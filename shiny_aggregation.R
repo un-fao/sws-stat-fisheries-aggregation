@@ -652,6 +652,49 @@ normalise_and_drop_empty_values <- function(
   dt[]
 }
 
+
+get_available_dataset_codes_from_data <- function(
+    data,
+    cfg
+) {
+  
+  dt <- as.data.table(data)
+  
+  dimension_columns <- unique(
+    na.omit(
+      c(
+        cfg$year_col,
+        cfg$measured_element_col,
+        cfg$geographical_area_col,
+        cfg$species_col,
+        cfg$fishing_area_col,
+        cfg$production_source_col,
+        cfg$observation_flag_col,
+        cfg$currency_flag_col
+      )
+    )
+  )
+  
+  dimension_columns <- intersect(
+    dimension_columns,
+    names(dt)
+  )
+  
+  out <- lapply(
+    dimension_columns,
+    function(column_i) {
+      clean_code_vector(
+        dt[[column_i]]
+      )
+    }
+  )
+  
+  names(out) <- dimension_columns
+  
+  out
+}
+
+
 uses_filter <- function(action) {
   action %in% c("filter", "filter_aggregate")
 }
@@ -4676,20 +4719,21 @@ ui <- page_navbar(
             maxOptions = 5000
           )
         ),
+        
         uiOutput("primary_tag_selector"),
         
         textOutput("dataset_count"),
         
         actionButton(
           "load_dataset",
-          "Load selected dataset",
+          "Load dataset structure",
           class = "btn-secondary",
           width = "100%"
         )
       ),
       
       layout_columns(
-        col_widths = c(5, 7),
+        col_widths = c(4, 8),
         
         card(
           card_header("Client"),
@@ -4697,40 +4741,15 @@ ui <- page_navbar(
         ),
         
         card(
-          card_header("Loaded dataset"),
-          verbatimTextOutput("dataset_status")
+          card_header("Dataset summary"),
+          uiOutput("dataset_summary")
         )
       )
     )
   ),
   
   nav_panel(
-    "2. Dataset summary",
-    
-    layout_columns(
-      col_widths = c(4, 8),
-      
-      card(
-        card_header("Loaded dataset"),
-        uiOutput("dataset_summary")
-      ),
-      
-      card(
-        full_screen = TRUE,
-        card_header("Raw dataset time series"),
-        plotOutput("raw_year_plot", height = 360)
-      )
-    ),
-    
-    card(
-      full_screen = TRUE,
-      card_header("Raw data preview"),
-      DTOutput("raw_preview")
-    )
-  ),
-  
-  nav_panel(
-    "3. Filters & aggregation",
+    "2. Filters & aggregation",
     
     div(
       class = "aggregation-page",
@@ -4766,7 +4785,7 @@ ui <- page_navbar(
   
   
   nav_panel(
-    "4. Dataset table",
+    "3. Dataset table",
     value = "dataset_table",
     
     card(
@@ -4777,7 +4796,7 @@ ui <- page_navbar(
   ),
   
   nav_panel(
-    "5. Graphs",
+    "4. Graphs",
     
     layout_sidebar(
       sidebar = sidebar(
@@ -4840,7 +4859,7 @@ ui <- page_navbar(
   ),
   
   nav_panel(
-    "6. Comparison",
+    "5. Comparison",
     
     # This message is displayed when comparison is not allowed.
     conditionalPanel(
@@ -4974,7 +4993,7 @@ ui <- page_navbar(
   
   
   nav_panel(
-    "7. Outlier analysis",
+    "6. Outlier analysis",
     
     div(
       class = "alert alert-info",
@@ -5834,6 +5853,10 @@ clean_old_codelist_cache()
 server <- function(input, output, session) {
   user <- reactiveVal(NULL)
   dataset_data <- reactiveVal(NULL)
+  # Available dataset codes used to build the analysis controls
+  # without loading the complete Current/Disseminated dataset.
+  dataset_codes <- reactiveVal(NULL)
+  
   loaded_dataset_id <- reactiveVal(NULL)
   
   # Actual source used to load the main data:
@@ -5874,19 +5897,15 @@ server <- function(input, output, session) {
     dataset_id <- loaded_dataset_id()
     
     if (
-      is.null(dataset_data()) ||
+      is.null(dataset_codes()) ||
       is.null(dataset_id) ||
       !nzchar(dataset_id)
     ) {
       return(FALSE)
     }
     
-    cfg <- get_dataset_config(dataset_id)
-    
-    identical(
-      cfg$dataset_group,
-      "current"
-    )
+    loaded_dataset_source() %in%
+      c("current", "tagged")
   })
   
   output$comparison_available <- reactive({
@@ -7120,13 +7139,6 @@ server <- function(input, output, session) {
             input$comparison_dataset_id
           )
           
-          dt <- as.data.table(
-            readDataset(
-              dataset_id =
-                input$comparison_dataset_id
-            )
-          )
-          
           comparison_metadata(
             list(
               source = "current",
@@ -7148,13 +7160,6 @@ server <- function(input, output, session) {
           
           comparison_info <- getDatasetInfo(
             input$comparison_dataset_id
-          )
-          
-          dt <- as.data.table(
-            readDataset(
-              dataset_id =
-                input$comparison_dataset_id
-            )
           )
           
           comparison_metadata(
@@ -7234,56 +7239,53 @@ server <- function(input, output, session) {
         }
         
         
-        # ------------------------------------------------------------
-        # Common processing for EVERY comparison dataset.
-        # From this point on, source no longer matters.
-        # ------------------------------------------------------------
-        
-        dt <- normalise_and_drop_empty_values(
-          data = dt,
-          value_col = current_cfg$value_col
-        )
-        
-        dt <- restrict_to_active_configured_codes(
-          data = dt,
-          dataset_info = comparison_info
-        )
-        
-        dt <- restrict_to_effective_measured_elements(
-          data = dt,
-          dataset_info = comparison_info,
-          measured_col =
-            current_cfg$measured_element_col
-        )
-        
         comparison_dataset_info(
           comparison_info
         )
         
-        comparison_data(dt)
+        if (identical(
+          input$comparison_source,
+          "tagged"
+        )) {
+          
+          dt <- normalise_and_drop_empty_values(
+            data = dt,
+            value_col = current_cfg$value_col
+          )
+          
+          dt <- restrict_to_active_configured_codes(
+            data = dt,
+            dataset_info = comparison_info
+          )
+          
+          dt <- restrict_to_effective_measured_elements(
+            data = dt,
+            dataset_info = comparison_info,
+            measured_col =
+              current_cfg$measured_element_col
+          )
+          
+          comparison_data(dt)
+          
+        } else {
+          
+          comparison_data(NULL)
+        }
         
         comparison_results(NULL)
+        comparison_compatibility_warning(character(0))
         
-        compatibility_problems <- check_comparison_compatibility(
-          current_dataset_id = input$dataset_id %||% "",
-          comparison_meta = comparison_metadata(),
-          comparison_dt = comparison_data()
+        showNotification(
+          if (identical(
+            input$comparison_source,
+            "tagged"
+          )) {
+            "Comparison dataset loaded successfully."
+          } else {
+            "Comparison dataset structure loaded successfully. Data will be retrieved when the comparison is run."
+          },
+          type = "message"
         )
-        
-        comparison_compatibility_warning(compatibility_problems)
-        
-        if (length(compatibility_problems) > 0) {
-          showNotification(
-            "Comparison dataset loaded, but compatibility warning detected. Please review it before running the comparison.",
-            type = "warning",
-            duration = 12
-          )
-        } else {
-          showNotification(
-            "Comparison dataset loaded successfully.",
-            type = "message"
-          )
-        }
       },
       error = function(e) {
         comparison_data(NULL)
@@ -7898,18 +7900,22 @@ server <- function(input, output, session) {
   ) {
     
     req(
-      dataset_data(),
+      dataset_codes(),
       input$dataset_id
     )
     
-    current_data <- dataset_data()
+    available_columns <-
+      names(
+        dataset_codes()
+      )
     
     active_dims <- FILTER_DIMENSIONS[
       vapply(
         FILTER_DIMENSIONS,
         function(meta) {
           !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(current_data)
+            meta$dataset_column %in%
+            available_columns
         },
         logical(1)
       )
@@ -9044,6 +9050,131 @@ server <- function(input, output, session) {
   }
   
   
+  get_comparison_data_for_run <- function(
+    comparison_state
+  ) {
+    
+    meta <- comparison_metadata()
+    
+    req(
+      meta,
+      comparison_dataset_info()
+    )
+    
+    if (identical(
+      meta$source,
+      "tagged"
+    )) {
+      
+      req(comparison_data())
+      
+      return(
+        copy(
+          comparison_data()
+        )
+      )
+    }
+    
+    comparison_cfg <-
+      get_dataset_config(
+        meta$id
+      )
+    
+    filters <- list()
+    
+    filters[[
+      comparison_cfg$year_col
+    ]] <- as.character(
+      seq(
+        comparison_state$year_range[1],
+        comparison_state$year_range[2]
+      )
+    )
+    
+    measured_values <-
+      clean_non_empty_codes(
+        comparison_state$selected_values[[
+          "measured_element"
+        ]]
+      )
+    
+    if (length(measured_values) > 0L) {
+      filters[[
+        comparison_cfg$measured_element_col
+      ]] <- measured_values
+    }
+    
+    for (
+      dim_id in c(
+        "geographical_area",
+        "species",
+        "fishing_area",
+        "production_source"
+      )
+    ) {
+      
+      meta_dim <- FILTER_DIMENSIONS[[
+        dim_id
+      ]]
+      
+      if (
+        is.null(meta_dim) ||
+        is.null(meta_dim$dataset_column)
+      ) {
+        next
+      }
+      
+      values_i <-
+        clean_non_empty_codes(
+          comparison_state$selected_values[[
+            dim_id
+          ]]
+        )
+      
+      if (length(values_i) > 0L) {
+        filters[[
+          meta_dim$dataset_column
+        ]] <- values_i
+      }
+    }
+    
+    dt <- as.data.table(
+      readDataset(
+        dataset_id = meta$id,
+        filter_by_dimension =
+          filters
+      )
+    )
+    
+    current_cfg <-
+      get_dataset_config(
+        input$dataset_id
+      )
+    
+    dt <- normalise_and_drop_empty_values(
+      data = dt,
+      value_col =
+        current_cfg$value_col
+    )
+    
+    dt <- restrict_to_active_configured_codes(
+      data = dt,
+      dataset_info =
+        comparison_dataset_info()
+    )
+    
+    dt <- restrict_to_effective_measured_elements(
+      data = dt,
+      dataset_info =
+        comparison_dataset_info(),
+      measured_col =
+        current_cfg$measured_element_col
+    )
+    
+    dt[]
+  }
+  
+  
   observeEvent(input$run_comparison, {
     
     # Remove warnings generated by the previous comparison run.
@@ -9076,12 +9207,12 @@ server <- function(input, output, session) {
               detail = "Checking main dataset and comparison dataset."
             )
             
-            if (is.null(dataset_data()) ||
+            if (is.null(aggregation_input_data()) ||
                 is.null(input$dataset_id) ||
                 !nzchar(input$dataset_id)) {
               
               showNotification(
-                "Please load a compatible main dataset before running the comparison.",
+                "Please run the main dataset aggregation before running the comparison.",
                 type = "error",
                 duration = 10
               )
@@ -9089,10 +9220,10 @@ server <- function(input, output, session) {
               return(NULL)
             }
             
-            if (is.null(comparison_data())) {
+            if (is.null(comparison_metadata())) {
               
               showNotification(
-                "Please load a comparison dataset before running the comparison.",
+                "Please select and prepare a comparison dataset before running the comparison.",
                 type = "error",
                 duration = 10
               )
@@ -9130,27 +9261,6 @@ server <- function(input, output, session) {
               )
             
             last_force_run_comparison(input$force_run_comparison %||% NULL)
-            
-            compatibility_problems <- check_comparison_compatibility(
-              current_dataset_id = input$dataset_id %||% "",
-              comparison_meta = comparison_metadata(),
-              comparison_dt = comparison_data()
-            )
-            
-            comparison_compatibility_warning(compatibility_problems)
-            
-            if (length(compatibility_problems) > 0 && !isTRUE(force_comparison)) {
-              
-              comparison_results(NULL)
-              
-              showNotification(
-                "Comparison stopped because the selected comparison dataset may not correspond to the main dataset. Review the warning and click 'Run comparison anyway' only if this is intentional.",
-                type = "warning",
-                duration = 15
-              )
-              
-              return(NULL)
-            }
             
             aggregation_specs <- last_aggregation_specs()
             comparison_state <- last_comparison_state()
@@ -9216,7 +9326,35 @@ server <- function(input, output, session) {
               detail = "Reading comparison dataset."
             )
             
-            comparison_raw <- comparison_data()
+            comparison_raw <-
+              get_comparison_data_for_run(
+                comparison_state
+              )
+            
+            comparison_data(
+              comparison_raw
+            )
+            
+            compatibility_problems <- check_comparison_compatibility(
+              current_dataset_id = input$dataset_id %||% "",
+              comparison_meta = comparison_metadata(),
+              comparison_dt = comparison_raw
+            )
+            
+            comparison_compatibility_warning(compatibility_problems)
+            
+            if (length(compatibility_problems) > 0 && !isTRUE(force_comparison)) {
+              
+              comparison_results(NULL)
+              
+              showNotification(
+                "Comparison stopped because the selected comparison dataset may not correspond to the main dataset. Review the warning and click 'Run comparison anyway' only if this is intentional.",
+                type = "warning",
+                duration = 15
+              )
+              
+              return(NULL)
+            }
             
             incProgress(
               amount = 0.10,
@@ -9236,7 +9374,7 @@ server <- function(input, output, session) {
             )
             
             current_filtered <- apply_saved_filters_to_comparison_data(
-              data = dataset_data(),
+              data = aggregation_input_data(),
               cfg = cfg,
               comparison_state = comparison_state,
               exclude_dims = c(
@@ -10796,12 +10934,12 @@ server <- function(input, output, session) {
           input$dataset_id
         )
         
-        # Load either the ordinary dataset or one of its tagged versions.
         if (identical(
           input$dataset_group,
           "tagged"
         )) {
           
+          # Tagged datasets are small enough to load completely.
           req(input$primary_tag_id)
           
           dt <- as.data.table(
@@ -10812,32 +10950,46 @@ server <- function(input, output, session) {
             )
           )
           
-        } else {
+          rows_before_value_cleaning <- nrow(dt)
           
-          dt <- as.data.table(
-            readDataset(
-              dataset_id = input$dataset_id
+          dt <- normalise_and_drop_empty_values(
+            data = dt,
+            value_col = cfg$value_col
+          )
+          
+          validation <- validate_dataset_columns(
+            data = dt,
+            dataset_id = input$dataset_id
+          )
+          
+          rows_discarded_without_values <-
+            rows_before_value_cleaning - nrow(dt)
+          
+          dataset_data(dt)
+          
+          dataset_codes(
+            get_available_dataset_codes_from_data(
+              data = dt,
+              cfg = cfg
             )
           )
+          
+        } else {
+          
+          # Current and disseminated datasets are NOT loaded here.
+          # Only their available dimension codes are retrieved.
+          codes_available <- getDatasetCodes(
+            input$dataset_id,
+            with_label = TRUE
+          )
+          
+          dataset_codes(
+            codes_available
+          )
+          
+          dataset_data(NULL)
         }
         
-        rows_before_value_cleaning <- nrow(dt)
-        
-        # Important for tagged datasets, which may return lowercase "value".
-        dt <- normalise_and_drop_empty_values(
-          data = dt,
-          value_col = cfg$value_col
-        )
-        
-        validation <- validate_dataset_columns(
-          data = dt,
-          dataset_id = input$dataset_id
-        )
-        
-        rows_discarded_without_values <-
-          rows_before_value_cleaning - nrow(dt)
-        
-        dataset_data(dt)
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
         
@@ -10896,16 +11048,27 @@ server <- function(input, output, session) {
         last_aggregation_specs(NULL)
         last_comparison_state(NULL)
         
-        showNotification(
-          paste0(
-            "Dataset loaded: ",
-            nrow(dt),
-            " rows. Type: ",
-            validation$config$dataset_type,
-            "."
-          ),
-          type = "message"
-        )
+        if (identical(
+          input$dataset_group,
+          "tagged"
+        )) {
+          
+          showNotification(
+            paste0(
+              "Tagged dataset loaded: ",
+              nrow(dataset_data()),
+              " rows."
+            ),
+            type = "message"
+          )
+          
+        } else {
+          
+          showNotification(
+            "Dataset structure loaded successfully. Data will be retrieved when the aggregation is run.",
+            type = "message"
+          )
+        }
       },
       error = function(e) {
         showNotification(
@@ -10920,49 +11083,13 @@ server <- function(input, output, session) {
   })
   
   
-  output$dataset_status <- renderPrint({
-    if (is.null(dataset_data()) || is.null(input$dataset_id) || !nzchar(input$dataset_id)) {
-      cat("No dataset loaded yet.\n")
-      return(NULL)
-    }
-    
-    dt <- dataset_data()
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    cat("Base dataset:", input$dataset_id, "\n")
-    cat("Label:", cfg$label, "\n")
-    cat(
-      "Source:",
-      loaded_dataset_source() %||% cfg$dataset_group,
-      "\n"
-    )
-    
-    if (identical(
-      loaded_dataset_source(),
-      "tagged"
-    )) {
-      cat(
-        "Tag:",
-        loaded_tag_label() %||% loaded_tag_id(),
-        "\n"
-      )
-      cat(
-        "Tag ID:",
-        loaded_tag_id(),
-        "\n"
-      )
-    }
-    
-    cat("Type:", cfg$dataset_type, "\n")
-    cat("Rows:", nrow(dt), "\n")
-    cat("Columns:", ncol(dt), "\n")
-  })
+  
   
   
   output$dataset_summary <- renderUI({
     
     req(
-      dataset_data(),
+      dataset_codes(),
       loaded_dataset_info(),
       input$dataset_id
     )
@@ -10974,13 +11101,11 @@ server <- function(input, output, session) {
       )
     )
     
-    dt <- copy(
-      dataset_data()
-    )
-    
     cfg <- get_dataset_config(
       input$dataset_id
     )
+    
+    available_codes <- dataset_codes()
     
     measured_col <- cfg$measured_element_col
     
@@ -11000,59 +11125,92 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Resolve configured roots to the measured elements that
-    # actually occur in the dataset.
+    # Measured elements available for this dataset.
     #
-    # If a configured root has children, use its children.
-    # If it has no children, use the root itself.
+    # For Current/Disseminated datasets these come from
+    # getDatasetCodes().
+    #
+    # For Tagged datasets they come from the loaded tag.
     # ------------------------------------------------------------
     
-    effective_measured_elements <- get_effective_measured_elements(
-      dataset_info = loaded_dataset_info(),
-      data = dt,
-      measured_col = measured_col
-    )
-    
-    
-    # ------------------------------------------------------------
-    # Restrict summary data to the effective measured elements.
-    # ------------------------------------------------------------
-    
-    dt_summary <- copy(dt)
+    available_measured_elements <- character(0)
     
     if (
       !is.null(measured_col) &&
-      measured_col %in% names(dt_summary)
+      measured_col %in% names(available_codes)
     ) {
       
-      if (length(effective_measured_elements) > 0L) {
-        
-        dt_summary <- dt_summary[
-          as.character(
-            get(measured_col)
-          ) %in%
-            effective_measured_elements
-        ]
-        
-      } else {
-        
-        dt_summary <- dt_summary[0]
-      }
+      available_measured_elements <- clean_code_vector(
+        available_codes[[measured_col]]
+      )
     }
     
     
     # ------------------------------------------------------------
-    # Calculate available years from the actual measured elements.
+    # Resolve configured roots to effective measured elements.
+    #
+    # Reuse the existing helper by creating a small data.table
+    # containing only the available measured-element codes.
     # ------------------------------------------------------------
     
-    years <- get_year_values(
-      data = dt_summary,
-      year_col = cfg$year_col
-    )
+    effective_measured_elements <- character(0)
+    
+    if (length(available_measured_elements) > 0L) {
+      
+      measured_dt <- data.table(
+        measured_element =
+          available_measured_elements
+      )
+      
+      setnames(
+        measured_dt,
+        "measured_element",
+        measured_col
+      )
+      
+      effective_measured_elements <-
+        get_effective_measured_elements(
+          dataset_info =
+            loaded_dataset_info(),
+          data = measured_dt,
+          measured_col = measured_col
+        )
+    }
     
     
     # ------------------------------------------------------------
-    # Read measured-element codelist for labels and hierarchy.
+    # Available years.
+    # ------------------------------------------------------------
+    
+    years <- integer(0)
+    
+    if (
+      !is.null(cfg$year_col) &&
+      cfg$year_col %in% names(available_codes)
+    ) {
+      
+      year_dt <- data.table(
+        year_value =
+          clean_code_vector(
+            available_codes[[cfg$year_col]]
+          )
+      )
+      
+      setnames(
+        year_dt,
+        "year_value",
+        cfg$year_col
+      )
+      
+      years <- get_year_values(
+        data = year_dt,
+        year_col = cfg$year_col
+      )
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Measured-element codelist for labels.
     # ------------------------------------------------------------
     
     codes <- tryCatch(
@@ -11067,7 +11225,8 @@ server <- function(input, output, session) {
     # Labels for configured roots.
     # ------------------------------------------------------------
     
-    configured_root_labels <- configured_roots
+    configured_root_labels <-
+      configured_roots
     
     if (
       length(configured_roots) > 0L &&
@@ -11085,16 +11244,16 @@ server <- function(input, output, session) {
         measured_col
       )
       
-      root_choices <- make_filter_choices_from_data(
-        data = roots_dt,
-        column_name = measured_col,
-        codes = codes
-      )
+      root_choices <-
+        make_filter_choices_from_data(
+          data = roots_dt,
+          column_name = measured_col,
+          codes = codes
+        )
       
       if (length(root_choices) > 0L) {
-        configured_root_labels <- names(
-          root_choices
-        )
+        configured_root_labels <-
+          names(root_choices)
       }
     }
     
@@ -11130,15 +11289,14 @@ server <- function(input, output, session) {
         )
       
       if (length(effective_choices) > 0L) {
-        effective_element_labels <- names(
-          effective_choices
-        )
+        effective_element_labels <-
+          names(effective_choices)
       }
     }
     
     
     # ------------------------------------------------------------
-    # Identify which configured roots have usable data underneath.
+    # Configured roots that actually have available measured elements.
     # ------------------------------------------------------------
     
     configured_roots_with_data <-
@@ -11147,40 +11305,39 @@ server <- function(input, output, session) {
     if (
       length(configured_roots) > 0L &&
       !is.null(codes) &&
-      !is.null(measured_col) &&
-      measured_col %in% names(dt)
+      length(available_measured_elements) > 0L
     ) {
       
-      data_measured_elements <- clean_code_vector(
-        dt[[measured_col]]
-      )
+      codes <- as.data.table(codes)
+      codes[, id := as.character(id)]
       
-      configured_roots_with_data <- configured_roots[
-        vapply(
-          configured_roots,
-          function(root_i) {
-            
-            children_i <- get_direct_children(
-              codes = codes,
-              parent_code = root_i
-            )
-            
-            effective_i <- if (
-              length(children_i) > 0L
-            ) {
-              children_i
-            } else {
-              root_i
-            }
-            
-            any(
-              effective_i %in%
-                data_measured_elements
-            )
-          },
-          logical(1)
-        )
-      ]
+      configured_roots_with_data <-
+        configured_roots[
+          vapply(
+            configured_roots,
+            function(root_i) {
+              
+              children_i <- get_direct_children(
+                codes = codes,
+                parent_code = root_i
+              )
+              
+              effective_i <- if (
+                length(children_i) > 0L
+              ) {
+                children_i
+              } else {
+                root_i
+              }
+              
+              any(
+                effective_i %in%
+                  available_measured_elements
+              )
+            },
+            logical(1)
+          )
+        ]
     }
     
     
@@ -11209,27 +11366,107 @@ server <- function(input, output, session) {
     
     
     # ------------------------------------------------------------
-    # Other available dimensions.
+    # Main dimensions available.
     # ------------------------------------------------------------
     
-    available_dimensions <- c(
-      "Geographical area",
-      "Species / ASFIS",
-      "Fishing area"
-    )
+    available_dimensions <- character(0)
+    
+    if (
+      cfg$geographical_area_col %in%
+      names(available_codes)
+    ) {
+      available_dimensions <- c(
+        available_dimensions,
+        "Geographical area"
+      )
+    }
+    
+    if (
+      cfg$species_col %in%
+      names(available_codes)
+    ) {
+      available_dimensions <- c(
+        available_dimensions,
+        "Species / ASFIS"
+      )
+    }
+    
+    if (
+      cfg$fishing_area_col %in%
+      names(available_codes)
+    ) {
+      available_dimensions <- c(
+        available_dimensions,
+        "Fishing area"
+      )
+    }
     
     if (
       !is.null(cfg$production_source_col) &&
       cfg$production_source_col %in%
-      names(dt)
+      names(available_codes)
     ) {
-      
       available_dimensions <- c(
         available_dimensions,
         "Production source / environment type"
       )
     }
     
+    
+    # ------------------------------------------------------------
+    # Record count is available only for Tagged datasets,
+    # because only Tagged datasets are fully loaded at this stage.
+    # ------------------------------------------------------------
+    
+    tagged_record_summary <- NULL
+    
+    if (
+      identical(
+        loaded_dataset_source(),
+        "tagged"
+      ) &&
+      !is.null(dataset_data())
+    ) {
+      
+      tagged_record_summary <- tags$p(
+        tags$strong("Number of loaded records: "),
+        format(
+          nrow(dataset_data()),
+          big.mark = ","
+        )
+      )
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Tagged dataset identification.
+    # ------------------------------------------------------------
+    
+    tagged_dataset_summary <- NULL
+    
+    if (identical(
+      loaded_dataset_source(),
+      "tagged"
+    )) {
+      
+      tagged_dataset_summary <- tagList(
+        tags$p(
+          tags$strong("Tag: "),
+          loaded_tag_label() %||%
+            loaded_tag_id()
+        ),
+        
+        tags$p(
+          tags$strong("Tag ID: "),
+          loaded_tag_id()
+        )
+      )
+    }
+    
+    
+    # ------------------------------------------------------------
+    # Final summary.
+    # ------------------------------------------------------------
     
     tagList(
       
@@ -11245,23 +11482,21 @@ server <- function(input, output, session) {
       tags$p(
         tags$strong("Dataset group: "),
         switch(
-          loaded_dataset_source() %||% cfg$dataset_group,
-          current = "Current Fisheries dataset",
-          disseminated = "Disseminated / previous dataset",
-          tagged = "Tagged Fisheries dataset",
+          loaded_dataset_source() %||%
+            cfg$dataset_group,
+          current =
+            "Current Fisheries dataset",
+          disseminated =
+            "Disseminated / previous dataset",
+          tagged =
+            "Tagged Fisheries dataset",
           "Unknown"
         )
       ),
       
-      tags$p(
-        tags$strong(
-          "Number of records under configured measured-element roots: "
-        ),
-        format(
-          nrow(dt_summary),
-          big.mark = ","
-        )
-      ),
+      tagged_dataset_summary,
+      
+      tagged_record_summary,
       
       tags$p(
         tags$strong("Years available: "),
@@ -11319,7 +11554,7 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong(
-          "Number of configured roots with usable data: "
+          "Number of configured roots with available data: "
         ),
         length(
           configured_roots_with_data
@@ -11328,7 +11563,7 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong(
-          "Configured roots with usable data: "
+          "Configured roots with available data: "
         ),
         if (
           length(
@@ -11340,7 +11575,7 @@ server <- function(input, output, session) {
             collapse = ", "
           )
         } else {
-          "None of the configured roots contains usable data"
+          "None"
         }
       ),
       
@@ -11348,165 +11583,50 @@ server <- function(input, output, session) {
         tags$strong(
           "Main dimensions available: "
         ),
-        paste(
-          available_dimensions,
-          collapse = ", "
-        )
+        if (
+          length(available_dimensions) > 0L
+        ) {
+          paste(
+            available_dimensions,
+            collapse = ", "
+          )
+        } else {
+          "None"
+        }
       ),
       
       tags$div(
         class = "alert alert-info",
-        paste0(
-          "Measured-element roots are read from the dataset configuration. ",
-          "When a configured root contains child measured elements, ",
-          "the summary uses the child elements available in the dataset."
-        )
+        
+        if (identical(
+          loaded_dataset_source(),
+          "tagged"
+        )) {
+          
+          paste0(
+            "The tagged dataset has been loaded completely. ",
+            "Available years, measured elements and dimensions ",
+            "are derived from the observations in the selected tag."
+          )
+          
+        } else {
+          
+          paste0(
+            "The dataset structure has been loaded without ",
+            "loading the complete dataset. Available years, ",
+            "measured elements and dimension codes are read ",
+            "from SWS. The required observations will be ",
+            "retrieved when the aggregation is run."
+          )
+        }
       )
     )
   })
   
-  output$raw_preview <- renderDT({
-    req(dataset_data())
-    
-    datatable(
-      head(dataset_data(), 1000),
-      rownames = FALSE,
-      options = list(pageLength = 10, scrollX = TRUE)
-    )
-  })
-  
-  
-  
-  
-  
-  
-  
-  output$raw_year_plot <- renderPlot({
+  available_years <- reactive({
     
     req(
-      dataset_data(),
-      loaded_dataset_info(),
-      input$dataset_id
-    )
-    
-    # Do not use metadata left from a previously loaded dataset.
-    req(
-      identical(
-        loaded_dataset_id(),
-        input$dataset_id
-      )
-    )
-    
-    dt <- copy(dataset_data())
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    measured_col <- cfg$measured_element_col
-    
-    if (
-      is.null(measured_col) ||
-      !measured_col %in% names(dt)
-    ) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No measured-element column is available for this dataset"
-      )
-      return(NULL)
-    }
-    
-    # Read only the measured-element roots configured for
-    # this specific dataset in SWS.
-    measured_roots <- get_effective_measured_elements(
-      dataset_info = loaded_dataset_info(),
-      data = dt,
-      measured_col = measured_col
-    )
-    
-    measured_roots <- unique(
-      trimws(
-        as.character(
-          measured_roots
-        )
-      )
-    )
-    
-    measured_roots <- measured_roots[
-      !is.na(measured_roots) &
-        nzchar(measured_roots)
-    ]
-    
-    if (length(measured_roots) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No measured-element roots are configured for this dataset"
-      )
-      return(NULL)
-    }
-    
-    # The plot must contain only records belonging to the
-    # configured measured-element roots.
-    dt <- dt[
-      as.character(get(measured_col)) %in%
-        measured_roots
-    ]
-    
-    if (nrow(dt) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No data are available for the configured measured-element roots"
-      )
-      return(NULL)
-    }
-    
-    yearly <- summarise_total_by_year_and_element(
-      data = dt,
-      year_col = cfg$year_col,
-      value_col = cfg$value_col,
-      measured_element_col = measured_col
-    )
-    
-    if (nrow(yearly) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No yearly data are available for the configured measured-element roots"
-      )
-      return(NULL)
-    }
-    
-    ggplot(
-      yearly,
-      aes(
-        x = year,
-        y = total_value
-      )
-    ) +
-      geom_line() +
-      facet_wrap(
-        ~ measured_element,
-        scales = "free_y"
-      ) +
-      labs(
-        x = "Year",
-        y = "Total value",
-        title = paste0(
-          "Raw dataset total by year — configured measured-element roots: ",
-          paste(measured_roots, collapse = ", ")
-        )
-      ) +
-      theme_minimal()
-  })
-  
-  output$year_selector <- renderUI({
-    
-    req(
-      dataset_data(),
+      dataset_codes(),
       input$dataset_id
     )
     
@@ -11514,10 +11634,85 @@ server <- function(input, output, session) {
       input$dataset_id
     )
     
-    years <- get_year_values(
-      data = dataset_data(),
-      year_col = cfg$year_col
+    if (
+      is.null(cfg$year_col) ||
+      !cfg$year_col %in% names(dataset_codes())
+    ) {
+      return(integer(0))
+    }
+    
+    years <- suppressWarnings(
+      as.integer(
+        clean_code_vector(
+          dataset_codes()[[cfg$year_col]]
+        )
+      )
     )
+    
+    years <- years[
+      !is.na(years)
+    ]
+    
+    sort(
+      unique(years)
+    )
+  })
+  
+  
+  available_measured_elements <- reactive({
+    
+    req(
+      dataset_codes(),
+      loaded_dataset_info(),
+      input$dataset_id
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    measured_col <- cfg$measured_element_col
+    
+    if (
+      is.null(measured_col) ||
+      !measured_col %in% names(dataset_codes())
+    ) {
+      return(character(0))
+    }
+    
+    available_values <- clean_code_vector(
+      dataset_codes()[[measured_col]]
+    )
+    
+    if (length(available_values) == 0L) {
+      return(character(0))
+    }
+    
+    measured_dt <- data.table(
+      measured_element = available_values
+    )
+    
+    setnames(
+      measured_dt,
+      "measured_element",
+      measured_col
+    )
+    
+    get_effective_measured_elements(
+      dataset_info = loaded_dataset_info(),
+      data = measured_dt,
+      measured_col = measured_col
+    )
+  })
+  
+  output$year_selector <- renderUI({
+    
+    req(
+      dataset_codes(),
+      input$dataset_id
+    )
+    
+    years <- available_years()
     
     if (length(years) == 0) {
       return(
@@ -11624,14 +11819,12 @@ server <- function(input, output, session) {
   
   
   observeEvent(input$year_full_range, {
-    req(dataset_data(), input$dataset_id)
-    
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    years <- get_year_values(
-      data = dataset_data(),
-      year_col = cfg$year_col
+    req(
+      dataset_codes(),
+      input$dataset_id
     )
+    
+    years <- available_years()
     
     if (length(years) == 0) {
       return(NULL)
@@ -11645,14 +11838,12 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$year_latest_10, {
-    req(dataset_data(), input$dataset_id)
-    
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    years <- get_year_values(
-      data = dataset_data(),
-      year_col = cfg$year_col
+    req(
+      dataset_codes(),
+      input$dataset_id
     )
+    
+    years <- available_years()
     
     if (length(years) == 0) {
       return(NULL)
@@ -11669,14 +11860,12 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$year_latest_20, {
-    req(dataset_data(), input$dataset_id)
-    
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    years <- get_year_values(
-      data = dataset_data(),
-      year_col = cfg$year_col
+    req(
+      dataset_codes(),
+      input$dataset_id
     )
+    
+    years <- available_years()
     
     if (length(years) == 0) {
       return(NULL)
@@ -11699,12 +11888,11 @@ server <- function(input, output, session) {
   output$measured_element_checkbox_filter <- renderUI({
     
     req(
-      dataset_data(),
+      dataset_codes(),
       loaded_dataset_info(),
       input$dataset_id
     )
     
-    # Prevent using information from a previously loaded dataset
     req(
       identical(
         loaded_dataset_id(),
@@ -11712,39 +11900,16 @@ server <- function(input, output, session) {
       )
     )
     
-    dt <- dataset_data()
-    cfg <- get_dataset_config(input$dataset_id)
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
     
     measured_col <- cfg$measured_element_col
     
-    if (
-      is.null(measured_col) ||
-      !measured_col %in% names(dt)
-    ) {
-      return(
-        helpText(
-          "No measured-element column is available for this dataset."
-        )
-      )
-    }
+    measured_elements <-
+      available_measured_elements()
     
-    # Read only the roots configured for measuredElement
-    measured_roots <- get_effective_measured_elements(
-      dataset_info = loaded_dataset_info(),
-      data = dt,
-      measured_col = measured_col
-    )
-    
-    measured_roots <- intersect(
-      clean_code_vector(
-        measured_roots
-      ),
-      clean_code_vector(
-        dt[[measured_col]]
-      )
-    )
-    
-    if (length(measured_roots) == 0) {
+    if (length(measured_elements) == 0L) {
       return(
         helpText(
           "No configured measured-element root has usable data in this dataset."
@@ -11752,20 +11917,21 @@ server <- function(input, output, session) {
       )
     }
     
-    # Read labels and units from the measuredElement codelist
     codes <- tryCatch(
-      get_codelist_codes("measuredElement"),
+      get_codelist_codes(
+        "measuredElement"
+      ),
       error = function(e) NULL
     )
     
-    # Reuse make_filter_choices_from_data(), but give it only the roots
     roots_dt <- data.table(
-      measured_element_root = measured_roots
+      measured_element =
+        measured_elements
     )
     
     setnames(
       roots_dt,
-      "measured_element_root",
+      "measured_element",
       measured_col
     )
     
@@ -11775,7 +11941,7 @@ server <- function(input, output, session) {
       codes = codes
     )
     
-    if (length(choices) == 0) {
+    if (length(choices) == 0L) {
       return(
         helpText(
           "No measured-element choices could be created from the configured roots."
@@ -11998,49 +12164,101 @@ server <- function(input, output, session) {
   }
   
   
-  filtered_data_for_aggregation_controls <- reactive({
+  get_available_filtered_codes_for_dimension <- function(
+    dim_id,
+    meta
+  ) {
     
     req(
-      dataset_data(),
+      dataset_codes(),
       input$dataset_id
     )
     
-    # Apply year and all ordinary dimension filters.
-    # Measured element is excluded here because it uses
-    # checkboxGroupInput rather than shinyTree.
-    dt <- get_current_filtered_data(
-      exclude_dims = "measured_element",
-      update_debug = FALSE
-    )
-    
-    cfg <- get_dataset_config(
-      input$dataset_id
-    )
-    
-    selected_measured_elements <- clean_non_empty_codes(
-      input$filter_measured_element_values
-    )
-    
-    # Measured-element selection also affects the records available
-    # to the aggregation controls, but no Clear all control is added
-    # to the measured-element UI.
     if (
-      length(selected_measured_elements) > 0 &&
-      !is.null(cfg$measured_element_col) &&
-      cfg$measured_element_col %in% names(dt)
+      is.null(meta$dataset_column) ||
+      !meta$dataset_column %in%
+      names(dataset_codes())
     ) {
-      
-      dt <- filter_data_by_measured_element(
-        data = dt,
-        measured_elements =
-          selected_measured_elements,
-        measured_element_col =
-          cfg$measured_element_col
+      return(character(0))
+    }
+    
+    raw_codes <- clean_non_empty_codes(
+      dataset_codes()[[
+        meta$dataset_column
+      ]]
+    )
+    
+    if (length(raw_codes) == 0L) {
+      return(character(0))
+    }
+    
+    tree_input <- input[[
+      paste0(
+        "filter_tree_",
+        dim_id
+      )
+    ]]
+    
+    if (is.null(tree_input)) {
+      return(raw_codes)
+    }
+    
+    codes <- NULL
+    
+    if (!is.null(meta$codelist)) {
+      codes <- tryCatch(
+        get_codelist_codes(
+          meta$codelist
+        ),
+        error = function(e) NULL
       )
     }
     
-    dt[]
-  })
+    tree_dt <- NULL
+    
+    if (
+      !is_flat_filter_dimension(dim_id) &&
+      !is.null(meta$codelist)
+    ) {
+      
+      tree_dt <- tryCatch(
+        get_codelist_tree_cached(
+          meta$codelist
+        ),
+        error = function(e) NULL
+      )
+    }
+    
+    selected_codes <-
+      get_selected_codes_from_tree(
+        tree_input = tree_input,
+        codes = codes,
+        tree_dt = tree_dt,
+        expand_descendants =
+          !is_flat_filter_dimension(dim_id),
+        selection_rule = if (
+          is_flat_filter_dimension(dim_id)
+        ) {
+          "none"
+        } else {
+          "most_specific"
+        },
+        codelist_id = meta$codelist
+      )
+    
+    selected_codes <- clean_non_empty_codes(
+      selected_codes
+    )
+    
+    if (length(selected_codes) == 0L) {
+      return(raw_codes)
+    }
+    
+    intersect(
+      raw_codes,
+      selected_codes
+    )
+  }
   
   
   get_effective_filter_roots <- function(
@@ -12093,21 +12311,18 @@ server <- function(input, output, session) {
       tree_purpose
     )
     
-    dt_filtered <-
-      filtered_data_for_aggregation_controls()
-    
     if (
-      nrow(dt_filtered) == 0L ||
       is.null(meta$dataset_column) ||
-      !meta$dataset_column %in% names(dt_filtered) ||
       is.null(meta$codelist)
     ) {
       return(list())
     }
     
-    filtered_raw_codes <- clean_non_empty_codes(
-      dt_filtered[[meta$dataset_column]]
-    )
+    filtered_raw_codes <-
+      get_available_filtered_codes_for_dimension(
+        dim_id = dim_id,
+        meta = meta
+      )
     
     if (length(filtered_raw_codes) == 0L) {
       return(list())
@@ -12404,16 +12619,19 @@ server <- function(input, output, session) {
   output$dimension_accordion_ui <- renderUI({
     
     req(
-      dataset_data(),
+      dataset_codes(),
       input$dataset_id
     )
     
     reset_id <- tree_reset_counter()
-    dt <- dataset_data()
+    
+    available_columns <- names(
+      dataset_codes()
+    )
     
     
     # ============================================================
-    # Dimensions available in the loaded dataset
+    # Dimensions available for the selected dataset
     # ============================================================
     
     active_filter_dims <- FILTER_DIMENSIONS[
@@ -12421,7 +12639,8 @@ server <- function(input, output, session) {
         FILTER_DIMENSIONS,
         function(meta) {
           !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
+            meta$dataset_column %in%
+            available_columns
         },
         logical(1)
       )
@@ -12433,11 +12652,14 @@ server <- function(input, output, session) {
         AGGREGATION_DIMENSIONS,
         function(meta) {
           !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
+            meta$dataset_column %in%
+            available_columns
         },
         logical(1)
       )
     ]
+    
+    
     
     
     # ============================================================
@@ -13094,458 +13316,6 @@ server <- function(input, output, session) {
   })
   
   
-  output$dimension_filter_selectors <- renderUI({
-    req(dataset_data(), input$dataset_id)
-    
-    reset_id <- tree_reset_counter()
-    
-    dt <- dataset_data()
-    
-    active_dims <- FILTER_DIMENSIONS[
-      vapply(
-        FILTER_DIMENSIONS,
-        function(meta) {
-          !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
-        },
-        logical(1)
-      )
-    ]
-    
-    if (length(active_dims) == 0) {
-      return(helpText("No additional filter dimensions are available."))
-    }
-    
-    tagList(
-      lapply(names(active_dims), function(dim_id) {
-        meta <- active_dims[[dim_id]]
-        
-        if (identical(dim_id, "measured_element")) {
-          return(
-            card(
-              card_header(meta$label),
-              uiOutput("measured_element_checkbox_filter")
-            )
-          )
-        }
-        
-        card(
-          card_header(meta$label),
-          
-          div(
-            style = paste(
-              "max-height: 190px;",
-              "overflow-y: auto;",
-              "overflow-x: auto;",
-              "border: 1px solid #e5e5e5;",
-              "border-radius: 6px;",
-              "padding: 6px;",
-              "background-color: white;"
-            ),
-            
-            div(
-              id = paste0(
-                "filter_tree_wrapper_",
-                dim_id,
-                "_",
-                reset_id
-              ),
-              
-              shinyTree(
-                paste0("filter_tree_", dim_id),
-                checkbox = TRUE,
-                search = TRUE,
-                themeIcons = FALSE,
-                themeDots = TRUE,
-                three_state = FALSE,
-                tie_selection = TRUE,
-                whole_node = FALSE
-              )
-            )
-          ),
-          
-          hr(),
-          
-          div(
-            style = "padding: 0 6px 6px 6px;",
-            
-            strong("Selected filters:"),
-            
-            uiOutput(
-              paste0(
-                "selected_filter_summary_",
-                dim_id
-              )
-            )
-          )
-        )
-      })
-    )
-  })
-  
-  
-  output$aggregation_controls_ui <- renderUI({
-    
-    req(
-      dataset_data(),
-      input$dataset_id
-    )
-    
-    dt <- dataset_data()
-    
-    # One explanation only. The same four modes are then shown
-    # independently for every aggregation dimension.
-    controls <- list(
-      tags$details(
-        class = "aggregation-help",
-        
-        tags$summary(
-          "How the aggregation controls work"
-        ),
-        
-        div(
-          class = "aggregation-help-body",
-          
-          p(
-            paste0(
-              "Filters decide which records are included. ",
-              "Aggregation decides how those filtered records ",
-              "are grouped in the output."
-            )
-          ),
-          
-          p(
-            tags$b(
-              "Available aggregation hierarchies: "
-            ),
-            paste0(
-              "for direct-child and custom aggregation, the tree shows every ",
-              "hierarchy classification containing at least one filtered raw code. ",
-              "The classification names are shown as separate top-level roots. ",
-              "For example, filtered ASFIS species may appear under both ISSCAAP ",
-              "and TAXONOMIC, allowing filtering through one classification and ",
-              "aggregation through the other."
-            )
-          ),
-          
-          tags$ul(
-            tags$li(
-              tags$b("Keep filtered codes separate: "),
-              paste0(
-                "no grouping is applied to that dimension. ",
-                "Every detailed code remaining after filtering stays separate."
-              )
-            ),
-            
-            tags$li(
-              tags$b("Combine all filtered values into one output: "),
-              paste0(
-                "all remaining codes for that dimension are combined into one result. ",
-                "If exactly one hierarchy node was selected in the filter, its code ",
-                "is retained; otherwise the output code is TOTAL."
-              )
-            ),
-            
-            
-            tags$li(
-              tags$b(
-                "Aggregate selected filter groups separately: "
-              ),
-              paste0(
-                "one output is created for each effective hierarchy group selected ",
-                "in the filter. Each selected parent includes all filtered descendants ",
-                "beneath it. For example, selecting Europe and Asia in the filter ",
-                "produces separate Europe and Asia outputs. Selecting 1501, 1502 and ",
-                "1503 produces separate outputs for 1501, 1502 and 1503. If only ",
-                "ISSCAAP is selected, the output is one ISSCAAP group."
-              )
-            ),
-            
-            
-            tags$li(
-              tags$b(
-                "Aggregate by direct children of one or more hierarchy classes: "
-              ),
-              paste0(
-                "select one or more non-overlapping parent nodes in the hierarchy. ",
-                "Every direct child beneath each selected parent becomes a separate ",
-                "output and includes all descendants beneath that child. For example, ",
-                "selecting ISSCAAP produces one output for every direct ISSCAAP class; ",
-                "selecting 1501, 1502 and 1503 produces the direct children of all ",
-                "three selected classes."
-              )
-            ),
-            
-            tags$li(
-              tags$b("Custom aggregation: "),
-              paste0(
-                "select one or more hierarchy nodes and combine the selected nodes ",
-                "and all their descendants into one output. One selected node keeps ",
-                "its code; several selected nodes are labelled as a Custom Aggregation. ",
-                "All filtered classes not included in the custom aggregation are combined ",
-                "into one dimension-specific Other output."
-              )
-            ),
-            
-            tags$li(
-              tags$b("Total all selected years into one period: "),
-              paste0(
-                "combines all selected years into one period instead of ",
-                "keeping annual rows."
-              )
-            ),
-            
-            tags$li(
-              tags$b("Aggregate separately by observation flag: "),
-              paste0(
-                "keeps observation-status categories separate throughout the ",
-                "aggregation. For example, A records are aggregated only with A ",
-                "records, E records only with E records, and N records only with N ",
-                "records. The observation flag is preserved in the result."
-              )
-            )
-          )
-        )
-      )
-    )
-    
-    for (
-      dim_id in names(
-        AGGREGATION_DIMENSIONS
-      )
-    ) {
-      
-      meta <- AGGREGATION_DIMENSIONS[[dim_id]]
-      
-      if (
-        is.null(meta$dataset_column) ||
-        !meta$dataset_column %in% names(dt)
-      ) {
-        next
-      }
-      
-      hierarchy_available <- length(
-        tryCatch(
-          get_aggregation_root_choices(meta),
-          error = function(e) character(0)
-        )
-      ) > 0
-      
-      mode_choices <- c(
-        "Keep filtered codes separate — no aggregation" =
-          "none",
-        
-        "Combine all filtered values into one output" =
-          "total"
-      )
-      
-      if (isTRUE(hierarchy_available)) {
-        mode_choices <- c(
-          mode_choices,
-          
-          "Aggregate selected filter groups separately" =
-            "selected_groups",
-          
-          "Aggregate by direct children of one or more hierarchy classes" =
-            "classification"
-        )
-      }
-      
-      mode_choices <- c(
-        mode_choices,
-        
-        "Custom aggregation — combine selected nodes into one output" =
-          "custom"
-      )
-      
-      classification_control <- if (
-        isTRUE(hierarchy_available)
-      ) {
-        conditionalPanel(
-          condition = paste0(
-            "input.aggregation_mode_",
-            dim_id,
-            " == 'classification'"
-          ),
-          
-          tagList(
-            tags$strong(
-              "Select one or more non-overlapping hierarchy parents."
-            ),
-            
-            tags$p(
-              style = "margin-bottom: 6px;",
-              paste0(
-                "The top-level nodes identify the available hierarchy classifications. ",
-                "For example, ISSCAAP and TAXONOMIC are displayed as separate roots ",
-                "when both contain filtered ASFIS species. ",
-                "Tick the boxes beside one or more non-overlapping parent classes. ",
-                "Each direct child of every selected parent becomes a separate output ",
-                "and includes all descendants beneath that child. Other filtered codes ",
-                "in the same dimension are combined into the dimension-specific Other output."
-              )
-            )
-          ),
-          
-          div(
-            style = paste(
-              "max-height: 260px;",
-              "overflow-y: auto;",
-              "overflow-x: auto;",
-              "border: 1px solid #e5e5e5;",
-              "border-radius: 6px;",
-              "padding: 6px;",
-              "margin-top: 6px;",
-              "background-color: white;"
-            ),
-            
-            shinyTree(
-              paste0(
-                "aggregation_classification_tree_",
-                dim_id
-              ),
-              checkbox = TRUE,
-              search = TRUE,
-              themeIcons = FALSE,
-              themeDots = TRUE,
-              multiple = TRUE,
-              three_state = FALSE,
-              tie_selection = TRUE,
-              whole_node = FALSE,
-              wholerow = TRUE
-            )
-          ),
-          
-          div(
-            class = "tree-selection-summary-block",
-            
-            strong(
-              "Selected aggregation parents:"
-            ),
-            
-            uiOutput(
-              paste0(
-                "selected_aggregation_classification_summary_",
-                dim_id
-              )
-            )
-          )
-        )
-      } else {
-        NULL
-      }
-      
-      custom_control <- conditionalPanel(
-        condition = paste0(
-          "input.aggregation_mode_",
-          dim_id,
-          " == 'custom'"
-        ),
-        
-        tags$strong(
-          paste0(
-            "The top-level nodes identify every hierarchy classification containing ",
-            "the filtered raw codes. Select one or more nodes from any available ",
-            "classification and combine them into one custom output. All other ",
-            "filtered records are combined into the dimension-specific Other output."
-          )
-        ),
-        
-        div(
-          style = paste(
-            "max-height: 260px;",
-            "overflow-y: auto;",
-            "overflow-x: auto;",
-            "border: 1px solid #e5e5e5;",
-            "border-radius: 6px;",
-            "padding: 6px;",
-            "margin-top: 6px;",
-            "background-color: white;"
-          ),
-          
-          shinyTree(
-            paste0(
-              "aggregation_custom_tree_",
-              dim_id
-            ),
-            checkbox = TRUE,
-            search = TRUE,
-            themeIcons = FALSE,
-            themeDots = TRUE,
-            three_state = FALSE,
-            tie_selection = TRUE,
-            whole_node = FALSE
-          )
-        ),
-        
-        div(
-          class = "tree-selection-summary-block",
-          
-          strong(
-            "Selected custom aggregation nodes:"
-          ),
-          
-          uiOutput(
-            paste0(
-              "selected_aggregation_custom_summary_",
-              dim_id
-            )
-          )
-        )
-      )
-      
-      controls <- c(
-        controls,
-        list(
-          div(
-            style = paste(
-              "border: 1px solid #dddddd;",
-              "border-radius: 6px;",
-              "padding: 10px;",
-              "margin-bottom: 12px;"
-            ),
-            
-            tags$strong(meta$label),
-            
-            radioButtons(
-              inputId = paste0(
-                "aggregation_mode_",
-                dim_id
-              ),
-              
-              label = NULL,
-              
-              choices = mode_choices,
-              
-              selected = "none"
-            ),
-            
-            classification_control,
-            custom_control
-          )
-        )
-      )
-    }
-    
-    controls <- c(
-      controls,
-      list(
-        checkboxInput(
-          "aggregate_selected_years",
-          "Total all selected years into one period",
-          value = FALSE
-        )
-      )
-    )
-    
-    cfg <- get_dataset_config(
-      input$dataset_id
-    )
-    
-    tagList(controls)
-  })
-  
-  
   # Classification aggregation displays only hierarchy branches
   # that overlap the currently filtered data.
   for (dim_id in names(AGGREGATION_DIMENSIONS)) {
@@ -13562,7 +13332,7 @@ server <- function(input, output, session) {
       ]] <- renderTree({
         
         req(
-          dataset_data(),
+          dataset_codes(),
           input$dataset_id
         )
         
@@ -13593,7 +13363,7 @@ server <- function(input, output, session) {
       ]] <- renderTree({
         
         req(
-          dataset_data(),
+          dataset_codes(),
           input$dataset_id
         )
         
@@ -13625,7 +13395,7 @@ server <- function(input, output, session) {
       ]] <- renderUI({
         
         req(
-          dataset_data(),
+          dataset_codes(),
           input$dataset_id
         )
         
@@ -13656,7 +13426,7 @@ server <- function(input, output, session) {
       ]] <- renderUI({
         
         req(
-          dataset_data(),
+          dataset_codes(),
           input$dataset_id
         )
         
@@ -13686,18 +13456,26 @@ server <- function(input, output, session) {
       meta <- FILTER_DIMENSIONS[[current_dim]]
       
       output[[paste0("filter_tree_", current_dim)]] <- renderTree({
-        req(dataset_data(), input$dataset_id)
+        req(
+          dataset_codes(),
+          input$dataset_id
+        )
         
         tree_reset_counter()
         
-        dt <- dataset_data()
-        
         if (
           is.null(meta$dataset_column) ||
-          !meta$dataset_column %in% names(dt)
+          !meta$dataset_column %in%
+          names(dataset_codes())
         ) {
           return(list())
         }
+        
+        available_values <- clean_non_empty_codes(
+          dataset_codes()[[
+            meta$dataset_column
+          ]]
+        )
         
         configured_roots <- get_configured_roots_for_dimension(
           meta
@@ -13710,8 +13488,9 @@ server <- function(input, output, session) {
         # ------------------------------------------------------------
         if (identical(current_dim, "measured_element")) {
           
-          values <- sort(unique(as.character(dt[[meta$dataset_column]])))
-          values <- values[!is.na(values) & nzchar(values)]
+          values <- sort(
+            available_values
+          )
           
           if (length(values) == 0) {
             return(list())
@@ -13791,17 +13570,8 @@ server <- function(input, output, session) {
         if (current_dim %in% c("observation_flag", "currency_flag")) {
           
           values <- sort(
-            unique(
-              as.character(
-                dt[[meta$dataset_column]]
-              )
-            )
+            available_values
           )
-          
-          values <- values[
-            !is.na(values) &
-              nzchar(values)
-          ]
           
           if (length(configured_roots) > 0) {
             values <- intersect(
@@ -13827,9 +13597,7 @@ server <- function(input, output, session) {
         if (!is.null(meta$codelist)) {
           
           raw_codes <- sort(
-            clean_non_empty_codes(
-              dt[[meta$dataset_column]]
-            )
+            available_values
           )
           
           if (length(raw_codes) == 0L) {
@@ -13972,10 +13740,14 @@ server <- function(input, output, session) {
           )
         }
         
-        values <- sort(unique(as.character(dt[[meta$dataset_column]])))
-        values <- values[!is.na(values) & nzchar(values)]
+        values <- sort(
+          available_values
+        )
         
-        flat_tree <- as.list(rep("", length(values)))
+        flat_tree <- as.list(
+          rep("", length(values))
+        )
+        
         names(flat_tree) <- values
         
         flat_tree
@@ -13991,7 +13763,7 @@ server <- function(input, output, session) {
       ]] <- renderUI({
         
         req(
-          dataset_data(),
+          dataset_codes(),
           input$dataset_id
         )
         
@@ -14032,18 +13804,14 @@ server <- function(input, output, session) {
   
   observeEvent(input$reset_filter_page, {
     
-    showNotification(
-      "Reset button clicked.",
-      type = "default",
-      duration = 3
-    )
-    
-    if (is.null(dataset_data()) ||
-        is.null(input$dataset_id) ||
-        !nzchar(input$dataset_id)) {
+    if (
+      is.null(dataset_codes()) ||
+      is.null(input$dataset_id) ||
+      !nzchar(input$dataset_id)
+    ) {
       
       showNotification(
-        "No dataset is loaded, so there is nothing to reset.",
+        "No dataset structure is loaded, so there is nothing to reset.",
         type = "warning",
         duration = 8
       )
@@ -14051,11 +13819,6 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    cfg <- get_dataset_config(input$dataset_id)
-    dt <- dataset_data()
-    
-    # Clear outputs/results, but keep the loaded dataset.
-    #aggregated_data(NULL)
     aggregated_outputs(list())
     filter_debug(NULL)
     aggregation_input_data(NULL)
@@ -14063,75 +13826,84 @@ server <- function(input, output, session) {
     last_comparison_state(NULL)
     comparison_results(NULL)
     
+    # ------------------------------------------------------------
     # Reset year range.
-    years <- get_year_values(
-      data = dt,
-      year_col = cfg$year_col
-    )
+    # ------------------------------------------------------------
     
-    if (length(years) > 0) {
+    years <- available_years()
+    
+    if (length(years) > 0L) {
       updateSliderInput(
         session,
         "year_range",
-        value = c(min(years), max(years))
+        value = c(
+          min(years),
+          max(years)
+        )
       )
     }
     
-    # Reset measured elements to the first configured measured-element root.
-    measured_col <- cfg$measured_element_col
+    # ------------------------------------------------------------
+    # Reset measured element to the first available configured one.
+    # ------------------------------------------------------------
     
-    if (
-      !is.null(measured_col) &&
-      measured_col %in% names(dt) &&
-      !is.null(loaded_dataset_info())
-    ) {
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    measured_elements <-
+      available_measured_elements()
+    
+    if (length(measured_elements) > 0L) {
       
-      measured_roots <- get_effective_measured_elements(
-        dataset_info = loaded_dataset_info(),
-        data = dt,
-        measured_col = measured_col
+      codes <- tryCatch(
+        get_codelist_codes(
+          "measuredElement"
+        ),
+        error = function(e) NULL
       )
       
-      if (length(measured_roots) > 0) {
-        
-        codes <- tryCatch(
-          get_codelist_codes("measuredElement"),
-          error = function(e) NULL
-        )
-        
-        roots_dt <- data.table(
-          measured_element_root = measured_roots
-        )
-        
-        setnames(
-          roots_dt,
-          "measured_element_root",
-          measured_col
-        )
-        
-        measured_choices <- make_filter_choices_from_data(
-          data = roots_dt,
-          column_name = measured_col,
+      measured_dt <- data.table(
+        measured_element =
+          measured_elements
+      )
+      
+      setnames(
+        measured_dt,
+        "measured_element",
+        cfg$measured_element_col
+      )
+      
+      measured_choices <-
+        make_filter_choices_from_data(
+          data = measured_dt,
+          column_name =
+            cfg$measured_element_col,
           codes = codes
         )
+      
+      if (length(measured_choices) > 0L) {
         
-        if (length(measured_choices) > 0) {
-          updateCheckboxGroupInput(
-            session,
-            "filter_measured_element_values",
-            choices = measured_choices,
-            selected = unname(measured_choices)[1]
-          )
-        }
+        updateCheckboxGroupInput(
+          session,
+          "filter_measured_element_values",
+          choices = measured_choices,
+          selected =
+            unname(measured_choices)[1L]
+        )
       }
     }
     
-    # Reset classification and custom aggregation controls.
+    # ------------------------------------------------------------
+    # Reset aggregation modes.
+    # ------------------------------------------------------------
+    
     for (
       dim_id in names(
         AGGREGATION_DIMENSIONS
       )
     ) {
+      
       updateRadioButtons(
         session,
         paste0(
@@ -14140,7 +13912,6 @@ server <- function(input, output, session) {
         ),
         selected = "none"
       )
-      
     }
     
     updateCheckboxInput(
@@ -14155,21 +13926,24 @@ server <- function(input, output, session) {
       value = FALSE
     )
     
-    updateCheckboxInput(
-      session,
-      "aggregate_selected_years",
-      value = FALSE
+    tree_reset_counter(
+      isolate(
+        tree_reset_counter()
+      ) + 1
     )
-    # Force the filter UI to rebuild.
-    tree_reset_counter(isolate(tree_reset_counter()) + 1)
     
-    # Clear the checked nodes inside the browser-side shinyTree widgets.
+    available_columns <-
+      names(
+        dataset_codes()
+      )
+    
     active_dims <- FILTER_DIMENSIONS[
       vapply(
         FILTER_DIMENSIONS,
         function(meta) {
           !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
+            meta$dataset_column %in%
+            available_columns
         },
         logical(1)
       )
@@ -14192,56 +13966,296 @@ server <- function(input, output, session) {
         AGGREGATION_DIMENSIONS,
         function(meta) {
           !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
+            meta$dataset_column %in%
+            available_columns
         },
         logical(1)
       )
     ]
     
-    classification_tree_ids <- paste0(
-      "aggregation_classification_tree_",
-      custom_tree_dims
-    )
-    
-    custom_tree_ids <- paste0(
-      "aggregation_custom_tree_",
-      custom_tree_dims
-    )
-    
     tree_ids <- c(
       filter_tree_ids,
-      classification_tree_ids,
-      custom_tree_ids
+      paste0(
+        "aggregation_classification_tree_",
+        custom_tree_dims
+      ),
+      paste0(
+        "aggregation_custom_tree_",
+        custom_tree_dims
+      )
     )
     
     session$onFlushed(
       function() {
         session$sendCustomMessage(
           "clear_shiny_trees",
-          list(ids = tree_ids)
+          list(
+            ids = tree_ids
+          )
         )
       },
       once = TRUE
     )
     
     showNotification(
-      "Filters and aggregation page reset. Tree selections were cleared.",
+      "Filters and aggregation page reset.",
       type = "message",
       duration = 8
     )
   })
   
+  build_main_dimension_filters <- function() {
+    
+    req(
+      dataset_codes(),
+      input$dataset_id,
+      input$year_range
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    filters <- list()
+    
+    # ------------------------------------------------------------
+    # Years
+    # ------------------------------------------------------------
+    
+    filters[[cfg$year_col]] <-
+      as.character(
+        seq(
+          input$year_range[1],
+          input$year_range[2]
+        )
+      )
+    
+    # ------------------------------------------------------------
+    # Measured elements
+    # ------------------------------------------------------------
+    
+    selected_measured_elements <-
+      clean_non_empty_codes(
+        input$filter_measured_element_values
+      )
+    
+    if (
+      length(selected_measured_elements) > 0L &&
+      !is.null(cfg$measured_element_col)
+    ) {
+      
+      filters[[
+        cfg$measured_element_col
+      ]] <- selected_measured_elements
+    }
+    
+    # ------------------------------------------------------------
+    # Hierarchical dimensions.
+    # ------------------------------------------------------------
+    
+    dimension_ids <- c(
+      "geographical_area",
+      "species",
+      "fishing_area",
+      "production_source"
+    )
+    
+    for (dim_id in dimension_ids) {
+      
+      meta <- FILTER_DIMENSIONS[[
+        dim_id
+      ]]
+      
+      if (
+        is.null(meta) ||
+        is.null(meta$dataset_column) ||
+        !meta$dataset_column %in%
+        names(dataset_codes())
+      ) {
+        next
+      }
+      
+      tree_input <- input[[
+        paste0(
+          "filter_tree_",
+          dim_id
+        )
+      ]]
+      
+      if (is.null(tree_input)) {
+        next
+      }
+      
+      codes <- NULL
+      
+      if (!is.null(meta$codelist)) {
+        codes <- tryCatch(
+          get_codelist_codes(
+            meta$codelist
+          ),
+          error = function(e) NULL
+        )
+      }
+      
+      tree_dt <- NULL
+      
+      if (!is.null(meta$codelist)) {
+        tree_dt <- tryCatch(
+          get_codelist_tree_cached(
+            meta$codelist
+          ),
+          error = function(e) NULL
+        )
+      }
+      
+      selected_codes <-
+        get_selected_codes_from_tree(
+          tree_input = tree_input,
+          codes = codes,
+          tree_dt = tree_dt,
+          expand_descendants = TRUE,
+          selection_rule =
+            "most_specific",
+          codelist_id =
+            meta$codelist
+        )
+      
+      selected_codes <-
+        clean_non_empty_codes(
+          selected_codes
+        )
+      
+      if (length(selected_codes) == 0L) {
+        next
+      }
+      
+      available_codes <-
+        clean_non_empty_codes(
+          dataset_codes()[[
+            meta$dataset_column
+          ]]
+        )
+      
+      selected_codes <- intersect(
+        selected_codes,
+        available_codes
+      )
+      
+      if (length(selected_codes) > 0L) {
+        
+        filters[[
+          meta$dataset_column
+        ]] <- selected_codes
+      }
+    }
+    
+    filters
+  }
+  
+  
+  get_analysis_data_for_run <- function() {
+    
+    req(
+      input$dataset_id,
+      loaded_dataset_info()
+    )
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
+    # ------------------------------------------------------------
+    # Tagged datasets are already loaded completely.
+    # ------------------------------------------------------------
+    
+    if (identical(
+      loaded_dataset_source(),
+      "tagged"
+    )) {
+      
+      req(dataset_data())
+      
+      return(
+        copy(
+          base_analysis_data()
+        )
+      )
+    }
+    
+    # ------------------------------------------------------------
+    # Current / Disseminated:
+    # retrieve only the selected subset from SWS.
+    # ------------------------------------------------------------
+    
+    dimension_filters <-
+      build_main_dimension_filters()
+    
+    dt <- as.data.table(
+      readDataset(
+        dataset_id =
+          input$dataset_id,
+        filter_by_dimension =
+          dimension_filters
+      )
+    )
+    
+    dt <- normalise_and_drop_empty_values(
+      data = dt,
+      value_col = cfg$value_col
+    )
+    
+    validate_dataset_columns(
+      data = dt,
+      dataset_id =
+        input$dataset_id
+    )
+    
+    dt <- restrict_to_active_configured_codes(
+      data = dt,
+      dataset_info =
+        loaded_dataset_info()
+    )
+    
+    dt <- restrict_to_effective_measured_elements(
+      data = dt,
+      dataset_info =
+        loaded_dataset_info(),
+      measured_col =
+        cfg$measured_element_col
+    )
+    
+    dt[]
+  }
+  
+  
   get_current_filtered_data <- function(
     exclude_dims = character(0),
-    update_debug = TRUE
+    update_debug = TRUE,
+    data = NULL
   ) {
-    req(dataset_data(), input$dataset_id)
     
-    cfg <- get_dataset_config(input$dataset_id)
+    req(input$dataset_id)
+    
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
     
     debug_lines <- character(0)
     
-    dt <- copy(base_analysis_data())
+    if (is.null(data)) {
+      
+      req(dataset_data())
+      
+      dt <- copy(
+        base_analysis_data()
+      )
+      
+    } else {
+      
+      dt <- copy(
+        as.data.table(data)
+      )
+    }
     
     debug_lines <- c(
       debug_lines,
@@ -15026,7 +15040,11 @@ server <- function(input, output, session) {
               detail = "Checking loaded dataset..."
             )
             
-            req(dataset_data(), input$dataset_id)
+            req(
+              dataset_codes(),
+              loaded_dataset_info(),
+              input$dataset_id
+            )
             
             # Invalidate the previous aggregation immediately.
             # A failed new run must not leave the old aggregation
@@ -15048,13 +15066,23 @@ server <- function(input, output, session) {
             
             incProgress(
               amount = 0.10,
+              detail = "Retrieving selected data..."
+            )
+            
+            source_dt <-
+              get_analysis_data_for_run()
+            
+            incProgress(
+              amount = 0.05,
               detail = "Applying selected filters..."
             )
             
-            # This can be slow, so it must be inside withProgress().
             dt <- get_current_filtered_data(
-              exclude_dims = "measured_element"
+              exclude_dims = "measured_element",
+              data = source_dt
             )
+            
+            rm(source_dt)
             
             if (nrow(dt) == 0) {
               showNotification(
