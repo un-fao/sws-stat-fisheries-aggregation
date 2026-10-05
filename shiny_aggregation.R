@@ -6025,6 +6025,40 @@ server <- function(input, output, session) {
   }
   
   
+  restrict_to_effective_measured_elements <- function(
+    data,
+    dataset_info,
+    measured_col
+  ) {
+    
+    dt <- as.data.table(data)
+    
+    if (
+      is.null(measured_col) ||
+      !measured_col %in% names(dt)
+    ) {
+      return(dt)
+    }
+    
+    effective_measured_elements <-
+      get_effective_measured_elements(
+        dataset_info = dataset_info,
+        data = dt,
+        measured_col = measured_col
+      )
+    
+    if (length(effective_measured_elements) == 0L) {
+      return(dt[0])
+    }
+    
+    dt[
+      as.character(
+        get(measured_col)
+      ) %in%
+        effective_measured_elements
+    ]
+  }
+  
   #Retrieve and clean the configured roots associated with an aggregation dimension.
   get_configured_roots_for_dimension <- function(meta) {
     
@@ -7068,6 +7102,13 @@ server <- function(input, output, session) {
           input$dataset_id
         )
         
+        # ------------------------------------------------------------
+        # Load the selected comparison source.
+        # Source-specific code should only retrieve the data,
+        # metadata and source label.
+        # All restrictions are applied once afterwards.
+        # ------------------------------------------------------------
+        
         if (identical(
           input$comparison_source,
           "current"
@@ -7086,22 +7127,6 @@ server <- function(input, output, session) {
             )
           )
           
-          dt <- normalise_and_drop_empty_values(
-            data = dt,
-            value_col = current_cfg$value_col
-          )
-          
-          dt <- restrict_to_active_configured_codes(
-            data = dt,
-            dataset_info = comparison_info
-          )
-          
-          comparison_dataset_info(
-            comparison_info
-          )
-          
-          comparison_data(dt)
-          
           comparison_metadata(
             list(
               source = "current",
@@ -7113,7 +7138,12 @@ server <- function(input, output, session) {
           )
         }
         
-        if (identical(input$comparison_source, "disseminated")) {
+        
+        if (identical(
+          input$comparison_source,
+          "disseminated"
+        )) {
+          
           req(input$comparison_dataset_id)
           
           comparison_info <- getDatasetInfo(
@@ -7122,38 +7152,28 @@ server <- function(input, output, session) {
           
           dt <- as.data.table(
             readDataset(
-              dataset_id = input$comparison_dataset_id
+              dataset_id =
+                input$comparison_dataset_id
             )
           )
           
-          dt <- normalise_and_drop_empty_values(
-            data = dt,
-            value_col = current_cfg$value_col
-          )
-          
-          dt <- restrict_to_active_configured_codes(
-            data = dt,
-            dataset_info = comparison_info
-          )
-          
-          comparison_dataset_info(
-            comparison_info
-          )
-          
-          comparison_data(dt)
           comparison_metadata(
             list(
               source = "disseminated",
               id = input$comparison_dataset_id,
               label = input$comparison_dataset_id,
-              base_dataset = input$comparison_dataset_id
+              base_dataset =
+                input$comparison_dataset_id
             )
           )
         }
         
         
-        
-        if (identical(input$comparison_source, "tagged")) {
+        if (identical(
+          input$comparison_source,
+          "tagged"
+        )) {
+          
           req(
             input$comparison_base_dataset_id,
             input$comparison_tag_id
@@ -7165,40 +7185,82 @@ server <- function(input, output, session) {
           
           dt <- as.data.table(
             getTagData(
-              as.character(input$comparison_tag_id)
+              as.character(
+                input$comparison_tag_id
+              )
             )
-          )
-          
-          dt <- normalise_and_drop_empty_values(
-            data = dt,
-            value_col = current_cfg$value_col
-          )
-          
-          dt <- restrict_to_active_configured_codes(
-            data = dt,
-            dataset_info = comparison_info
-          )
-          
-          comparison_dataset_info(
-            comparison_info
           )
           
           tag_info <- as.data.table(
-            getAllTags(dataset = input$comparison_base_dataset_id)
+            getAllTags(
+              dataset =
+                input$comparison_base_dataset_id
+            )
           )
-          tag_info[, id := as.character(id)]
-          tag_row <- tag_info[id == as.character(input$comparison_tag_id)]
           
-          comparison_data(dt)
+          tag_info[
+            ,
+            id := as.character(id)
+          ]
+          
+          tag_row <- tag_info[
+            id ==
+              as.character(
+                input$comparison_tag_id
+              )
+          ]
+          
           comparison_metadata(
             list(
               source = "tagged",
-              id = as.character(input$comparison_tag_id),
-              label = if (nrow(tag_row) > 0) tag_row$name[1] else as.character(input$comparison_tag_id),
-              base_dataset = input$comparison_base_dataset_id
+              id =
+                as.character(
+                  input$comparison_tag_id
+                ),
+              label =
+                if (nrow(tag_row) > 0L) {
+                  as.character(
+                    tag_row$name[1L]
+                  )
+                } else {
+                  as.character(
+                    input$comparison_tag_id
+                  )
+                },
+              base_dataset =
+                input$comparison_base_dataset_id
             )
           )
         }
+        
+        
+        # ------------------------------------------------------------
+        # Common processing for EVERY comparison dataset.
+        # From this point on, source no longer matters.
+        # ------------------------------------------------------------
+        
+        dt <- normalise_and_drop_empty_values(
+          data = dt,
+          value_col = current_cfg$value_col
+        )
+        
+        dt <- restrict_to_active_configured_codes(
+          data = dt,
+          dataset_info = comparison_info
+        )
+        
+        dt <- restrict_to_effective_measured_elements(
+          data = dt,
+          dataset_info = comparison_info,
+          measured_col =
+            current_cfg$measured_element_col
+        )
+        
+        comparison_dataset_info(
+          comparison_info
+        )
+        
+        comparison_data(dt)
         
         comparison_results(NULL)
         
@@ -11182,13 +11244,12 @@ server <- function(input, output, session) {
       
       tags$p(
         tags$strong("Dataset group: "),
-        ifelse(
-          identical(
-            cfg$dataset_group,
-            "current"
-          ),
-          "Current Fisheries dataset",
-          "Disseminated / previous dataset"
+        switch(
+          loaded_dataset_source() %||% cfg$dataset_group,
+          current = "Current Fisheries dataset",
+          disseminated = "Disseminated / previous dataset",
+          tagged = "Tagged Fisheries dataset",
+          "Unknown"
         )
       ),
       
