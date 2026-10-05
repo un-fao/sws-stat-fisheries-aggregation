@@ -373,6 +373,20 @@ get_dataset_choices <- function(dataset_group = NULL) {
 }
 
 
+get_primary_dataset_choices <- function(dataset_group = NULL) {
+  
+  # Tags belong to a base Fisheries dataset.
+  # Therefore the first selector must show the current Fisheries
+  # datasets whose tags can then be retrieved.
+  if (identical(dataset_group, "tagged")) {
+    return(
+      get_dataset_choices("current")
+    )
+  }
+  
+  get_dataset_choices(dataset_group)
+}
+
 # Check that the selected dataset contains all required columns
 # and report any missing optional columns.
 validate_dataset_columns <- function(data, dataset_id) {
@@ -4647,7 +4661,8 @@ ui <- page_navbar(
           "Dataset group",
           choices = c(
             "Current Fisheries datasets" = "current",
-            "Previous disseminated datasets" = "disseminated"
+            "Previous disseminated datasets" = "disseminated",
+            "Tagged Fisheries datasets" = "tagged"
           ),
           selected = "current"
         ),
@@ -4661,6 +4676,7 @@ ui <- page_navbar(
             maxOptions = 5000
           )
         ),
+        uiOutput("primary_tag_selector"),
         
         textOutput("dataset_count"),
         
@@ -4834,35 +4850,29 @@ ui <- page_navbar(
         card_header("Comparison unavailable"),
         
         p(
-          "Comparison can be run only when the main loaded dataset is a ",
-          "current Fisheries dataset."
+          "Comparison is available when the main loaded dataset is a current ",
+          "Fisheries dataset or a tagged version of a current Fisheries dataset."
         ),
         
         p(
-          "The loaded dataset is disseminated, so it can still be filtered, ",
-          "aggregated, plotted and analysed for outliers, but it cannot be used ",
-          "as the main dataset on the Comparison page."
-        ),
-        
-        p(
-          "To run a comparison, return to Data selection, load the corresponding ",
-          "current dataset, run the aggregation, and then compare it with either ",
-          "a disseminated dataset or one of its tagged datasets."
+          "A disseminated dataset can still be filtered, aggregated, plotted and ",
+          "analysed for outliers, but it cannot currently be used as the main ",
+          "dataset on the Comparison page."
         )
       )
     ),
     
-    # All normal comparison controls are displayed only for current datasets.
+    # Comparison controls are displayed for current datasets
+    # and tagged versions of current Fisheries datasets.
     conditionalPanel(
       condition = "output.comparison_available",
       
       card(
-        card_header("Current vs comparison dataset"),
+        card_header("Main vs comparison dataset"),
         
         p(
-          "This page allows the user to select a comparison dataset either from ",
-          "the disseminated domain or from the list of tagged datasets available ",
-          "for the currently loaded Fisheries dataset."
+          "Compare the currently loaded dataset with a current Fisheries dataset, ",
+          "a disseminated dataset, or a tagged dataset."
         )
       ),
       
@@ -4874,10 +4884,11 @@ ui <- page_navbar(
             "comparison_source",
             "Comparison dataset source",
             choices = c(
+              "Current Fisheries datasets" = "current",
               "Disseminated domain" = "disseminated",
               "Tagged datasets" = "tagged"
             ),
-            selected = "disseminated"
+            selected = "current"
           ),
           
           uiOutput("comparison_dataset_selector"),
@@ -4946,7 +4957,7 @@ ui <- page_navbar(
               
               card(
                 full_screen = TRUE,
-                card_header("Current vs comparison dataset"),
+                card_header("Main vs comparison dataset"),
                 
                 plotOutput(
                   "comparison_time_series_plot",
@@ -5824,6 +5835,15 @@ server <- function(input, output, session) {
   user <- reactiveVal(NULL)
   dataset_data <- reactiveVal(NULL)
   loaded_dataset_id <- reactiveVal(NULL)
+  
+  # Actual source used to load the main data:
+  # current, disseminated or tagged.
+  loaded_dataset_source <- reactiveVal(NULL)
+  
+  # Only populated when the main source is tagged.
+  loaded_tag_id <- reactiveVal(NULL)
+  loaded_tag_label <- reactiveVal(NULL)
+  
   dataset_loading <- reactiveVal(FALSE)
   dataset_config_ready <- reactiveVal(FALSE)
   comparison_dataset_loading <- reactiveVal(FALSE)
@@ -6648,13 +6668,79 @@ server <- function(input, output, session) {
     stats::setNames(tags$id, tags$label)
   }
   
+  output$primary_tag_selector <- renderUI({
+    
+    if (!identical(
+      input$dataset_group,
+      "tagged"
+    )) {
+      return(NULL)
+    }
+    
+    req(input$dataset_id)
+    
+    choices <- get_tagged_dataset_choices(
+      input$dataset_id
+    )
+    
+    if (length(choices) == 0L) {
+      return(
+        helpText(
+          "No tags were found for the selected dataset."
+        )
+      )
+    }
+    
+    selectizeInput(
+      "primary_tag_id",
+      "Tagged dataset",
+      choices = choices,
+      selected = character(0),
+      options = list(
+        placeholder = "Choose a tagged dataset",
+        maxOptions = 5000
+      )
+    )
+  })
+  
+  
   
   
   output$comparison_dataset_selector <- renderUI({
     req(input$comparison_source)
     
-    if (identical(input$comparison_source, "disseminated")) {
+    if (identical(
+      input$comparison_source,
+      "current"
+    )) {
       
+      choices <- get_dataset_choices(
+        "current"
+      )
+      
+      if (length(choices) == 0L) {
+        return(
+          helpText(
+            "No current Fisheries datasets are available."
+          )
+        )
+      }
+      
+      return(
+        selectizeInput(
+          "comparison_dataset_id",
+          "Comparison current dataset",
+          choices = choices,
+          selected = character(0),
+          options = list(
+            placeholder = "Choose a current Fisheries dataset",
+            maxOptions = 5000
+          )
+        )
+      )
+    }
+    
+    if (identical(input$comparison_source, "disseminated")) {
       choices <- get_dataset_choices("disseminated")
       
       if (length(choices) == 0) {
@@ -6746,7 +6832,7 @@ server <- function(input, output, session) {
       strong("Compatibility warning"),
       
       tags$p(
-        "The selected comparison dataset may not correspond to the current dataset. ",
+        "The selected comparison dataset may not correspond to the main dataset. ",
         "Please check before running the comparison."
       ),
       
@@ -6786,7 +6872,7 @@ server <- function(input, output, session) {
       
       tags$p(
         paste0(
-          "The current and comparison datasets do not contain exactly ",
+          "The main and comparison datasets do not contain exactly ",
           "the same filtered dimension codes. The same filters and ",
           "aggregation rules were applied, and the comparison was continued."
         )
@@ -6901,7 +6987,9 @@ server <- function(input, output, session) {
         updateSelectizeInput(
           session,
           "dataset_id",
-          choices = get_dataset_choices(input$dataset_group %||% "current"),
+          choices = get_primary_dataset_choices(
+            input$dataset_group %||% "current"
+          ),
           selected = character(0),
           server = TRUE
         )
@@ -6924,7 +7012,7 @@ server <- function(input, output, session) {
       showNotification(
         paste0(
           "Comparison is available only when the main loaded dataset ",
-          "is a current Fisheries dataset."
+          "is a current Fisheries dataset or a tagged version of one."
         ),
         type = "error",
         duration = 10
@@ -6980,6 +7068,51 @@ server <- function(input, output, session) {
           input$dataset_id
         )
         
+        if (identical(
+          input$comparison_source,
+          "current"
+        )) {
+          
+          req(input$comparison_dataset_id)
+          
+          comparison_info <- getDatasetInfo(
+            input$comparison_dataset_id
+          )
+          
+          dt <- as.data.table(
+            readDataset(
+              dataset_id =
+                input$comparison_dataset_id
+            )
+          )
+          
+          dt <- normalise_and_drop_empty_values(
+            data = dt,
+            value_col = current_cfg$value_col
+          )
+          
+          dt <- restrict_to_active_configured_codes(
+            data = dt,
+            dataset_info = comparison_info
+          )
+          
+          comparison_dataset_info(
+            comparison_info
+          )
+          
+          comparison_data(dt)
+          
+          comparison_metadata(
+            list(
+              source = "current",
+              id = input$comparison_dataset_id,
+              label = input$comparison_dataset_id,
+              base_dataset =
+                input$comparison_dataset_id
+            )
+          )
+        }
+        
         if (identical(input$comparison_source, "disseminated")) {
           req(input$comparison_dataset_id)
           
@@ -7017,6 +7150,8 @@ server <- function(input, output, session) {
             )
           )
         }
+        
+        
         
         if (identical(input$comparison_source, "tagged")) {
           req(
@@ -8858,7 +8993,7 @@ server <- function(input, output, session) {
       showNotification(
         paste0(
           "Comparison cannot be run because the main loaded dataset ",
-          "is not a current Fisheries dataset."
+          "is not a current Fisheries dataset or a tagged version of one."
         ),
         type = "error",
         duration = 10
@@ -8876,7 +9011,7 @@ server <- function(input, output, session) {
           {
             incProgress(
               amount = 0.03,
-              detail = "Checking current dataset and comparison dataset."
+              detail = "Checking main dataset and comparison dataset."
             )
             
             if (is.null(dataset_data()) ||
@@ -8884,7 +9019,7 @@ server <- function(input, output, session) {
                 !nzchar(input$dataset_id)) {
               
               showNotification(
-                "Please load a current dataset before running the comparison.",
+                "Please load a compatible main dataset before running the comparison.",
                 type = "error",
                 duration = 10
               )
@@ -8905,14 +9040,14 @@ server <- function(input, output, session) {
             
             incProgress(
               amount = 0.05,
-              detail = "Checking current aggregation outputs."
+              detail = "Checking main aggregation outputs."
             )
             
             current_outputs <- aggregated_outputs()
             
             if (length(current_outputs) == 0) {
               showNotification(
-                "Please run the current aggregation first. The comparison uses the current aggregation outputs.",
+                "Please run the main dataset aggregation first. The comparison uses those aggregation outputs.",
                 type = "error",
                 duration = 10
               )
@@ -8947,7 +9082,7 @@ server <- function(input, output, session) {
               comparison_results(NULL)
               
               showNotification(
-                "Comparison stopped because the selected comparison dataset may not correspond to the current dataset. Review the warning and click 'Run comparison anyway' only if this is intentional.",
+                "Comparison stopped because the selected comparison dataset may not correspond to the main dataset. Review the warning and click 'Run comparison anyway' only if this is intentional.",
                 type = "warning",
                 duration = 15
               )
@@ -8966,7 +9101,7 @@ server <- function(input, output, session) {
               showNotification(
                 paste0(
                   "The aggregation settings or saved filter state are missing. ",
-                  "Please rerun the current aggregation."
+                  "Please rerun the main dataset aggregation."
                 ),
                 type = "error",
                 duration = 10
@@ -9023,7 +9158,7 @@ server <- function(input, output, session) {
             
             incProgress(
               amount = 0.10,
-              detail = "Applying current filters to the comparison dataset."
+              detail = "Applying main dataset filters to the comparison dataset."
             )
             
             # Apply the same filters to both datasets, but ignore
@@ -9050,7 +9185,7 @@ server <- function(input, output, session) {
             
             if (nrow(current_filtered) == 0) {
               stop(
-                "No current rows remain after applying the saved non-flag filters."
+                "No main dataset rows remain after applying the saved non-flag filters."
               )
             }
             
@@ -10519,7 +10654,7 @@ server <- function(input, output, session) {
     )
     
     n <- length(
-      get_dataset_choices(
+      get_primary_dataset_choices(
         input$dataset_group
       )
     )
@@ -10541,7 +10676,9 @@ server <- function(input, output, session) {
     updateSelectizeInput(
       session,
       "dataset_id",
-      choices = get_dataset_choices(input$dataset_group),
+      choices = get_primary_dataset_choices(
+        input$dataset_group
+      ),
       selected = character(0),
       server = TRUE
     )
@@ -10587,26 +10724,52 @@ server <- function(input, output, session) {
     
     tryCatch(
       {
+        # The selected dataset ID remains the base SWS dataset ID.
+        # For example, for a tagged aqua dataset this is still "aqua".
         dataset_info <- getDatasetInfo(
           input$dataset_id
         )
         
-        dt <- as.data.table(
-          readDataset(
-            dataset_id = input$dataset_id
+        cfg <- get_dataset_config(
+          input$dataset_id
+        )
+        
+        # Load either the ordinary dataset or one of its tagged versions.
+        if (identical(
+          input$dataset_group,
+          "tagged"
+        )) {
+          
+          req(input$primary_tag_id)
+          
+          dt <- as.data.table(
+            getTagData(
+              as.character(
+                input$primary_tag_id
+              )
+            )
           )
+          
+        } else {
+          
+          dt <- as.data.table(
+            readDataset(
+              dataset_id = input$dataset_id
+            )
+          )
+        }
+        
+        rows_before_value_cleaning <- nrow(dt)
+        
+        # Important for tagged datasets, which may return lowercase "value".
+        dt <- normalise_and_drop_empty_values(
+          data = dt,
+          value_col = cfg$value_col
         )
         
         validation <- validate_dataset_columns(
           data = dt,
           dataset_id = input$dataset_id
-        )
-        
-        rows_before_value_cleaning <- nrow(dt)
-        
-        dt <- normalise_and_drop_empty_values(
-          data = dt,
-          value_col = validation$config$value_col
         )
         
         rows_discarded_without_values <-
@@ -10615,6 +10778,56 @@ server <- function(input, output, session) {
         dataset_data(dt)
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
+        
+        loaded_dataset_source(
+          input$dataset_group
+        )
+        
+        if (identical(
+          input$dataset_group,
+          "tagged"
+        )) {
+          
+          loaded_tag_id(
+            as.character(
+              input$primary_tag_id
+            )
+          )
+          
+          tag_info <- as.data.table(
+            getAllTags(
+              dataset = input$dataset_id
+            )
+          )
+          
+          tag_info[
+            ,
+            id := as.character(id)
+          ]
+          
+          tag_row <- tag_info[
+            id == as.character(
+              input$primary_tag_id
+            )
+          ]
+          
+          loaded_tag_label(
+            if (nrow(tag_row) > 0L) {
+              as.character(
+                tag_row$name[1L]
+              )
+            } else {
+              as.character(
+                input$primary_tag_id
+              )
+            }
+          )
+          
+        } else {
+          
+          loaded_tag_id(NULL)
+          loaded_tag_label(NULL)
+        }
         
         aggregated_outputs(list())
         aggregation_input_data(NULL)
@@ -10654,9 +10867,30 @@ server <- function(input, output, session) {
     dt <- dataset_data()
     cfg <- get_dataset_config(input$dataset_id)
     
-    cat("Dataset:", input$dataset_id, "\n")
+    cat("Base dataset:", input$dataset_id, "\n")
     cat("Label:", cfg$label, "\n")
-    cat("Group:", cfg$dataset_group, "\n")
+    cat(
+      "Source:",
+      loaded_dataset_source() %||% cfg$dataset_group,
+      "\n"
+    )
+    
+    if (identical(
+      loaded_dataset_source(),
+      "tagged"
+    )) {
+      cat(
+        "Tag:",
+        loaded_tag_label() %||% loaded_tag_id(),
+        "\n"
+      )
+      cat(
+        "Tag ID:",
+        loaded_tag_id(),
+        "\n"
+      )
+    }
+    
     cat("Type:", cfg$dataset_type, "\n")
     cat("Rows:", nrow(dt), "\n")
     cat("Columns:", ncol(dt), "\n")
