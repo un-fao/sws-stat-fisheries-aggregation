@@ -11874,26 +11874,16 @@ server <- function(input, output, session) {
       SYNTHETIC_EXPIRED_ROOTS_ID
     )
     
-    # Preserve the configured dataset roots first, then append any
-    # additional codelist classifications that contain filtered data.
+    # Use exactly the same dataset-configured roots as the filtering tree.
     configured_roots <- clean_non_empty_codes(
       get_configured_roots_for_dimension(
         meta
       )
     )
     
-    aggregation_root_candidates <- unique(
-      c(
-        configured_roots,
-        codelist_root_codes
-      )
-    )
-    
-    # Only roots that contain at least one filtered raw code survive
-    # the intersection performed by get_display_roots_for_tree().
     tree_root_codes <- get_display_roots_for_tree(
       codelist_id = meta$codelist,
-      configured_roots = aggregation_root_candidates,
+      configured_roots = configured_roots,
       relevant_codes = relevant_codes,
       purpose = tree_purpose
     )
