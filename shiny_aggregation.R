@@ -10086,9 +10086,8 @@ server <- function(input, output, session) {
       output_id %in% names(results)
     )
     
-    dt <- copy(
-      results[[output_id]]
-    )
+    dt <-results[[output_id]]
+    
     
     req(
       !isTRUE(
@@ -10484,9 +10483,8 @@ server <- function(input, output, session) {
   
   comparison_plot_filtered_data <- reactive({
     
-    dt <- copy(
-      selected_comparison_plot_data()
-    )
+    dt <- selected_comparison_plot_data()
+    
     
     filter_comparison_plot_dimensions(
       dt = dt,
@@ -10498,9 +10496,8 @@ server <- function(input, output, session) {
   
   comparison_difference_plot_filtered_data <- reactive({
     
-    dt <- copy(
-      selected_comparison_difference_plot_data()
-    )
+    dt <- selected_comparison_difference_plot_data()
+    
     
     filter_comparison_plot_dimensions(
       dt = dt,
@@ -11024,9 +11021,8 @@ server <- function(input, output, session) {
   
   output$comparison_time_series_plot <- renderPlot({
     
-    dt <- copy(
-      comparison_plot_filtered_data()
-    )
+    dt <- comparison_plot_filtered_data()
+    
     
     build_comparison_time_series_plot(
       dt = dt,
@@ -11043,9 +11039,8 @@ server <- function(input, output, session) {
   
   output$comparison_difference_time_series_plot <- renderPlot({
     
-    dt <- copy(
-      comparison_difference_plot_filtered_data()
-    )
+    dt <- comparison_difference_plot_filtered_data()
+    
     
     build_comparison_time_series_plot(
       dt = dt,
