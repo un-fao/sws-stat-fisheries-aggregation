@@ -11736,11 +11736,8 @@ server <- function(input, output, session) {
           lapply(
             ancestor_columns,
             function(column_i) {
-              
               as.character(
-                tree_dt[
-                  [column_i]
-                ][matching_rows]
+                tree_dt[[column_i]][matching_rows]
               )
             }
           ),
