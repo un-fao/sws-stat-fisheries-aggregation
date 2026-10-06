@@ -10309,12 +10309,13 @@ server <- function(input, output, session) {
   
   
   # -------------------------------------------------------------------------
-  # Separate dimension selectors — all rows chart
+  # Cascading dimension selectors
   # -------------------------------------------------------------------------
   
-  output$comparison_plot_dimension_selectors <- renderUI({
-    
-    dt <- selected_comparison_plot_data()
+  build_comparison_dimension_selectors <- function(
+    dt,
+    input_prefix
+  ) {
     
     dimension_columns <- get_comparison_plot_dimensions(
       dt
@@ -10324,46 +10325,103 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    tagList(
-      lapply(
-        dimension_columns,
-        function(column_i) {
-          
-          choices_i <- get_comparison_dimension_choices(
-            dt = dt,
-            column_name = column_i
-          )
-          
-          input_id <- paste0(
-            "comparison_plot_dimension_",
-            gsub(
-              "[^A-Za-z0-9_]",
-              "_",
-              column_i
-            )
-          )
-          
-          selectizeInput(
-            inputId = input_id,
-            label = comparison_dimension_label(
-              column_i
-            ),
-            choices = choices_i,
-            selected = unname(
-              choices_i[1L]
-            ),
-            options = list(
-              maxOptions = 5000
-            )
-          )
-        }
+    controls <- list()
+    
+    # This object becomes progressively smaller as each
+    # selected dimension is applied.
+    available_dt <- dt
+    
+    for (column_i in dimension_columns) {
+      
+      if (nrow(available_dt) == 0L) {
+        break
+      }
+      
+      choices_i <- get_comparison_dimension_choices(
+        dt = available_dt,
+        column_name = column_i
       )
+      
+      if (length(choices_i) == 0L) {
+        next
+      }
+      
+      input_id <- paste0(
+        input_prefix,
+        gsub(
+          "[^A-Za-z0-9_]",
+          "_",
+          column_i
+        )
+      )
+      
+      selected_value <- input[[input_id]]
+      
+      valid_values <- unname(
+        choices_i
+      )
+      
+      # Keep the current selection only if it is still possible
+      # given the dimensions selected before it.
+      if (
+        is.null(selected_value) ||
+        length(selected_value) == 0L ||
+        !as.character(selected_value[1L]) %in% valid_values
+      ) {
+        selected_value <- valid_values[1L]
+      } else {
+        selected_value <- as.character(
+          selected_value[1L]
+        )
+      }
+      
+      controls[[length(controls) + 1L]] <-
+        selectizeInput(
+          inputId = input_id,
+          label = comparison_dimension_label(
+            column_i
+          ),
+          choices = choices_i,
+          selected = selected_value,
+          options = list(
+            maxOptions = 5000
+          )
+        )
+      
+      # Restrict the data before constructing the next selector.
+      # Therefore every later selector contains only combinations
+      # that actually exist.
+      available_dt <- available_dt[
+        as.character(
+          get(column_i)
+        ) == selected_value
+      ]
+    }
+    
+    tagList(
+      controls
+    )
+  }
+  
+  
+  # -------------------------------------------------------------------------
+  # Dimension selectors — all comparison rows
+  # -------------------------------------------------------------------------
+  
+  output$comparison_plot_dimension_selectors <- renderUI({
+    
+    dt <- selected_comparison_plot_data()
+    
+    build_comparison_dimension_selectors(
+      dt = dt,
+      input_prefix =
+        "comparison_plot_dimension_"
     )
   })
   
   
   # -------------------------------------------------------------------------
-  # Separate dimension selectors — differences-only chart
+  # Dimension selectors — differences only
   # -------------------------------------------------------------------------
   
   output$comparison_difference_plot_dimension_selectors <- renderUI({
@@ -10378,54 +10436,16 @@ server <- function(input, output, session) {
       )
     }
     
-    dimension_columns <- get_comparison_plot_dimensions(
-      dt
-    )
-    
-    if (length(dimension_columns) == 0L) {
-      return(NULL)
-    }
-    
-    tagList(
-      lapply(
-        dimension_columns,
-        function(column_i) {
-          
-          choices_i <- get_comparison_dimension_choices(
-            dt = dt,
-            column_name = column_i
-          )
-          
-          input_id <- paste0(
-            "comparison_difference_plot_dimension_",
-            gsub(
-              "[^A-Za-z0-9_]",
-              "_",
-              column_i
-            )
-          )
-          
-          selectizeInput(
-            inputId = input_id,
-            label = comparison_dimension_label(
-              column_i
-            ),
-            choices = choices_i,
-            selected = unname(
-              choices_i[1L]
-            ),
-            options = list(
-              maxOptions = 5000
-            )
-          )
-        }
-      )
+    build_comparison_dimension_selectors(
+      dt = dt,
+      input_prefix =
+        "comparison_difference_plot_dimension_"
     )
   })
   
   
   # -------------------------------------------------------------------------
-  # Apply the independent dimension selections
+  # Apply the cascading dimension selections
   # -------------------------------------------------------------------------
   
   filter_comparison_plot_dimensions <- function(
@@ -10443,6 +10463,25 @@ server <- function(input, output, session) {
     
     for (column_i in dimension_columns) {
       
+      if (nrow(dt) == 0L) {
+        break
+      }
+      
+      available_values <- unique(
+        as.character(
+          dt[[column_i]]
+        )
+      )
+      
+      available_values <- available_values[
+        !is.na(available_values) &
+          nzchar(available_values)
+      ]
+      
+      if (length(available_values) == 0L) {
+        next
+      }
+      
       input_id <- paste0(
         input_prefix,
         gsub(
@@ -10456,25 +10495,27 @@ server <- function(input, output, session) {
         input_id
       ]]
       
+      # If an old selector value is temporarily still present after
+      # an earlier selector changed, use the first valid value instead
+      # of allowing the result to become empty.
       if (
-        !is.null(selected_value) &&
-        length(selected_value) > 0L &&
-        nzchar(
-          as.character(
-            selected_value[1L]
-          )
-        )
+        is.null(selected_value) ||
+        length(selected_value) == 0L ||
+        !as.character(selected_value[1L]) %in%
+        available_values
       ) {
-        
-        dt <- dt[
-          as.character(
-            get(column_i)
-          ) ==
-            as.character(
-              selected_value[1L]
-            )
-        ]
+        selected_value <- available_values[1L]
+      } else {
+        selected_value <- as.character(
+          selected_value[1L]
+        )
       }
+      
+      dt <- dt[
+        as.character(
+          get(column_i)
+        ) == selected_value
+      ]
     }
     
     dt[]
