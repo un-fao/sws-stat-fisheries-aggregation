@@ -1,12 +1,19 @@
 library(shiny)
 library(bslib)
 library(SwsApiClient)
+# Required for direct DB access; this is only a Suggests dependency of the client.
+library(RPostgres)
 library(faoswsFlag)
 library(data.table)
 library(DT)
 library(ggplot2)
 library(treemapify)
 library(shinyTree)
+message("[Fisheries runtime] ", paste(vapply(
+  c("SwsApiClient", "DBI", "RPostgres", "DT"),
+  function(package) paste0(package, "=", utils::packageVersion(package)),
+  character(1)
+), collapse = " "))
 # -------------------------------------------------------------------------
 # Fisheries aggregation Shiny app
 #
@@ -4287,7 +4294,7 @@ ui <- page_navbar(
   ),
   
   tags$head(
-    
+    tags$script(src = "fisheries-diagnostics.js"),
     tags$style(
       HTML("
       .navbar {
@@ -5653,23 +5660,39 @@ split_aggregated_outputs_by_measured_element <- function(aggr, cfg) {
 # Shared daily codelist cache
 # -------------------------------------------------------------------------
 
-R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH")
+R_SWS_SHARE_PATH <- Sys.getenv("R_SWS_SHARE_PATH", unset = "")
+if (!nzchar(R_SWS_SHARE_PATH)) {
+  R_SWS_SHARE_PATH <- Sys.getenv("SWS_SHARED_DRIVE", unset = "")
+}
+if (!nzchar(R_SWS_SHARE_PATH)) {
+  R_SWS_SHARE_PATH <- tempdir()
+}
 
 CODELIST_CACHE_DIR <- file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_app")
-file_path = file.path(R_SWS_SHARE_PATH,"Fisheries_aggregation_shiny_app/iris.csv")
 
 dir.create(
   CODELIST_CACHE_DIR,
   recursive = TRUE,
-  showWarnings = TRUE
+  showWarnings = FALSE
 )
 
 
 
 if(!dir.exists(CODELIST_CACHE_DIR)){
-  stop( "Shared cache folder does not exist:", CODELIST_CACHE_DIR)
+  warning("Shared codelist cache unavailable; using a temporary cache: ", CODELIST_CACHE_DIR)
+  CODELIST_CACHE_DIR <- file.path(tempdir(), "Fisheries_aggregation_shiny_app")
+  dir.create(CODELIST_CACHE_DIR, recursive = TRUE, showWarnings = FALSE)
 }
 
+# Invalidate old layouts and separate endpoints/client versions on the shared drive.
+get_daily_cache_context <- function() {
+  list(
+    schema = 2L,
+    endpoint = sub("/+$", "", getClient()$sws_endpoint),
+    client_version = as.character(utils::packageVersion("SwsApiClient")),
+    keep_expired = KEEP_EXPIRED_CODELISTS
+  )
+}
 
 # Build the file path used for one cached object.
 get_daily_cache_path <- function(
@@ -5686,6 +5709,8 @@ get_daily_cache_path <- function(
   file.path(
     CODELIST_CACHE_DIR,
     paste0(
+      digest::digest(get_daily_cache_context(), algo = "sha256"),
+      "__",
       safe_id,
       "__",
       as.character(cache_date),
@@ -5699,10 +5724,6 @@ get_daily_cache_path <- function(
 get_daily_shared_cache <- function(
     cache_id
 ) {
-  
-  today <- as.character(
-    Sys.Date()
-  )
   
   cache_file <- get_daily_cache_path(
     cache_id = cache_id
@@ -5721,11 +5742,14 @@ get_daily_shared_cache <- function(
     }
   )
   
-  if (is.null(value)) {
+  if (!is.list(value) ||
+      !identical(value$context, get_daily_cache_context()) ||
+      !identical(value$date, Sys.Date()) ||
+      !identical(value$cache_id, cache_id)) {
     return(NULL)
   }
   
-  value
+  value$value
 }
 
 
@@ -5735,38 +5759,25 @@ set_daily_shared_cache <- function(
     value
 ) {
   
-  today <- as.character(Sys.Date())
-  
   cache_file <- get_daily_cache_path(
     cache_id = cache_id
   )
   
-  temp_file <- paste0(
-    cache_file,
-    ".tmp_",
-    Sys.getpid()
-  )
-  
-  saveRDS(
-    value,
-    temp_file
-  )
-  
-  if (!file.rename(
-    temp_file,
-    cache_file
-  )) {
-    
-    file.copy(
-      from = temp_file,
-      to = cache_file,
-      overwrite = TRUE
-    )
-    
-    unlink(
-      temp_file
-    )
-  }
+  # Write alongside the destination so publication is an atomic rename.
+  # A failed cache write must not prevent use of freshly retrieved data.
+  temp_file <- tempfile(pattern = ".codelist_", tmpdir = CODELIST_CACHE_DIR)
+  on.exit(unlink(temp_file), add = TRUE)
+  tryCatch({
+    saveRDS(list(
+      context = get_daily_cache_context(), date = Sys.Date(),
+      cache_id = cache_id, value = value
+    ), temp_file)
+    if (!file.rename(temp_file, cache_file)) {
+      stop("Atomic rename failed")
+    }
+  }, error = function(e) {
+    warning("Could not save codelist cache '", cache_id, "': ", conditionMessage(e))
+  })
   
   invisible(
     value
@@ -5814,11 +5825,54 @@ clean_old_codelist_cache <- function(
 
 clean_old_codelist_cache()
 
+is_valid_codelist_table <- function(value, tree = FALSE) {
+  if (!is.data.frame(value) || nrow(value) == 0L) return(FALSE)
+  if (tree) {
+    id_columns <- grep("^level_[0-9]+_id$", names(value), value = TRUE)
+    return(length(id_columns) > 0L && any(vapply(id_columns, function(column) {
+      ids <- value[[column]]
+      any(!is.na(ids) & nzchar(trimws(as.character(ids))))
+    }, logical(1))))
+  }
+  if (!all(c("id", "children") %in% names(value))) return(FALSE)
+  ids <- as.character(value$id)
+  all(!is.na(ids) & nzchar(trimws(ids))) && !anyDuplicated(ids)
+}
+
+fetch_codelist_table <- function(codelist_id, tree = FALSE) {
+  # A daily disk-cache miss must refresh both the wrapper and the API cache.
+  # Otherwise a long-lived R process can write yesterday's wrapper data today.
+  fetch <- function() {
+    value <- if (tree) {
+      getCodelistTree(codelist_id, use_cache = FALSE)
+    } else {
+      getCodelistInfo(codelist_id, use_cache = FALSE)$codes
+    }
+    if (!is_valid_codelist_table(value, tree)) {
+      stop("Empty or invalid codelist response for '", codelist_id, "'", call. = FALSE)
+    }
+    copy(as.data.table(value))
+  }
+  tryCatch(fetch(), error = function(e) {
+    message("Retrying codelist '", codelist_id, "' after: ", conditionMessage(e))
+    fetch()
+  })
+}
+
 
 ##########################################
 # Server
 ##########################################
 server <- function(input, output, session) {
+  observeEvent(input$fisheries_diagnostic, {
+    # Restrict browser diagnostics to known fields; never log bodies or query tokens.
+    event <- input$fisheries_diagnostic
+    fields <- intersect(names(event), c("kind", "table", "path", "status", "content_type", "directive"))
+    details <- vapply(event[fields], function(value) {
+      substr(gsub("[\r\n]", " ", as.character(value)[1L]), 1L, 500L)
+    }, character(1))
+    message("[Fisheries diagnostics] ", paste(paste(fields, details, sep = "="), collapse = " "))
+  }, ignoreInit = TRUE)
   user <- reactiveVal(NULL)
   dataset_data <- reactiveVal(NULL)
   loaded_dataset_id <- reactiveVal(NULL)
@@ -6089,7 +6143,7 @@ server <- function(input, output, session) {
       cache_id
     )
     
-    if (!is.null(cached)) {
+    if (is_valid_codelist_table(cached)) {
       return(
         cached
       )
@@ -6113,13 +6167,7 @@ server <- function(input, output, session) {
       add = TRUE
     )
     
-    codelist_info <- getCodelistInfo(
-      codelist_id
-    )
-    
-    codes <- as.data.table(
-      codelist_info$codes
-    )
+    codes <- fetch_codelist_table(codelist_id)
     
     codes[
       ,
@@ -6158,7 +6206,7 @@ server <- function(input, output, session) {
       cache_id
     )
     
-    if (!is.null(cached)) {
+    if (is_valid_codelist_table(cached, tree = TRUE)) {
       return(
         cached
       )
@@ -6182,11 +6230,7 @@ server <- function(input, output, session) {
       add = TRUE
     )
     
-    tree_dt <- as.data.table(
-      getCodelistTree(
-        codelist_id
-      )
-    )
+    tree_dt <- fetch_codelist_table(codelist_id, tree = TRUE)
     
     if (
       !codelist_id %in%
@@ -6234,7 +6278,7 @@ server <- function(input, output, session) {
         cache_id
       )
       
-      if (!is.null(cached)) {
+      if (is_valid_codelist_table(cached)) {
         return(
           cached
         )
@@ -6286,7 +6330,7 @@ server <- function(input, output, session) {
         cache_id
       )
       
-      if (!is.null(cached)) {
+      if (is_valid_codelist_table(cached, tree = TRUE)) {
         return(
           cached
         )
@@ -14942,7 +14986,7 @@ server <- function(input, output, session) {
         classification_codes <- if (
           identical(
             meta$codelist,
-            "fisheriesCatchArea"
+            "brCatchArea"
           )
         ) {
           codes
