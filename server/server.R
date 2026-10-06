@@ -11617,7 +11617,7 @@ server <- function(input, output, session) {
     
     n_show <- input$outlier_top_n %||% 50
     
-    datatable(
+    outlier_table <- datatable(
       dt[, ..display_cols],
       rownames = FALSE,
       options = list(
@@ -11627,6 +11627,28 @@ server <- function(input, output, session) {
         scrollY = "520px"
       )
     )
+    
+    value_columns <- intersect(
+      c(
+        cfg$value_col,
+        "previous_value",
+        "outlier_metric_value"
+      ),
+      display_cols
+    )
+    
+    if (length(value_columns) > 0L) {
+      
+      outlier_table <- formatRound(
+        outlier_table,
+        columns = value_columns,
+        digits = VALUE_DECIMAL_DIGITS,
+        mark = " ",
+        dec.mark = "."
+      )
+    }
+    
+    outlier_table
   })
   
   output$download_outlier_table <- downloadHandler(
