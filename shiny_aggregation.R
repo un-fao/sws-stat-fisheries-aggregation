@@ -4676,6 +4676,7 @@ ui <- page_navbar(
             maxOptions = 5000
           )
         ),
+        
         uiOutput("primary_tag_selector"),
         
         textOutput("dataset_count"),
@@ -4689,7 +4690,7 @@ ui <- page_navbar(
       ),
       
       layout_columns(
-        col_widths = c(5, 7),
+        col_widths = c(4, 8),
         
         card(
           card_header("Client"),
@@ -4698,39 +4699,14 @@ ui <- page_navbar(
         
         card(
           card_header("Loaded dataset"),
-          verbatimTextOutput("dataset_status")
+          uiOutput("dataset_summary")
         )
       )
     )
   ),
   
   nav_panel(
-    "2. Dataset summary",
-    
-    layout_columns(
-      col_widths = c(4, 8),
-      
-      card(
-        card_header("Loaded dataset"),
-        uiOutput("dataset_summary")
-      ),
-      
-      card(
-        full_screen = TRUE,
-        card_header("Raw dataset time series"),
-        plotOutput("raw_year_plot", height = 360)
-      )
-    ),
-    
-    card(
-      full_screen = TRUE,
-      card_header("Raw data preview"),
-      DTOutput("raw_preview")
-    )
-  ),
-  
-  nav_panel(
-    "3. Filters & aggregation",
+    "2. Filters & aggregation",
     
     div(
       class = "aggregation-page",
@@ -4766,7 +4742,7 @@ ui <- page_navbar(
   
   
   nav_panel(
-    "4. Dataset table",
+    "3. Dataset table",
     value = "dataset_table",
     
     card(
@@ -4777,7 +4753,7 @@ ui <- page_navbar(
   ),
   
   nav_panel(
-    "5. Graphs",
+    "4. Graphs",
     
     layout_sidebar(
       sidebar = sidebar(
@@ -4840,7 +4816,7 @@ ui <- page_navbar(
   ),
   
   nav_panel(
-    "6. Comparison",
+    "5. Comparison",
     
     # This message is displayed when comparison is not allowed.
     conditionalPanel(
@@ -4974,7 +4950,7 @@ ui <- page_navbar(
   
   
   nav_panel(
-    "7. Outlier analysis",
+    "6. Outlier analysis",
     
     div(
       class = "alert alert-info",
@@ -10706,16 +10682,21 @@ server <- function(input, output, session) {
         legend.position = "top",
         
         legend.title = element_text(
-          face = "bold"
+          face = "bold",
+          size = 12
+        ),
+        
+        legend.text = element_text(
+          size = 11
         ),
         
         plot.title = element_text(
           face = "bold",
-          size = 13
+          size = 14
         ),
         
         plot.subtitle = element_text(
-          size = 10,
+          size = 12,
           margin = margin(
             t = 6,
             b = 12
@@ -10723,7 +10704,12 @@ server <- function(input, output, session) {
         ),
         
         axis.title = element_text(
-          face = "bold"
+          face = "bold",
+          size = 11
+        ),
+        
+        axis.text = element_text(
+          size = 10
         )
       ) +
       
@@ -10966,44 +10952,7 @@ server <- function(input, output, session) {
     )
   })
   
-  
-  output$dataset_status <- renderPrint({
-    if (is.null(dataset_data()) || is.null(input$dataset_id) || !nzchar(input$dataset_id)) {
-      cat("No dataset loaded yet.\n")
-      return(NULL)
-    }
-    
-    dt <- dataset_data()
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    cat("Base dataset:", input$dataset_id, "\n")
-    cat("Label:", cfg$label, "\n")
-    cat(
-      "Source:",
-      loaded_dataset_source() %||% cfg$dataset_group,
-      "\n"
-    )
-    
-    if (identical(
-      loaded_dataset_source(),
-      "tagged"
-    )) {
-      cat(
-        "Tag:",
-        loaded_tag_label() %||% loaded_tag_id(),
-        "\n"
-      )
-      cat(
-        "Tag ID:",
-        loaded_tag_id(),
-        "\n"
-      )
-    }
-    
-    cat("Type:", cfg$dataset_type, "\n")
-    cat("Rows:", nrow(dt), "\n")
-    cat("Columns:", ncol(dt), "\n")
-  })
+
   
   
   output$dataset_summary <- renderUI({
@@ -11412,143 +11361,13 @@ server <- function(input, output, session) {
     )
   })
   
-  output$raw_preview <- renderDT({
-    req(dataset_data())
-    
-    datatable(
-      head(dataset_data(), 1000),
-      rownames = FALSE,
-      options = list(pageLength = 10, scrollX = TRUE)
-    )
-  })
   
   
   
   
   
   
-  
-  output$raw_year_plot <- renderPlot({
-    
-    req(
-      dataset_data(),
-      loaded_dataset_info(),
-      input$dataset_id
-    )
-    
-    # Do not use metadata left from a previously loaded dataset.
-    req(
-      identical(
-        loaded_dataset_id(),
-        input$dataset_id
-      )
-    )
-    
-    dt <- copy(dataset_data())
-    cfg <- get_dataset_config(input$dataset_id)
-    
-    measured_col <- cfg$measured_element_col
-    
-    if (
-      is.null(measured_col) ||
-      !measured_col %in% names(dt)
-    ) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No measured-element column is available for this dataset"
-      )
-      return(NULL)
-    }
-    
-    # Read only the measured-element roots configured for
-    # this specific dataset in SWS.
-    measured_roots <- get_effective_measured_elements(
-      dataset_info = loaded_dataset_info(),
-      data = dt,
-      measured_col = measured_col
-    )
-    
-    measured_roots <- unique(
-      trimws(
-        as.character(
-          measured_roots
-        )
-      )
-    )
-    
-    measured_roots <- measured_roots[
-      !is.na(measured_roots) &
-        nzchar(measured_roots)
-    ]
-    
-    if (length(measured_roots) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No measured-element roots are configured for this dataset"
-      )
-      return(NULL)
-    }
-    
-    # The plot must contain only records belonging to the
-    # configured measured-element roots.
-    dt <- dt[
-      as.character(get(measured_col)) %in%
-        measured_roots
-    ]
-    
-    if (nrow(dt) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No data are available for the configured measured-element roots"
-      )
-      return(NULL)
-    }
-    
-    yearly <- summarise_total_by_year_and_element(
-      data = dt,
-      year_col = cfg$year_col,
-      value_col = cfg$value_col,
-      measured_element_col = measured_col
-    )
-    
-    if (nrow(yearly) == 0) {
-      plot.new()
-      text(
-        0.5,
-        0.5,
-        "No yearly data are available for the configured measured-element roots"
-      )
-      return(NULL)
-    }
-    
-    ggplot(
-      yearly,
-      aes(
-        x = year,
-        y = total_value
-      )
-    ) +
-      geom_line() +
-      facet_wrap(
-        ~ measured_element,
-        scales = "free_y"
-      ) +
-      labs(
-        x = "Year",
-        y = "Total value",
-        title = paste0(
-          "Raw dataset total by year — configured measured-element roots: ",
-          paste(measured_roots, collapse = ", ")
-        )
-      ) +
-      theme_minimal()
-  })
+
   
   output$year_selector <- renderUI({
     
