@@ -11594,6 +11594,10 @@ server <- function(input, output, session) {
       )
     }
     
+    cfg <- get_dataset_config(
+      input$dataset_id
+    )
+    
     dt <- get_top_outlier_data()
     
     if (nrow(dt) == 0) {
