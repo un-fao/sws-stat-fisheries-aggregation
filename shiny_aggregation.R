@@ -5625,10 +5625,6 @@ if(!dir.exists(CODELIST_CACHE_DIR)){
   stop( "Shared cache folder does not exist:", CODELIST_CACHE_DIR)
 }
 
-# Also keep already-read cache objects in the current R process.
-# This avoids repeatedly reading the same RDS file from the shared drive.
-PROCESS_CODELIST_CACHE <- new.env(parent = emptyenv())
-
 
 # Build the file path used for one cached object.
 get_daily_cache_path <- function(
@@ -5663,22 +5659,6 @@ get_daily_shared_cache <- function(
     Sys.Date()
   )
   
-  memory_entry <- PROCESS_CODELIST_CACHE[[
-    cache_id
-  ]]
-  
-  if (
-    !is.null(memory_entry) &&
-    identical(
-      memory_entry$cache_date,
-      today
-    )
-  ) {
-    return(
-      memory_entry$value
-    )
-  }
-  
   cache_file <- get_daily_cache_path(
     cache_id = cache_id
   )
@@ -5699,13 +5679,6 @@ get_daily_shared_cache <- function(
   if (is.null(value)) {
     return(NULL)
   }
-  
-  PROCESS_CODELIST_CACHE[[
-    cache_id
-  ]] <- list(
-    cache_date = today,
-    value = value
-  )
   
   value
 }
@@ -5749,13 +5722,6 @@ set_daily_shared_cache <- function(
       temp_file
     )
   }
-  
-  PROCESS_CODELIST_CACHE[[
-    cache_id
-  ]] <- list(
-    cache_date = today,
-    value = value
-  )
   
   invisible(
     value
@@ -7096,12 +7062,11 @@ server <- function(input, output, session) {
             input$comparison_dataset_id
           )
           
-          dt <- as.data.table(
-            readDataset(
-              dataset_id =
-                input$comparison_dataset_id
-            )
+          dt <- readDataset(
+            dataset_id =
+              input$comparison_dataset_id
           )
+          
           
           comparison_metadata(
             list(
@@ -10847,10 +10812,8 @@ server <- function(input, output, session) {
           
         } else {
           
-          dt <- as.data.table(
-            readDataset(
-              dataset_id = input$dataset_id
-            )
+          dt <- readDataset(
+            dataset_id = input$dataset_id
           )
         }
         
@@ -10952,7 +10915,7 @@ server <- function(input, output, session) {
     )
   })
   
-
+  
   
   
   output$dataset_summary <- renderUI({
@@ -10970,9 +10933,7 @@ server <- function(input, output, session) {
       )
     )
     
-    dt <- copy(
-      dataset_data()
-    )
+    dt <- dataset_data()
     
     cfg <- get_dataset_config(
       input$dataset_id
@@ -11367,7 +11328,7 @@ server <- function(input, output, session) {
   
   
   
-
+  
   
   output$year_selector <- renderUI({
     
@@ -14107,7 +14068,7 @@ server <- function(input, output, session) {
     
     debug_lines <- character(0)
     
-    dt <- copy(base_analysis_data())
+    dt <- base_analysis_data()
     
     debug_lines <- c(
       debug_lines,
