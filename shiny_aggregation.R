@@ -46,6 +46,7 @@ library(shinyTree)
 # - the exact column names to use
 # -------------------------------------------------------------------------
 
+SWS_ENDPOINT = Sys.getenv("SWS_ENDPOINT", unset = "https://sws.fao.org")
 
 # Common column names used across all supported Fisheries datasets.
 COMMON_FISHERIES_COLUMNS <- list(
@@ -6995,7 +6996,8 @@ server <- function(input, output, session) {
         
         initialiseClient(
           session = session,
-          sws_endpoint = "https://sws.qa.fao.org"
+          sws_endpoint = SWS_ENDPOINT
+          #sws_endpoint = "https://sws.qa.fao.org"
         )
         
         user(getCurrentUser())
