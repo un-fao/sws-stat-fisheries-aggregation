@@ -9804,7 +9804,7 @@ server <- function(input, output, session) {
             dt_to_show
           )
           
-          datatable(
+          aggregation_table <- datatable(
             dt_to_show,
             rownames = FALSE,
             filter = "top",
@@ -9813,6 +9813,19 @@ server <- function(input, output, session) {
               scrollX = TRUE
             )
           )
+          
+          if (cfg$value_col %in% names(dt_to_show)) {
+            
+            aggregation_table <- formatRound(
+              aggregation_table,
+              columns = cfg$value_col,
+              digits = VALUE_DECIMAL_DIGITS,
+              mark = " ",
+              dec.mark = "."
+            )
+          }
+          
+          aggregation_table
         })
         
         output[[download_id_local]] <- downloadHandler(
