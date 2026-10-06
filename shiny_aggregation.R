@@ -9826,7 +9826,32 @@ server <- function(input, output, session) {
               dt_to_show
             )
             
-            datatable(
+            if (
+              "percentage_difference" %in%
+              names(dt_to_show)
+            ) {
+              
+              dt_to_show[
+                ,
+                percentage_difference :=
+                  ifelse(
+                    is.na(percentage_difference),
+                    NA_character_,
+                    paste0(
+                      formatC(
+                        percentage_difference,
+                        format = "f",
+                        digits = 2,
+                        big.mark = " ",
+                        decimal.mark = "."
+                      ),
+                      "%"
+                    )
+                  )
+              ]
+            }
+            
+            comparison_table <- datatable(
               dt_to_show,
               rownames = FALSE,
               filter = "top",
@@ -9835,6 +9860,28 @@ server <- function(input, output, session) {
                 scrollX = TRUE
               )
             )
+            
+            value_columns <- intersect(
+              c(
+                "current_value",
+                "comparison_value",
+                "absolute_difference"
+              ),
+              names(dt_to_show)
+            )
+            
+            if (length(value_columns) > 0L) {
+              
+              comparison_table <- formatRound(
+                comparison_table,
+                columns = value_columns,
+                digits = VALUE_DECIMAL_DIGITS,
+                mark = " ",
+                dec.mark = "."
+              )
+            }
+            
+            comparison_table
           })
           
           output[[download_id_local]] <-
