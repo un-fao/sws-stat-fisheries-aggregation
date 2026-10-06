@@ -11646,7 +11646,10 @@ server <- function(input, output, session) {
   ) {
     
     tree_dt <- as.data.table(tree_dt)
-    id_cols <- get_tree_id_cols(tree_dt)
+    
+    id_cols <- get_tree_id_cols(
+      tree_dt
+    )
     
     if (length(id_cols) == 0L) {
       return(character(0))
@@ -11660,36 +11663,34 @@ server <- function(input, output, session) {
       return(character(0))
     }
     
-    # Work only with the hierarchy ID columns.
-    tree_ids <- copy(
-      tree_dt[, ..id_cols]
-    )
     
-    # Convert hierarchy codes to character once.
-    for (column_i in id_cols) {
-      set(
-        tree_ids,
-        j = column_i,
-        value = as.character(
-          tree_ids[[column_i]]
-        )
-      )
-    }
+    # ------------------------------------------------------------
+    # Identify which filtered codes actually occur in the hierarchy.
+    #
+    # Do this directly from the hierarchy columns instead of creating
+    # a complete copy of all hierarchy ID columns.
+    # ------------------------------------------------------------
     
-    # Keep only filtered codes that actually occur
-    # somewhere in the hierarchy.
     tree_codes <- unique(
       unlist(
-        tree_ids,
+        lapply(
+          id_cols,
+          function(column_i) {
+            
+            values_i <- as.character(
+              tree_dt[[column_i]]
+            )
+            
+            values_i[
+              !is.na(values_i) &
+                nzchar(values_i)
+            ]
+          }
+        ),
         recursive = TRUE,
         use.names = FALSE
       )
     )
-    
-    tree_codes <- tree_codes[
-      !is.na(tree_codes) &
-        nzchar(tree_codes)
-    ]
     
     filtered_raw_codes <- intersect(
       filtered_raw_codes,
@@ -11700,13 +11701,21 @@ server <- function(input, output, session) {
       return(character(0))
     }
     
+    
+    # ------------------------------------------------------------
+    # Find ancestors of the filtered raw codes.
+    #
+    # Scan each hierarchy level once, but do not create a complete
+    # character copy of the hierarchy table.
+    # ------------------------------------------------------------
+    
     ancestor_codes <- character(0)
     
-    # Find the ancestors of all filtered codes by scanning
-    # each hierarchy level once instead of once per code.
     for (i in seq_along(id_cols)) {
       
-      values_i <- tree_ids[[id_cols[i]]]
+      values_i <- as.character(
+        tree_dt[[id_cols[i]]]
+      )
       
       matching_rows <- which(
         !is.na(values_i) &
@@ -11723,16 +11732,25 @@ server <- function(input, output, session) {
           seq_len(i - 1L)
         ]
         
+        ancestors_i <- unlist(
+          lapply(
+            ancestor_columns,
+            function(column_i) {
+              
+              as.character(
+                tree_dt[
+                  [column_i]
+                ][matching_rows]
+              )
+            }
+          ),
+          recursive = TRUE,
+          use.names = FALSE
+        )
+        
         ancestor_codes <- c(
           ancestor_codes,
-          unlist(
-            tree_ids[
-              matching_rows,
-              ..ancestor_columns
-            ],
-            recursive = TRUE,
-            use.names = FALSE
-          )
+          ancestors_i
         )
       }
     }
@@ -11755,26 +11773,67 @@ server <- function(input, output, session) {
     relevant_codes
   ) {
     
-    out <- copy(
-      as.data.table(tree_dt)
-    )
+    tree_dt <- as.data.table(tree_dt)
     
-    id_cols <- get_tree_id_cols(out)
+    id_cols <- get_tree_id_cols(
+      tree_dt
+    )
     
     relevant_codes <- clean_non_empty_codes(
       relevant_codes
     )
     
     if (
-      length(id_cols) == 0 ||
-      length(relevant_codes) == 0
+      length(id_cols) == 0L ||
+      length(relevant_codes) == 0L
     ) {
-      return(out[0])
+      return(
+        tree_dt[0]
+      )
     }
     
-    # Remove hierarchy nodes that do not contain any filtered records.
-    # The required ancestors remain because they were added to
-    # relevant_codes by get_relevant_hierarchy_codes().
+    
+    # ------------------------------------------------------------
+    # First identify only rows containing at least one relevant code.
+    #
+    # This avoids copying the complete hierarchy before pruning it.
+    # ------------------------------------------------------------
+    
+    keep_row <- Reduce(
+      `|`,
+      lapply(
+        id_cols,
+        function(column_i) {
+          
+          values_i <- as.character(
+            tree_dt[[column_i]]
+          )
+          
+          !is.na(values_i) &
+            nzchar(values_i) &
+            values_i %in% relevant_codes
+        }
+      )
+    )
+    
+    if (!any(keep_row)) {
+      return(
+        tree_dt[0]
+      )
+    }
+    
+    
+    # Copy only the rows that will actually survive.
+    out <- copy(
+      tree_dt[keep_row]
+    )
+    
+    
+    # ------------------------------------------------------------
+    # Within the retained rows, remove hierarchy nodes that do not
+    # belong to the relevant-code set.
+    # ------------------------------------------------------------
+    
     for (column_i in id_cols) {
       
       values_i <- as.character(
@@ -11796,27 +11855,6 @@ server <- function(input, output, session) {
       )
     }
     
-    keep_row <- Reduce(
-      `|`,
-      lapply(
-        id_cols,
-        function(column_i) {
-          
-          values_i <- as.character(
-            out[[column_i]]
-          )
-          
-          !is.na(values_i) &
-            nzchar(values_i)
-        }
-      )
-    )
-    
-    out <- out[keep_row]
-    
-    if (nrow(out) == 0) {
-      return(out)
-    }
     
     unique(
       out,
