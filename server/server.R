@@ -6293,7 +6293,7 @@ server <- function(input, output, session) {
     ]
   }
   
-
+  
   # ASFIS lightweight search helpers
   # ASFIS has a very large hierarchy. Searching directly inside shinyTree
   # can make the browser extremely slow because the full rendered tree is
@@ -9531,16 +9531,6 @@ server <- function(input, output, session) {
       )
       
       
-      # -------------------------------------------------------------
-      # Rebuild all hierarchy controls before restoring their checked
-      # nodes. This removes selections from the previous configuration.
-      # -------------------------------------------------------------
-      
-      tree_reset_counter(
-        isolate(
-          tree_reset_counter()
-        ) + 1L
-      )
       
       
       # -------------------------------------------------------------
