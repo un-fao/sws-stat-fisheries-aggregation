@@ -6365,127 +6365,6 @@ server <- function(input, output, session) {
     labels
   }
   
-
-  # Populate the lightweight ASFIS search control
-  #
-  # The choices are searched server-side instead of inside the large
-  # shinyTree hierarchy. This prevents the browser from scanning the whole
-  # ASFIS tree every time the user types one character.
-  #
-  # Only ASFIS codes actually present in the currently loaded dataset are
-  # offered. The hierarchy tree itself is left unchanged.
-  observe({
-    
-    req(
-      dataset_data(),
-      input$dataset_id
-    )
-    
-    dt <- dataset_data()
-    
-    asfis_dim_ids <- names(
-      FILTER_DIMENSIONS
-    )[
-      vapply(
-        FILTER_DIMENSIONS,
-        function(meta) {
-          identical(
-            meta$dataset_column,
-            "fisheriesAsfis"
-          )
-        },
-        logical(1)
-      )
-    ]
-    
-    if (length(asfis_dim_ids) == 0L) {
-      return(NULL)
-    }
-    
-    meta <- FILTER_DIMENSIONS[[
-      asfis_dim_ids[1L]
-    ]]
-    
-    if (
-      !meta$dataset_column %in%
-      names(dt)
-    ) {
-      return(NULL)
-    }
-    
-    available_codes <- sort(
-      clean_non_empty_codes(
-        dt[[meta$dataset_column]]
-      )
-    )
-    
-    if (length(available_codes) == 0L) {
-      return(NULL)
-    }
-    
-    codes <- tryCatch(
-      as.data.table(
-        get_codelist_codes(
-          meta$codelist
-        )
-      ),
-      error = function(e) NULL
-    )
-    
-    labels <- available_codes
-    
-    if (!is.null(codes)) {
-      
-      codes[
-        ,
-        id := as.character(id)
-      ]
-      
-      display_map <- make_tree_display_labels(
-        codes
-      )
-      
-      matched_labels <- unname(
-        display_map[available_codes]
-      )
-      
-      has_label <- (
-        !is.na(matched_labels) &
-          nzchar(matched_labels)
-      )
-      
-      labels[has_label] <-
-        matched_labels[has_label]
-    }
-    
-    choices <- stats::setNames(
-      available_codes,
-      labels
-    )
-    
-    current_selection <- isolate(
-      get_asfis_search_values()
-    )
-    
-    current_selection <- intersect(
-      current_selection,
-      available_codes
-    )
-    
-    session$onFlushed(
-      function() {
-        
-        updateSelectizeInput(
-          session,
-          "filter_asfis_search_values",
-          choices = choices,
-          selected = current_selection,
-          server = TRUE
-        )
-      },
-      once = TRUE
-    )
-  })
   
   
   
@@ -7320,6 +7199,8 @@ server <- function(input, output, session) {
           )
         ) {
           
+          # ASFIS uses a separate lightweight search because searching directly
+          # inside the large hierarchy tree can freeze the browser.
           selectizeInput(
             inputId =
               "filter_asfis_search_values",
@@ -7331,7 +7212,11 @@ server <- function(input, output, session) {
             options = list(
               placeholder =
                 "Type an ASFIS code or name",
-              maxOptions = 50
+              maxOptions = 50,
+              searchField = c(
+                "label",
+                "value"
+              )
             )
           )
           
@@ -7850,95 +7735,134 @@ server <- function(input, output, session) {
     )
   })
   
+  # -------------------------------------------------------------------------
+  # Populate the lightweight ASFIS search control.
+  #
+  # ASFIS has a very large hierarchy, so text search is performed through
+  # a separate server-side Selectize control instead of shinyTree.
+  #
+  # This observer also reacts when the accordion is opened or closed so that
+  # the ASFIS search choices are populated after the control exists in the UI.
+  # -------------------------------------------------------------------------
   
-  output$dimension_filter_selectors <- renderUI({
-    req(dataset_data(), input$dataset_id)
+  observe({
     
-    reset_id <- tree_reset_counter()
+    req(
+      dataset_data(),
+      input$dataset_id
+    )
+    
+    # Re-run when the user opens or closes an accordion panel.
+    input$dimension_accordion
     
     dt <- dataset_data()
     
-    active_dims <- FILTER_DIMENSIONS[
+    # Find the filter dimension corresponding to fisheriesAsfis.
+    asfis_dim_ids <- names(
+      FILTER_DIMENSIONS
+    )[
       vapply(
         FILTER_DIMENSIONS,
         function(meta) {
-          !is.null(meta$dataset_column) &&
-            meta$dataset_column %in% names(dt)
+          identical(
+            meta$dataset_column,
+            "fisheriesAsfis"
+          )
         },
         logical(1)
       )
     ]
     
-    if (length(active_dims) == 0) {
-      return(helpText("No additional filter dimensions are available."))
+    if (length(asfis_dim_ids) == 0L) {
+      return(NULL)
     }
     
-    tagList(
-      lapply(names(active_dims), function(dim_id) {
-        meta <- active_dims[[dim_id]]
-        
-        if (identical(dim_id, "measured_element")) {
-          return(
-            card(
-              card_header(meta$label),
-              uiOutput("measured_element_checkbox_filter")
-            )
-          )
-        }
-        
-        card(
-          card_header(meta$label),
-          
-          div(
-            style = paste(
-              "max-height: 190px;",
-              "overflow-y: auto;",
-              "overflow-x: auto;",
-              "border: 1px solid #e5e5e5;",
-              "border-radius: 6px;",
-              "padding: 6px;",
-              "background-color: white;"
-            ),
-            
-            div(
-              id = paste0(
-                "filter_tree_wrapper_",
-                dim_id,
-                "_",
-                reset_id
-              ),
-              
-              shinyTree(
-                paste0("filter_tree_", dim_id),
-                checkbox = TRUE,
-                search = TRUE,
-                themeIcons = FALSE,
-                themeDots = TRUE,
-                three_state = FALSE,
-                tie_selection = TRUE,
-                whole_node = FALSE
-              )
-            )
-          ),
-          
-          hr(),
-          
-          div(
-            style = "padding: 0 6px 6px 6px;",
-            
-            strong("Selected filters:"),
-            
-            uiOutput(
-              paste0(
-                "selected_filter_summary_",
-                dim_id
-              )
-            )
-          )
+    meta <- FILTER_DIMENSIONS[[
+      asfis_dim_ids[1L]
+    ]]
+    
+    if (
+      !meta$dataset_column %in%
+      names(dt)
+    ) {
+      return(NULL)
+    }
+    
+    # Only ASFIS codes actually present in the loaded dataset are offered.
+    available_codes <- sort(
+      clean_non_empty_codes(
+        dt[[meta$dataset_column]]
+      )
+    )
+    
+    if (length(available_codes) == 0L) {
+      return(NULL)
+    }
+    
+    # Retrieve labels for those ASFIS codes.
+    codes <- tryCatch(
+      as.data.table(
+        get_codelist_codes(
+          meta$codelist
         )
-      })
+      ),
+      error = function(e) NULL
+    )
+    
+    labels <- available_codes
+    
+    if (!is.null(codes)) {
+      
+      codes[
+        ,
+        id := as.character(id)
+      ]
+      
+      display_map <- make_tree_display_labels(
+        codes
+      )
+      
+      matched_labels <- unname(
+        display_map[available_codes]
+      )
+      
+      has_label <- (
+        !is.na(matched_labels) &
+          nzchar(matched_labels)
+      )
+      
+      labels[has_label] <-
+        matched_labels[has_label]
+    }
+    
+    # Names are displayed; values are the real ASFIS codes.
+    choices <- stats::setNames(
+      available_codes,
+      labels
+    )
+    
+    current_selection <- isolate(
+      input$filter_asfis_search_values %||%
+        character(0)
+    )
+    
+    current_selection <- intersect(
+      clean_non_empty_codes(
+        current_selection
+      ),
+      available_codes
+    )
+    
+    # Populate the ASFIS Selectize choices server-side.
+    updateSelectizeInput(
+      session,
+      "filter_asfis_search_values",
+      choices = choices,
+      selected = current_selection,
+      server = TRUE
     )
   })
+  
   
   
   output$aggregation_controls_ui <- renderUI({
