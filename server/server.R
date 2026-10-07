@@ -4026,7 +4026,34 @@ server <- function(input, output, session) {
               filter = "top",
               options = list(
                 pageLength = 10,
-                scrollX = TRUE
+                scrollX = TRUE,
+                
+                columnDefs = list(
+                  list(
+                    width = "65px",
+                    targets = which(names(dt_to_show) == cfg$year_col) - 1
+                  ),
+                  list(
+                    width = "70px",
+                    targets = which(names(dt_to_show) == cfg$observation_flag_col) - 1
+                  ),
+                  list(
+                    width = "60px",
+                    targets = which(names(dt_to_show) == cfg$method_flag_col) - 1
+                  ),
+                  list(
+                    width = "145px",
+                    targets = which(names(dt_to_show) == "current_value") - 1
+                  ),
+                  list(
+                    width = "145px",
+                    targets = which(names(dt_to_show) == "comparison_value") - 1
+                  ),
+                  list(
+                    width = "145px",
+                    targets = which(names(dt_to_show) == "absolute_difference") - 1
+                  )
+                )
               )
             )
             
@@ -9810,7 +9837,26 @@ server <- function(input, output, session) {
             filter = "top",
             options = list(
               pageLength = 10,
-              scrollX = TRUE
+              scrollX = TRUE,
+              
+              columnDefs = list(
+                list(
+                  width = "65px",
+                  targets = which(names(dt_to_show) == cfg$year_col) - 1
+                ),
+                list(
+                  width = "70px",
+                  targets = which(names(dt_to_show) == cfg$observation_flag_col) - 1
+                ),
+                list(
+                  width = "60px",
+                  targets = which(names(dt_to_show) == cfg$method_flag_col) - 1
+                ),
+                list(
+                  width = "150px",
+                  targets = which(names(dt_to_show) == cfg$value_col) - 1
+                )
+              )
             )
           )
           
@@ -11628,7 +11674,34 @@ server <- function(input, output, session) {
         pageLength = n_show,
         lengthChange = FALSE,
         scrollX = TRUE,
-        scrollY = "520px"
+        scrollY = "520px",
+        
+        columnDefs = list(
+          list(
+            width = "70px",
+            targets = which(display_cols == "timePointYears") - 1
+          ),
+          list(
+            width = "70px",
+            targets = which(display_cols == "flagObservationStatus") - 1
+          ),
+          list(
+            width = "60px",
+            targets = which(display_cols == "flagMethod") - 1
+          ),
+          list(
+            width = "150px",
+            targets = which(display_cols == cfg$value_col) - 1
+          ),
+          list(
+            width = "150px",
+            targets = which(display_cols == "previous_value") - 1
+          ),
+          list(
+            width = "160px",
+            targets = which(display_cols == "outlier_metric_value") - 1
+          )
+        )
       )
     )
     
