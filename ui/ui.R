@@ -390,20 +390,34 @@ Shiny.addCustomMessageHandler(
         nodes.forEach(function(node) {
           
           var nodeLabel = String(
-            node.text || ''
-          ).trim();
-          
-          if (
-            wantedLabels.indexOf(
-              nodeLabel
-            ) !== -1
-          ) {
+  node.text || ''
+)
+  .replace(/\s+/g, ' ')
+  .trim();
+
+var normalizedWantedLabels =
+  wantedLabels.map(function(label) {
+    return String(label || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  });
+
+var wantedIndex =
+  normalizedWantedLabels.indexOf(
+    nodeLabel
+  );
+
+if (wantedIndex !== -1) {
+  
+  treeObject.tree.check_node(
+    node.id
+  );
+  
+  matchedLabels[
+    wantedLabels[wantedIndex]
+  ] = true;
+}
             
-            treeObject.tree.check_node(
-              node.id
-            );
-            
-            matchedLabels[nodeLabel] = true;
           }
         });
         
