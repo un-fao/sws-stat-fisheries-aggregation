@@ -3981,6 +3981,11 @@ server <- function(input, output, session) {
           differences_only_local <- differences_only
           
           output[[table_id_local]] <- renderDT({
+            
+            cfg <- get_dataset_config(
+              input$dataset_id
+            )
+            
             dt_to_show <- comparison_results()[[
               output_name_local
             ]]
