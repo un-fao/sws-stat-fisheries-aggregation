@@ -553,7 +553,7 @@ Shiny.addCustomMessageHandler(
       ),
       
       # Saved user presets for filtering and aggregation.
-      uiOutput("preset_controls_ui")
+      uiOutput("preset_controls_ui"),
       
       # Filters and aggregation organized by dimension.
       uiOutput("dimension_accordion_ui"),
