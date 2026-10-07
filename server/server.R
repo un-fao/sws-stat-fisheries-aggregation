@@ -2153,6 +2153,24 @@ server <- function(input, output, session) {
         }
       }
       
+      # ASFIS selections made through the lightweight search must be saved
+      # together with ordinary tree selections so that the Comparison page
+      # reproduces exactly the same ASFIS filter.
+      if (
+        identical(
+          meta$dataset_column,
+          "fisheriesAsfis"
+        )
+      ) {
+        
+        selected_values <- unique(
+          c(
+            selected_values,
+            get_asfis_search_values()
+          )
+        )
+      }
+      
       selected_values <- unique(
         trimws(
           as.character(
@@ -4061,28 +4079,28 @@ server <- function(input, output, session) {
                   ),
                   list(
                     width = "180px",
-                    className = "dt-nowrap",
+                    className = "dt-right dt-nowrap",
                     targets = which(
                       names(dt_to_show) == "current_value"
                     ) - 1
                   ),
                   list(
                     width = "180px",
-                    className = "dt-nowrap",
+                    className = "dt-right dt-nowrap",
                     targets = which(
                       names(dt_to_show) == "comparison_value"
                     ) - 1
                   ),
                   list(
                     width = "180px",
-                    className = "dt-nowrap",
+                    className = "dt-right dt-nowrap",
                     targets = which(
                       names(dt_to_show) == "absolute_difference"
                     ) - 1
                   ),
                   list(
                     width = "110px",
-                    className = "dt-nowrap",
+                    className = "dt-right dt-nowrap",
                     targets = which(
                       names(dt_to_show) == "percentage_difference"
                     ) - 1
@@ -6275,6 +6293,201 @@ server <- function(input, output, session) {
     ]
   }
   
+
+  # ASFIS lightweight search helpers
+  # ASFIS has a very large hierarchy. Searching directly inside shinyTree
+  # can make the browser extremely slow because the full rendered tree is
+  # searched on every keystroke.
+  # These helpers read the values selected through the separate server-side
+  # ASFIS search control. The selected codes are later combined with any
+  # ASFIS selections made manually in the hierarchy tree.
+  
+  get_asfis_search_values <- function() {
+    
+    clean_non_empty_codes(
+      input$filter_asfis_search_values
+    )
+  }
+  
+  
+  # Return human-readable labels for ASFIS codes selected through the
+  # lightweight search control. These labels are used only in the
+  # "Selected filters" summary shown to the user.
+  get_asfis_search_labels <- function() {
+    
+    selected_codes <- get_asfis_search_values()
+    
+    if (length(selected_codes) == 0L) {
+      return(character(0))
+    }
+    
+    asfis_meta <- Filter(
+      function(meta) {
+        identical(
+          meta$dataset_column,
+          "fisheriesAsfis"
+        )
+      },
+      FILTER_DIMENSIONS
+    )
+    
+    if (length(asfis_meta) == 0L) {
+      return(selected_codes)
+    }
+    
+    codes <- tryCatch(
+      get_codelist_codes(
+        asfis_meta[[1L]]$codelist
+      ),
+      error = function(e) NULL
+    )
+    
+    if (is.null(codes)) {
+      return(selected_codes)
+    }
+    
+    display_map <- make_tree_display_labels(
+      codes
+    )
+    
+    labels <- unname(
+      display_map[selected_codes]
+    )
+    
+    missing_labels <- (
+      is.na(labels) |
+        !nzchar(labels)
+    )
+    
+    labels[missing_labels] <-
+      selected_codes[missing_labels]
+    
+    labels
+  }
+  
+
+  # Populate the lightweight ASFIS search control
+  #
+  # The choices are searched server-side instead of inside the large
+  # shinyTree hierarchy. This prevents the browser from scanning the whole
+  # ASFIS tree every time the user types one character.
+  #
+  # Only ASFIS codes actually present in the currently loaded dataset are
+  # offered. The hierarchy tree itself is left unchanged.
+  observe({
+    
+    req(
+      dataset_data(),
+      input$dataset_id
+    )
+    
+    dt <- dataset_data()
+    
+    asfis_dim_ids <- names(
+      FILTER_DIMENSIONS
+    )[
+      vapply(
+        FILTER_DIMENSIONS,
+        function(meta) {
+          identical(
+            meta$dataset_column,
+            "fisheriesAsfis"
+          )
+        },
+        logical(1)
+      )
+    ]
+    
+    if (length(asfis_dim_ids) == 0L) {
+      return(NULL)
+    }
+    
+    meta <- FILTER_DIMENSIONS[[
+      asfis_dim_ids[1L]
+    ]]
+    
+    if (
+      !meta$dataset_column %in%
+      names(dt)
+    ) {
+      return(NULL)
+    }
+    
+    available_codes <- sort(
+      clean_non_empty_codes(
+        dt[[meta$dataset_column]]
+      )
+    )
+    
+    if (length(available_codes) == 0L) {
+      return(NULL)
+    }
+    
+    codes <- tryCatch(
+      as.data.table(
+        get_codelist_codes(
+          meta$codelist
+        )
+      ),
+      error = function(e) NULL
+    )
+    
+    labels <- available_codes
+    
+    if (!is.null(codes)) {
+      
+      codes[
+        ,
+        id := as.character(id)
+      ]
+      
+      display_map <- make_tree_display_labels(
+        codes
+      )
+      
+      matched_labels <- unname(
+        display_map[available_codes]
+      )
+      
+      has_label <- (
+        !is.na(matched_labels) &
+          nzchar(matched_labels)
+      )
+      
+      labels[has_label] <-
+        matched_labels[has_label]
+    }
+    
+    choices <- stats::setNames(
+      available_codes,
+      labels
+    )
+    
+    current_selection <- isolate(
+      get_asfis_search_values()
+    )
+    
+    current_selection <- intersect(
+      current_selection,
+      available_codes
+    )
+    
+    session$onFlushed(
+      function() {
+        
+        updateSelectizeInput(
+          session,
+          "filter_asfis_search_values",
+          choices = choices,
+          selected = current_selection,
+          server = TRUE
+        )
+      },
+      once = TRUE
+    )
+  })
+  
+  
   
   get_relevant_hierarchy_codes <- function(
     tree_dt,
@@ -6555,23 +6768,39 @@ server <- function(input, output, session) {
       )
     ]]
     
-    if (is.null(filter_tree_input)) {
-      return(character(0))
+    roots <- character(0)
+    
+    if (!is.null(filter_tree_input)) {
+      
+      roots <- tryCatch(
+        get_selected_codes_from_tree(
+          tree_input = filter_tree_input,
+          codes = codes,
+          tree_dt = tree_dt,
+          expand_descendants = FALSE,
+          selection_rule = "most_specific",
+          codelist_id = meta$codelist
+        ),
+        error = function(e) {
+          character(0)
+        }
+      )
     }
     
-    roots <- tryCatch(
-      get_selected_codes_from_tree(
-        tree_input = filter_tree_input,
-        codes = codes,
-        tree_dt = tree_dt,
-        expand_descendants = FALSE,
-        selection_rule = "most_specific",
-        codelist_id = meta$codelist
-      ),
-      error = function(e) {
-        character(0)
-      }
-    )
+    if (
+      identical(
+        meta$dataset_column,
+        "fisheriesAsfis"
+      )
+    ) {
+      
+      roots <- unique(
+        c(
+          roots,
+          get_asfis_search_values()
+        )
+      )
+    }
     
     clean_non_empty_codes(
       roots
@@ -7084,6 +7313,33 @@ server <- function(input, output, session) {
         
         card_header(meta$label),
         
+        if (
+          identical(
+            meta$dataset_column,
+            "fisheriesAsfis"
+          )
+        ) {
+          
+          selectizeInput(
+            inputId =
+              "filter_asfis_search_values",
+            label =
+              "Search ASFIS code or name",
+            choices = NULL,
+            selected = character(0),
+            multiple = TRUE,
+            options = list(
+              placeholder =
+                "Type an ASFIS code or name",
+              maxOptions = 50
+            )
+          )
+          
+        } else {
+          
+          NULL
+        },
+        
         div(
           style = paste(
             "max-height: 260px;",
@@ -7109,7 +7365,10 @@ server <- function(input, output, session) {
                 dim_id
               ),
               checkbox = TRUE,
-              search = TRUE,
+              search = !identical(
+                meta$dataset_column,
+                "fisheriesAsfis"
+              ),
               themeIcons = FALSE,
               themeDots = TRUE,
               three_state = FALSE,
@@ -8518,6 +8777,23 @@ server <- function(input, output, session) {
           }
         )
         
+        # ASFIS selections made through the lightweight search should also
+        # appear in the existing "Selected filters" summary.
+        if (
+          identical(
+            meta$dataset_column,
+            "fisheriesAsfis"
+          )
+        ) {
+          
+          selected_labels <- unique(
+            c(
+              selected_labels,
+              get_asfis_search_labels()
+            )
+          )
+        }
+        
         make_tree_selection_summary_ui(
           tree_id = tree_id,
           selected_labels = selected_labels,
@@ -8653,10 +8929,12 @@ server <- function(input, output, session) {
       value = FALSE
     )
     
-    updateCheckboxInput(
+    # Clear selections made through the lightweight ASFIS search.
+    updateSelectizeInput(
       session,
-      "aggregate_selected_years",
-      value = FALSE
+      "filter_asfis_search_values",
+      selected = character(0),
+      server = TRUE
     )
     # Force the filter UI to rebuild.
     tree_reset_counter(isolate(tree_reset_counter()) + 1)
@@ -8846,6 +9124,21 @@ server <- function(input, output, session) {
             "most_specific"
           },
           codelist_id = meta$codelist
+        )
+      }
+      
+      if (
+        identical(
+          meta$dataset_column,
+          "fisheriesAsfis"
+        )
+      ) {
+        
+        selected_values <- unique(
+          c(
+            selected_values,
+            get_asfis_search_values()
+          )
         )
       }
       
