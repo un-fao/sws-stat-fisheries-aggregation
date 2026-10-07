@@ -9099,19 +9099,17 @@ server <- function(input, output, session) {
   
   
   # -------------------------------------------------------------------------
-  # Preset controls shown above the Filters & aggregation page.
-  # Only presets belonging to the currently loaded dataset are listed.
+  # Return preset names belonging to the currently loaded dataset.
   # -------------------------------------------------------------------------
   
-  output$preset_controls_ui <- renderUI({
+  get_matching_preset_names <- function() {
     
-    req(
-      user(),
-      input$dataset_id
-    )
-    
-    # Re-render the selector after a preset is added or deleted.
-    preset_revision()
+    if (
+      is.null(input$dataset_id) ||
+      !nzchar(input$dataset_id)
+    ) {
+      return(character(0))
+    }
     
     presets <- read_user_presets()
     
@@ -9131,9 +9129,24 @@ server <- function(input, output, session) {
       )
     )
     
-    matching_names <- sort(
+    sort(
       matching_names
     )
+  }
+  
+  
+  # -------------------------------------------------------------------------
+  # Preset controls shown above the Filters & aggregation page.
+  # -------------------------------------------------------------------------
+  
+  output$preset_controls_ui <- renderUI({
+    
+    req(
+      user(),
+      input$dataset_id
+    )
+    
+    matching_names <- get_matching_preset_names()
     
     card(
       fill = FALSE,
@@ -9230,11 +9243,17 @@ server <- function(input, output, session) {
         presets
       )
       
-      # Refresh only the small preset selector UI.
-      preset_revision(
-        isolate(
-          preset_revision()
-        ) + 1L
+      updateSelectizeInput(
+        session,
+        "saved_preset_name",
+        choices = get_matching_preset_names(),
+        selected = preset_name
+      )
+      
+      updateTextInput(
+        session,
+        "new_preset_name",
+        value = ""
       )
       
       showNotification(
@@ -9287,10 +9306,11 @@ server <- function(input, output, session) {
         presets
       )
       
-      preset_revision(
-        isolate(
-          preset_revision()
-        ) + 1L
+      updateSelectizeInput(
+        session,
+        "saved_preset_name",
+        choices = get_matching_preset_names(),
+        selected = character(0)
       )
       
       showNotification(
