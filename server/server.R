@@ -4029,17 +4029,30 @@ server <- function(input, output, session) {
               dt_to_show,
               rownames = FALSE,
               filter = "top",
+              
+              colnames = c(
+                timePointYears = "Year",
+                measuredElement = "Measured element",
+                flagObservationStatus = "Obs. flag",
+                flagMethod = "Method flag"
+              ),
+              
               options = list(
                 pageLength = 10,
                 scrollX = TRUE,
+                autoWidth = FALSE,
                 
                 columnDefs = list(
                   list(
-                    width = "65px",
+                    width = "55px",
                     targets = which(names(dt_to_show) == cfg$year_col) - 1
                   ),
                   list(
-                    width = "70px",
+                    width = "85px",
+                    targets = which(names(dt_to_show) == cfg$measured_element_col) - 1
+                  ),
+                  list(
+                    width = "60px",
                     targets = which(names(dt_to_show) == cfg$observation_flag_col) - 1
                   ),
                   list(
@@ -4047,16 +4060,24 @@ server <- function(input, output, session) {
                     targets = which(names(dt_to_show) == cfg$method_flag_col) - 1
                   ),
                   list(
-                    width = "145px",
+                    width = "150px",
+                    className = "dt-nowrap",
                     targets = which(names(dt_to_show) == "current_value") - 1
                   ),
                   list(
-                    width = "145px",
+                    width = "150px",
+                    className = "dt-nowrap",
                     targets = which(names(dt_to_show) == "comparison_value") - 1
                   ),
                   list(
-                    width = "145px",
+                    width = "150px",
+                    className = "dt-nowrap",
                     targets = which(names(dt_to_show) == "absolute_difference") - 1
+                  ),
+                  list(
+                    width = "80px",
+                    className = "dt-nowrap",
+                    targets = which(names(dt_to_show) == "percentage_difference") - 1
                   )
                 )
               )
@@ -9840,17 +9861,30 @@ server <- function(input, output, session) {
             dt_to_show,
             rownames = FALSE,
             filter = "top",
+            
+            colnames = c(
+              timePointYears = "Year",
+              measuredElement = "Measured element",
+              flagObservationStatus = "Obs. flag",
+              flagMethod = "Method flag"
+            ),
+            
             options = list(
               pageLength = 10,
               scrollX = TRUE,
+              autoWidth = FALSE,
               
               columnDefs = list(
                 list(
-                  width = "65px",
+                  width = "55px",
                   targets = which(names(dt_to_show) == cfg$year_col) - 1
                 ),
                 list(
-                  width = "70px",
+                  width = "85px",
+                  targets = which(names(dt_to_show) == cfg$measured_element_col) - 1
+                ),
+                list(
+                  width = "60px",
                   targets = which(names(dt_to_show) == cfg$observation_flag_col) - 1
                 ),
                 list(
@@ -9858,7 +9892,8 @@ server <- function(input, output, session) {
                   targets = which(names(dt_to_show) == cfg$method_flag_col) - 1
                 ),
                 list(
-                  width = "150px",
+                  width = "155px",
+                  className = "dt-nowrap",
                   targets = which(names(dt_to_show) == cfg$value_col) - 1
                 )
               )
@@ -11675,35 +11710,51 @@ server <- function(input, output, session) {
     outlier_table <- datatable(
       dt[, ..display_cols],
       rownames = FALSE,
+      
+      colnames = c(
+        timePointYears = "Year",
+        measuredElement = "Measured element",
+        flagObservationStatus = "Obs. flag",
+        flagMethod = "Method flag"
+      ),
+      
       options = list(
         pageLength = n_show,
         lengthChange = FALSE,
         scrollX = TRUE,
         scrollY = "520px",
+        autoWidth = FALSE,
         
         columnDefs = list(
           list(
-            width = "70px",
-            targets = which(display_cols == "timePointYears") - 1
+            width = "55px",
+            targets = which(display_cols == cfg$year_col) - 1
           ),
           list(
-            width = "70px",
-            targets = which(display_cols == "flagObservationStatus") - 1
+            width = "85px",
+            targets = which(display_cols == cfg$measured_element_col) - 1
           ),
           list(
             width = "60px",
-            targets = which(display_cols == "flagMethod") - 1
+            targets = which(display_cols == cfg$observation_flag_col) - 1
           ),
           list(
-            width = "150px",
+            width = "60px",
+            targets = which(display_cols == cfg$method_flag_col) - 1
+          ),
+          list(
+            width = "155px",
+            className = "dt-nowrap",
             targets = which(display_cols == cfg$value_col) - 1
           ),
           list(
-            width = "150px",
+            width = "155px",
+            className = "dt-nowrap",
             targets = which(display_cols == "previous_value") - 1
           ),
           list(
-            width = "160px",
+            width = "165px",
+            className = "dt-nowrap",
             targets = which(display_cols == "outlier_metric_value") - 1
           )
         )
