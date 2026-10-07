@@ -8870,9 +8870,19 @@ server <- function(input, output, session) {
   # We deliberately save the visible selected nodes rather than expanding
   # parents into hundreds of descendant raw codes. This lets a preset restore
   # the same user-facing hierarchy selection later.
-  get_checked_tree_labels_for_preset <- function(
-    tree_id
+  get_tree_labels_for_preset <- function(
+    tree_id,
+    meta,
+    selection_rule = c(
+      "top",
+      "most_specific",
+      "none"
+    )
   ) {
+    
+    selection_rule <- match.arg(
+      selection_rule
+    )
     
     tree_input <- input[[tree_id]]
     
@@ -8881,11 +8891,24 @@ server <- function(input, output, session) {
     }
     
     labels <- tryCatch(
-      shinyTree::get_checked(
-        tree_input,
-        format = "names"
-      ),
+      {
+        get_explicit_tree_selection_labels(
+          tree_input = tree_input,
+          meta = meta,
+          selection_rule = selection_rule
+        )
+      },
       error = function(e) {
+        
+        warning(
+          paste0(
+            "Could not save tree selection for ",
+            tree_id,
+            ": ",
+            e$message
+          )
+        )
+        
         character(0)
       }
     )
@@ -8937,11 +8960,21 @@ server <- function(input, output, session) {
             return(character(0))
           }
           
-          get_checked_tree_labels_for_preset(
-            paste0(
+          meta <- active_filter_dims[[dim_id]]
+          
+          get_tree_labels_for_preset(
+            tree_id = paste0(
               "filter_tree_",
               dim_id
-            )
+            ),
+            meta = meta,
+            selection_rule = if (
+              is_flat_filter_dimension(dim_id)
+            ) {
+              "none"
+            } else {
+              "most_specific"
+            }
           )
         }
       ),
@@ -8976,11 +9009,16 @@ server <- function(input, output, session) {
       lapply(
         names(AGGREGATION_DIMENSIONS),
         function(dim_id) {
-          get_checked_tree_labels_for_preset(
-            paste0(
+          
+          meta <- AGGREGATION_DIMENSIONS[[dim_id]]
+          
+          get_tree_labels_for_preset(
+            tree_id = paste0(
               "aggregation_classification_tree_",
               dim_id
-            )
+            ),
+            meta = meta,
+            selection_rule = "top"
           )
         }
       ),
@@ -8991,11 +9029,16 @@ server <- function(input, output, session) {
       lapply(
         names(AGGREGATION_DIMENSIONS),
         function(dim_id) {
-          get_checked_tree_labels_for_preset(
-            paste0(
+          
+          meta <- AGGREGATION_DIMENSIONS[[dim_id]]
+          
+          get_tree_labels_for_preset(
+            tree_id = paste0(
               "aggregation_custom_tree_",
               dim_id
-            )
+            ),
+            meta = meta,
+            selection_rule = "top"
           )
         }
       ),
