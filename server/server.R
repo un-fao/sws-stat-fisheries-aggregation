@@ -7689,7 +7689,7 @@ server <- function(input, output, session) {
           
           list(
             id = "dimension_accordion",
-            open = TRUE,
+            open = FALSE,
             multiple = TRUE
           )
         )
