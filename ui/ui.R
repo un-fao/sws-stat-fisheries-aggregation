@@ -1,3 +1,4 @@
+
 #############################################
 # UI
 #############################################
@@ -55,8 +56,8 @@ ui <- page_navbar(
         background-color: rgba(255, 255, 255, 0.18) !important;
         border-radius: 6px;
       }
-      
-      
+
+
       body {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.70), rgba(255, 255, 255, 0.70)),
@@ -237,56 +238,56 @@ ui <- page_navbar(
     tags$script(
       HTML("
   (function() {
-    
+
     function getTree(treeId) {
       var element = $('#' + treeId);
-      
+
       if (!element.length || !element.jstree(true)) {
         return null;
       }
-      
+
       return {
         element: element,
         tree: element.jstree(true)
       };
     }
-    
-    
+
+
     function clearOneTree(treeId, closeTree) {
       var treeObject = getTree(treeId);
-      
+
       if (!treeObject) {
         return false;
       }
-      
+
       treeObject.tree.uncheck_all();
       treeObject.tree.deselect_all();
-      
+
       if (closeTree === true) {
         treeObject.tree.close_all();
       }
-      
+
       Shiny.setInputValue(
         treeId,
         null,
         {priority: 'event'}
       );
-      
+
       return true;
     }
-    
-    
+
+
     function removeTreeNodeByLabel(treeId, nodeLabel) {
       var treeObject = getTree(treeId);
-      
+
       if (!treeObject) {
         return false;
       }
-      
+
       var targetLabel = String(nodeLabel || '').trim();
       var nodes = treeObject.tree.get_json('#', {flat: true});
       var removed = false;
-      
+
       nodes.forEach(function(node) {
         if (String(node.text || '').trim() === targetLabel) {
           treeObject.tree.uncheck_node(node.id);
@@ -294,7 +295,7 @@ ui <- page_navbar(
           removed = true;
         }
       });
-      
+
       if (
         removed &&
         treeObject.tree.get_checked().length === 0 &&
@@ -306,173 +307,61 @@ ui <- page_navbar(
           {priority: 'event'}
         );
       }
-      
+
       return removed;
     }
-    
-    
+
+
     Shiny.addCustomMessageHandler(
       'clear_shiny_trees',
       function(message) {
         var ids = message.ids || [];
         var attempts = 0;
-        
+
         var timer = setInterval(function() {
           attempts = attempts + 1;
-          
+
           ids.forEach(function(id) {
             clearOneTree(id, true);
           });
-          
+
           if (attempts >= 20) {
             clearInterval(timer);
           }
         }, 100);
       }
     );
-    
-    
-    // Restore checked shinyTree nodes from a saved user preset.
-    //
-    // Trees on this page are rendered dynamically and aggregation trees can
-    // rebuild after filter selections change. For that reason this handler
-    // retries for a few seconds and reapplies the requested labels whenever
-    // a tree DOM element is replaced.
-    Shiny.addCustomMessageHandler(
-      'restore_shiny_tree_labels',
-      function(message) {
-        
-        var treeEntries = message.trees || [];
-        var attempts = 0;
-        
-        // Remember which actual DOM instance has already been cleared.
-        // If Shiny rebuilds a tree, the new DOM element is cleared once again.
-        var preparedElements = {};
-        
-        var timer = setInterval(function() {
-          
-          attempts = attempts + 1;
-          var unresolved = 0;
-          
-          treeEntries.forEach(function(entry) {
-            
-            var treeId = entry.id;
-            var wantedLabels = entry.labels || [];
-            var treeObject = getTree(treeId);
-            
-            if (!treeObject) {
-              unresolved = unresolved + 1;
-              return;
-            }
-            
-            var currentElement = treeObject.element.get(0);
-            
-            // Clear previous selections once for each newly rendered tree.
-            if (preparedElements[treeId] !== currentElement) {
-              
-              treeObject.tree.uncheck_all();
-              treeObject.tree.deselect_all();
-              
-              preparedElements[treeId] = currentElement;
-            }
-            
-            // Nothing was selected in this tree when the preset was saved.
-            if (wantedLabels.length === 0) {
-              return;
-            }
-            
-            var nodes = treeObject.tree.get_json(
-              '#',
-              {flat: true}
-            );
-            
-            var matchedLabels = {};
-            
-            nodes.forEach(function(node) {
-              
-              var nodeLabel = String(
-                node.text || ''
-              )
-                .replace(/\\s+/g, ' ')
-                .trim();
-              
-              var normalizedWantedLabels =
-                wantedLabels.map(function(label) {
-                  return String(label || '')
-                    .replace(/\\s+/g, ' ')
-                    .trim();
-                });
-              
-              var wantedIndex =
-                normalizedWantedLabels.indexOf(
-                  nodeLabel
-                );
-              
-              if (wantedIndex !== -1) {
-                
-                treeObject.tree.check_node(
-                  node.id
-                );
-                
-                matchedLabels[
-                  wantedLabels[wantedIndex]
-                ] = true;
-              }
-            });
-            
-            // Keep retrying while a saved node has not appeared yet.
-            // This is particularly important for aggregation trees, which
-            // may rebuild after restored filter selections are applied.
-            wantedLabels.forEach(function(label) {
-              
-              if (!matchedLabels[label]) {
-                unresolved = unresolved + 1;
-              }
-            });
-          });
-          
-          // Stop as soon as everything is restored, or after five seconds.
-          if (
-            unresolved === 0 ||
-            attempts >= 50
-          ) {
-            clearInterval(timer);
-          }
-          
-        }, 100);
-      }
-    );
-    
-    
+
+
     $(document).on(
       'click',
       '.tree-selection-clear',
       function(event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         clearOneTree(
           $(this).attr('data-tree-id'),
           false
         );
       }
     );
-    
-    
+
+
     $(document).on(
       'click',
       '.tree-selection-remove',
       function(event) {
         event.preventDefault();
         event.stopPropagation();
-        
+
         removeTreeNodeByLabel(
           $(this).attr('data-tree-id'),
           $(this).attr('data-node-label')
         );
       }
     );
-    
+
   })();
 ")
     )
@@ -565,9 +454,6 @@ ui <- page_navbar(
         class = "year-toolbar",
         uiOutput("year_selector")
       ),
-      
-      # Saved user presets for filtering and aggregation.
-      uiOutput("preset_controls_ui"),
       
       # Filters and aggregation organized by dimension.
       uiOutput("dimension_accordion_ui"),
@@ -939,4 +825,3 @@ ui <- page_navbar(
     )
   )
 )
-
