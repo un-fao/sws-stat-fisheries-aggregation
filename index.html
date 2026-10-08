@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.10.18">
+<meta name="generator" content="quarto-1.10.19">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-05">
+<meta name="dcterms.date" content="2026-10-08">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -73,7 +73,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="fisheries_documentation_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="fisheries_documentation_files/libs/quarto-html/anchor.min.js"></script>
 <link href="fisheries_documentation_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="fisheries_documentation_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="fisheries_documentation_files/libs/quarto-html/quarto-syntax-highlighting-bf27225e3a48a9273f3daa8f8e829971.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="fisheries_documentation_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="fisheries_documentation_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="fisheries_documentation_files/libs/bootstrap/bootstrap-f204e25d08cb8099aca141a60908d47d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -223,7 +223,12 @@ window.Quarto = {
   <li><a href="#comparison-statuses" id="toc-comparison-statuses" class="nav-link" data-scroll-target="#comparison-statuses"><span class="header-section-number">16.6</span> Comparison statuses</a></li>
   <li><a href="#differences-in-category-coverage" id="toc-differences-in-category-coverage" class="nav-link" data-scroll-target="#differences-in-category-coverage"><span class="header-section-number">16.7</span> Differences in category coverage</a></li>
   <li><a href="#comparison-outputs" id="toc-comparison-outputs" class="nav-link" data-scroll-target="#comparison-outputs"><span class="header-section-number">16.8</span> Comparison outputs</a></li>
-  <li><a href="#comparison-chart" id="toc-comparison-chart" class="nav-link" data-scroll-target="#comparison-chart"><span class="header-section-number">16.9</span> Comparison chart</a></li>
+  <li><a href="#comparison-charts" id="toc-comparison-charts" class="nav-link" data-scroll-target="#comparison-charts"><span class="header-section-number">16.9</span> Comparison charts</a>
+  <ul class="collapse">
+  <li><a href="#all-comparison-rows" id="toc-all-comparison-rows" class="nav-link" data-scroll-target="#all-comparison-rows"><span class="header-section-number">16.9.1</span> All comparison rows</a></li>
+  <li><a href="#differences-only" id="toc-differences-only" class="nav-link" data-scroll-target="#differences-only"><span class="header-section-number">16.9.2</span> Differences only</a></li>
+  <li><a href="#time-requirement" id="toc-time-requirement" class="nav-link" data-scroll-target="#time-requirement"><span class="header-section-number">16.9.3</span> Time requirement</a></li>
+  </ul></li>
   </ul></li>
   <li><a href="#outlier-analysis" id="toc-outlier-analysis" class="nav-link" data-scroll-target="#outlier-analysis"><span class="header-section-number">17</span> Outlier analysis</a>
   <ul>
@@ -290,7 +295,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 5, 2026</p>
+      <p class="date">October 8, 2026</p>
     </div>
   </div>
   
@@ -392,9 +397,9 @@ Table&nbsp;1: Application navigation pages
 <div class="cell-output-display">
 <table class="cell caption-top table table-sm table-striped small">
 <colgroup>
-<col style="width: 5%">
-<col style="width: 22%">
-<col style="width: 72%">
+<col style="width: 4%">
+<col style="width: 21%">
+<col style="width: 73%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -412,7 +417,7 @@ Table&nbsp;1: Application navigation pages
 <tr class="even">
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Dataset summary</td>
-<td style="text-align: left;">Inspect metadata, measured elements, raw time series and source rows</td>
+<td style="text-align: left;">Inspect metadata, available years, measured elements and dataset dimensions</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">3</td>
@@ -448,11 +453,11 @@ Table&nbsp;1: Application navigation pages
 </div>
 <ol type="1">
 <li><p><strong>Data Selection</strong> page allows the user to connect to SWS by clicking the <strong>Initialise Client</strong> button, with no additional action required. The user can then select the <strong>Dataset group</strong>, with <strong>Current Fisheries dataset</strong> selected by default, and choose a dataset of interest from the supported Fisheries datasets.</p></li>
-<li><p><strong>Dataset Summary</strong> page provides an overview of the main characteristics of the loaded dataset, including the number of records and the available measured elements. It also includes graphical and tabular previews of the raw dataset over time.</p></li>
+<li><p><strong>Dataset Summary</strong> page provides an overview of the main characteristics of the loaded dataset, including the number of records, available year range, configured measured-element roots, measured elements with usable data, and the main dimensions available in the dataset.</p></li>
 <li><p><strong>Filters &amp; Aggregation</strong> page allows the user to select the time period and measured element(s) of interest, apply filters to the available dataset dimensions, and define the desired aggregation settings.</p></li>
 <li><p><strong>Dataset Table</strong> page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.</p></li>
 <li><p><strong>Graphs</strong> page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.</p></li>
-<li><p><strong>Comparison</strong> page allows the user to compare the aggregation produced from the main loaded dataset with a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged Fisheries dataset</strong>. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison outputs containing either all comparison rows or only those for which differences are detected.</p></li>
+<li><p><strong>Comparison</strong> page allows the user to compare the aggregation produced from the main loaded dataset with a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged Fisheries dataset</strong>. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison tables for <strong>All comparison rows</strong> and <strong>Differences only</strong>, together with time-series charts for examining the main and comparison datasets visually.</p></li>
 <li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.</p></li>
 </ol>
 </section>
@@ -2096,11 +2101,20 @@ Figure&nbsp;15: Differences only table
 </div>
 <p>Each measured element has its own comparison tab and CSV download.</p>
 </section>
-<section id="comparison-chart" class="level2" data-number="16.9">
-<h2 data-number="16.9" class="anchored" data-anchor-id="comparison-chart"><span class="header-section-number">16.9</span> Comparison chart</h2>
-<p>The <strong>Chart</strong> tab provides a time-series comparison between the current aggregation output and the selected comparison dataset.</p>
-<p>The chart is displayed for <strong>one measured element at a time</strong>. When the selected comparison output contains several combinations of analytical dimensions, the <strong>Time series</strong> selector allows the user to choose the specific aggregated series to display.</p>
-<p>Each time series corresponds to one combination of the analytical dimensions retained in the comparison output, which may include:</p>
+<section id="comparison-charts" class="level2" data-number="16.9">
+<h2 data-number="16.9" class="anchored" data-anchor-id="comparison-charts"><span class="header-section-number">16.9</span> Comparison charts</h2>
+<p>The <strong>Charts</strong> tab provides graphical time-series comparisons between the main aggregation output and the selected comparison dataset.</p>
+<p>Two chart views are available:</p>
+<ul>
+<li><strong>All comparison rows</strong></li>
+<li><strong>Differences only</strong></li>
+</ul>
+<p>Both views display one measured element at a time and allow the user to select a particular combination of analytical dimensions when several series are available.</p>
+<section id="all-comparison-rows" class="level3" data-number="16.9.1">
+<h3 data-number="16.9.1" class="anchored" data-anchor-id="all-comparison-rows"><span class="header-section-number">16.9.1</span> All comparison rows</h3>
+<p>The <strong>All comparison rows</strong> chart displays the selected aggregated series from both the main dataset and the comparison dataset, regardless of whether their values are equal or different.</p>
+<p>The user first selects the measured-element output to display. When the output contains several combinations of analytical dimensions, additional selectors allow the user to choose the specific series to plot.</p>
+<p>A series may be defined by dimensions such as:</p>
 <ul>
 <li>country or geographical area;</li>
 <li>species / ASFIS;</li>
@@ -2108,19 +2122,35 @@ Figure&nbsp;15: Differences only table
 <li>production source / environment type, where available;</li>
 <li>currency flag, where available.</li>
 </ul>
-<p>The chart title identifies the selected measured element together with the analytical dimensions defining the displayed series. Descriptive codelist labels are used where available.</p>
-<p>The chart displays:</p>
+<p>The chart compares the values of the selected series over time:</p>
 <ul>
-<li>the <strong>main dataset</strong> as a solid line with filled points;</li>
-<li>the <strong>comparison dataset</strong> as a dashed line with a different point shape.</li>
+<li>the <strong>main dataset</strong> is displayed as one line;</li>
+<li>the <strong>comparison dataset</strong> is displayed as a second line.</li>
 </ul>
-<p>Using both line type and point shape in addition to colour makes the two datasets distinguishable even when their values are identical and the two lines occupy the same coordinates.</p>
-<p>When the current and comparison datasets contain identical values for all displayed years, the chart explicitly indicates that the two series are identical.</p>
-<p>When values coincide only for the years available in both datasets but the datasets have different year coverage, the chart indicates that the common values are identical while the available periods differ.</p>
-<p>If the selected aggregated series exists only in one dataset, the available series is still displayed. A message indicates that no corresponding values are available in the other dataset.</p>
-<p>If one dataset contains only one available observation for the selected series, that observation is displayed as a point rather than suppressing the entire chart.</p>
-<p>Missing yearly values are retained as missing values in the plotting data. Consequently, a line is interrupted when a dataset has no corresponding value for a particular year rather than connecting observations across the missing period.</p>
-<p>The comparison chart is available only when the selected aggregation retains separate years. If <strong>Total all selected years into one period</strong> was used, a time-series comparison cannot be displayed because the selected years have been combined into a single aggregated period.</p>
+<p>Different line types and point shapes are used so that the two series remain distinguishable even when they have identical values and therefore overlap.</p>
+<p>When both datasets contain the same value for the same year, the two points occupy the same position. When all common observations are identical, the chart indicates that the two series coincide.</p>
+<p>If the datasets contain different year coverage, all available periods are retained. Missing values are not interpolated, so a line is interrupted when one dataset does not contain a value for a particular year.</p>
+<p>If the selected series exists only in one of the datasets, the available series is still displayed and the chart indicates that no corresponding values are available in the other dataset.</p>
+<p>A dataset with only one available observation is displayed as a single point rather than being omitted.</p>
+</section>
+<section id="differences-only" class="level3" data-number="16.9.2">
+<h3 data-number="16.9.2" class="anchored" data-anchor-id="differences-only"><span class="header-section-number">16.9.2</span> Differences only</h3>
+<p>The <strong>Differences only</strong> chart uses the same type of time-series representation but restricts the available series to comparison records for which a difference has been detected.</p>
+<p>This view is intended to help users focus directly on discrepancies between the main and comparison outputs without displaying combinations whose values are identical.</p>
+<p>As in the <strong>All comparison rows</strong> chart, the user selects the measured element and, when necessary, the analytical-dimension combination to display.</p>
+<p>The plotted values correspond to the main and comparison values for the selected differing series, allowing the user to see:</p>
+<ul>
+<li>the years in which the values diverge;</li>
+<li>the magnitude and direction of the difference;</li>
+<li>whether a series or observation is available only in one of the two datasets;</li>
+<li>whether differences occur throughout the series or only in particular years.</li>
+</ul>
+</section>
+<section id="time-requirement" class="level3" data-number="16.9.3">
+<h3 data-number="16.9.3" class="anchored" data-anchor-id="time-requirement"><span class="header-section-number">16.9.3</span> Time requirement</h3>
+<p>Both comparison chart views require the aggregation output to retain separate years.</p>
+<p>If <strong>Total all selected years into one period</strong> was selected during aggregation, a time-series comparison cannot be produced because the selected years have already been combined into a single aggregated period.</p>
+</section>
 </section>
 </section>
 <section id="outlier-analysis" class="level1" data-number="17">
