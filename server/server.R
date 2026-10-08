@@ -9445,48 +9445,55 @@ server <- function(input, output, session) {
       
       layout_columns(
         
-        textInput(
-          "new_preset_name",
-          "Save current configuration as",
-          value = "",
-          placeholder =
-            "Enter a preset name"
+        div(
+          textInput(
+            "new_preset_name",
+            "Save current configuration as",
+            value = "",
+            placeholder =
+              "Enter a preset name"
+          ),
+          
+          div(
+            class = "d-flex gap-2",
+            
+            actionButton(
+              "save_user_preset",
+              "Save current",
+              class = "btn-outline-primary"
+            )
+          )
         ),
         
-        selectizeInput(
-          "saved_preset_name",
-          "Saved preset",
-          choices = matching_names,
-          selected = character(0),
-          options = list(
-            placeholder =
-              "Choose a saved preset"
+        div(
+          selectizeInput(
+            "saved_preset_name",
+            "Saved preset",
+            choices = matching_names,
+            selected = "",
+            options = list(
+              placeholder = "Choose a saved preset"
+            )
+          ),
+          
+          div(
+            class = "d-flex gap-2",
+            
+            actionButton(
+              "load_user_preset",
+              "Load preset",
+              class = "btn-primary"
+            ),
+            
+            actionButton(
+              "delete_user_preset",
+              "Delete preset",
+              class = "btn-outline-danger"
+            )
           )
         ),
         
         col_widths = c(6, 6)
-      ),
-      
-      div(
-        class = "d-flex gap-2",
-        
-        actionButton(
-          "load_user_preset",
-          "Load preset",
-          class = "btn-primary"
-        ),
-        
-        actionButton(
-          "save_user_preset",
-          "Save current",
-          class = "btn-outline-primary"
-        ),
-        
-        actionButton(
-          "delete_user_preset",
-          "Delete preset",
-          class = "btn-outline-danger"
-        )
       )
     )
   })
@@ -9558,7 +9565,7 @@ server <- function(input, output, session) {
         session,
         "saved_preset_name",
         choices = get_matching_preset_names(),
-        selected = character(0)
+        selected = ""
       )
       
       updateTextInput(
@@ -9621,7 +9628,7 @@ server <- function(input, output, session) {
         session,
         "saved_preset_name",
         choices = get_matching_preset_names(),
-        selected = character(0)
+        selected = ""
       )
       
       showNotification(
