@@ -7689,7 +7689,7 @@ server <- function(input, output, session) {
           
           list(
             id = "dimension_accordion",
-            open = FALSE,
+            open = TRUE,
             multiple = TRUE
           )
         )
@@ -8728,6 +8728,45 @@ server <- function(input, output, session) {
     })
   }
   
+  # -------------------------------------------------------------------------
+  # Keep all shinyTree outputs active even when their accordion panel is closed.
+  # This is required so saved preset selections can be restored before the user
+  # opens the corresponding accordion panel.
+  # -------------------------------------------------------------------------
+  
+  for (dim_id in names(FILTER_DIMENSIONS)) {
+    
+    outputOptions(
+      output,
+      paste0(
+        "filter_tree_",
+        dim_id
+      ),
+      suspendWhenHidden = FALSE
+    )
+  }
+  
+  for (dim_id in names(AGGREGATION_DIMENSIONS)) {
+    
+    outputOptions(
+      output,
+      paste0(
+        "aggregation_classification_tree_",
+        dim_id
+      ),
+      suspendWhenHidden = FALSE
+    )
+    
+    outputOptions(
+      output,
+      paste0(
+        "aggregation_custom_tree_",
+        dim_id
+      ),
+      suspendWhenHidden = FALSE
+    )
+  }
+  
   # =========================================================================
   # USER-SPECIFIC FILTERING AND AGGREGATION PRESETS
   #
@@ -9239,6 +9278,30 @@ server <- function(input, output, session) {
           preset_name = preset_name
         )
       
+      cat("\n\n========== PRESET SAVE DEBUG ==========\n")
+      
+      cat("\nAggregation modes:\n")
+      print(
+        presets[[preset_name]]$aggregation_modes
+      )
+      
+      cat("\nClassification tree labels:\n")
+      print(
+        presets[[preset_name]]$classification_tree_labels
+      )
+      
+      cat("\nCustom tree labels:\n")
+      print(
+        presets[[preset_name]]$custom_tree_labels
+      )
+      
+      cat("\nFilter tree labels:\n")
+      print(
+        presets[[preset_name]]$filter_tree_labels
+      )
+      
+      cat("\n=======================================\n\n")
+      
       write_user_presets(
         presets
       )
@@ -9362,7 +9425,29 @@ server <- function(input, output, session) {
       
       presets <- read_user_presets()
       preset <- presets[[preset_name]]
+      cat("\n\n========== PRESET LOAD DEBUG ==========\n")
       
+      cat("\nAggregation modes:\n")
+      print(
+        preset$aggregation_modes
+      )
+      
+      cat("\nClassification tree labels:\n")
+      print(
+        preset$classification_tree_labels
+      )
+      
+      cat("\nCustom tree labels:\n")
+      print(
+        preset$custom_tree_labels
+      )
+      
+      cat("\nFilter tree labels:\n")
+      print(
+        preset$filter_tree_labels
+      )
+      
+      cat("\n=======================================\n\n")
       if (is.null(preset)) {
         
         showNotification(
