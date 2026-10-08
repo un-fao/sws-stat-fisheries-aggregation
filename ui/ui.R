@@ -311,139 +311,31 @@ ui <- page_navbar(
     }
     
     
+
+
+    // updateTree() changes the tree model. Trigger the standard jsTree
+    // changed event afterwards so the shinyTree input value is refreshed.
     Shiny.addCustomMessageHandler(
-      'clear_shiny_trees',
+      'notify_shiny_tree_changed',
       function(message) {
+
         var ids = message.ids || [];
-        var attempts = 0;
-        
-        var timer = setInterval(function() {
-          attempts = attempts + 1;
-          
-          ids.forEach(function(id) {
-            clearOneTree(id, true);
-          });
-          
-          if (attempts >= 20) {
-            clearInterval(timer);
+
+        ids.forEach(function(id) {
+
+          var treeObject = getTree(id);
+
+          if (!treeObject) {
+            return;
           }
-        }, 100);
+
+          treeObject.element.trigger(
+            'changed.jstree'
+          );
+        });
       }
     );
-    
-    
-    // Restore checked shinyTree nodes from a saved user preset.
-    //
-    // Trees on this page are rendered dynamically and aggregation trees can
-    // rebuild after filter selections change. For that reason this handler
-    // retries for a few seconds and reapplies the requested labels whenever
-    // a tree DOM element is replaced.
-    Shiny.addCustomMessageHandler(
-      'restore_shiny_tree_labels',
-      function(message) {
-        
-        var treeEntries = message.trees || [];
-        var attempts = 0;
-        
-        // Remember which actual DOM instance has already been cleared.
-        // If Shiny rebuilds a tree, the new DOM element is cleared once again.
-        var preparedElements = {};
-        
-        var timer = setInterval(function() {
-          
-          attempts = attempts + 1;
-          var unresolved = 0;
-          
-          treeEntries.forEach(function(entry) {
-            
-            var treeId = entry.id;
-            var wantedLabels = entry.labels || [];
-            var treeObject = getTree(treeId);
-            
-            if (!treeObject) {
-              unresolved = unresolved + 1;
-              return;
-            }
-            
-            var currentElement = treeObject.element.get(0);
-            
-            // Clear previous selections once for each newly rendered tree.
-            if (preparedElements[treeId] !== currentElement) {
-              
-              treeObject.tree.uncheck_all();
-              treeObject.tree.deselect_all();
-              
-              preparedElements[treeId] = currentElement;
-            }
-            
-            // Nothing was selected in this tree when the preset was saved.
-            if (wantedLabels.length === 0) {
-              return;
-            }
-            
-            var nodes = treeObject.tree.get_json(
-              '#',
-              {flat: true}
-            );
-            
-            var matchedLabels = {};
-            
-            nodes.forEach(function(node) {
-              
-              var nodeLabel = String(
-                node.text || ''
-              )
-                .replace(/\\s+/g, ' ')
-                .trim();
-              
-              var normalizedWantedLabels =
-                wantedLabels.map(function(label) {
-                  return String(label || '')
-                    .replace(/\\s+/g, ' ')
-                    .trim();
-                });
-              
-              var wantedIndex =
-                normalizedWantedLabels.indexOf(
-                  nodeLabel
-                );
-              
-              if (wantedIndex !== -1) {
-                
-                treeObject.tree.check_node(
-                  node.id
-                );
-                
-                matchedLabels[
-                  wantedLabels[wantedIndex]
-                ] = true;
-              }
-            });
-            
-            // Keep retrying while a saved node has not appeared yet.
-            // This is particularly important for aggregation trees, which
-            // may rebuild after restored filter selections are applied.
-            wantedLabels.forEach(function(label) {
-              
-              if (!matchedLabels[label]) {
-                unresolved = unresolved + 1;
-              }
-            });
-          });
-          
-          // Stop as soon as everything is restored, or after five seconds.
-          if (
-            unresolved === 0 ||
-            attempts >= 50
-          ) {
-            clearInterval(timer);
-          }
-          
-        }, 100);
-      }
-    );
-    
-    
+
     $(document).on(
       'click',
       '.tree-selection-clear',

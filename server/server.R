@@ -8249,10 +8249,27 @@ server <- function(input, output, session) {
         
         tree_reset_counter()
         
-        build_filtered_aggregation_tree(
+        tree_id <- paste0(
+          "aggregation_classification_tree_",
+          current_dim
+        )
+        
+        tree <- build_filtered_aggregation_tree(
           dim_id = current_dim,
           meta = meta,
           tree_purpose = "classification"
+        )
+        
+        mark_tree_codes_selected(
+          tree = tree,
+          selected_codes =
+            get_preset_restore_codes(
+              paste0(
+                "filter_tree_",
+                current_dim
+              )
+            ),
+          meta = meta
         )
       })
     })
@@ -8280,10 +8297,27 @@ server <- function(input, output, session) {
         
         tree_reset_counter()
         
-        build_filtered_aggregation_tree(
+        tree_id <- paste0(
+          "aggregation_custom_tree_",
+          current_dim
+        )
+        
+        tree <- build_filtered_aggregation_tree(
           dim_id = current_dim,
           meta = meta,
           tree_purpose = "custom"
+        )
+        
+        mark_tree_codes_selected(
+          tree = tree,
+          selected_codes =
+            get_preset_restore_codes(
+              paste0(
+                "filter_tree_",
+                current_dim
+              )
+            ),
+          meta = meta
         )
       })
     })
@@ -8558,7 +8592,17 @@ server <- function(input, output, session) {
             )
           ) {
             return(
-              cached_filter_tree$tree
+              mark_tree_codes_selected(
+                tree = cached_filter_tree$tree,
+                selected_codes =
+                  get_preset_restore_codes(
+                    paste0(
+                      "filter_tree_",
+                      current_dim
+                    )
+                  ),
+                meta = meta
+              )
             )
           }
           
@@ -8649,7 +8693,17 @@ server <- function(input, output, session) {
           
           
           return(
-            final_tree
+            mark_tree_codes_selected(
+              tree = final_tree,
+              selected_codes =
+                get_preset_restore_codes(
+                  paste0(
+                    "filter_tree_",
+                    current_dim
+                  )
+                ),
+              meta = meta
+            )
           )
         }
         
@@ -8728,45 +8782,6 @@ server <- function(input, output, session) {
     })
   }
   
-  # -------------------------------------------------------------------------
-  # Keep all shinyTree outputs active even when their accordion panel is closed.
-  # This is required so saved preset selections can be restored before the user
-  # opens the corresponding accordion panel.
-  # -------------------------------------------------------------------------
-  
-  for (dim_id in names(FILTER_DIMENSIONS)) {
-    
-    outputOptions(
-      output,
-      paste0(
-        "filter_tree_",
-        dim_id
-      ),
-      suspendWhenHidden = FALSE
-    )
-  }
-  
-  for (dim_id in names(AGGREGATION_DIMENSIONS)) {
-    
-    outputOptions(
-      output,
-      paste0(
-        "aggregation_classification_tree_",
-        dim_id
-      ),
-      suspendWhenHidden = FALSE
-    )
-    
-    outputOptions(
-      output,
-      paste0(
-        "aggregation_custom_tree_",
-        dim_id
-      ),
-      suspendWhenHidden = FALSE
-    )
-  }
-  
   # =========================================================================
   # USER-SPECIFIC FILTERING AND AGGREGATION PRESETS
   #
@@ -8784,6 +8799,7 @@ server <- function(input, output, session) {
   # =========================================================================
   
   preset_revision <- reactiveVal(0L)
+  preset_tree_restore_codes <- reactiveVal(list())
   
   
   # Return a safe identifier for the currently authenticated SWS user.
@@ -8905,11 +8921,9 @@ server <- function(input, output, session) {
   }
   
   
-  # Read the labels explicitly checked in one shinyTree.
-  # We deliberately save the visible selected nodes rather than expanding
-  # parents into hundreds of descendant raw codes. This lets a preset restore
-  # the same user-facing hierarchy selection later.
-  get_tree_labels_for_preset <- function(
+  # Read the actual codelist codes explicitly selected in one shinyTree.
+  # Presets store stable codes, never display labels.
+  get_tree_codes_for_preset <- function(
     tree_id,
     meta,
     selection_rule = c(
@@ -8929,12 +8943,35 @@ server <- function(input, output, session) {
       return(character(0))
     }
     
-    labels <- tryCatch(
+    codes <- NULL
+    tree_dt <- NULL
+    
+    if (!is.null(meta$codelist)) {
+      
+      codes <- tryCatch(
+        get_codelist_codes(
+          meta$codelist
+        ),
+        error = function(e) NULL
+      )
+      
+      tree_dt <- tryCatch(
+        get_codelist_tree_cached(
+          meta$codelist
+        ),
+        error = function(e) NULL
+      )
+    }
+    
+    selected_codes <- tryCatch(
       {
-        get_explicit_tree_selection_labels(
+        get_selected_codes_from_tree(
           tree_input = tree_input,
-          meta = meta,
-          selection_rule = selection_rule
+          codes = codes,
+          tree_dt = tree_dt,
+          expand_descendants = FALSE,
+          selection_rule = selection_rule,
+          codelist_id = meta$codelist
         )
       },
       error = function(e) {
@@ -8953,7 +8990,218 @@ server <- function(input, output, session) {
     )
     
     clean_non_empty_codes(
-      labels
+      selected_codes
+    )
+  }
+  
+  
+  # Backward compatibility for presets saved before schema version 2,
+  # when visible labels rather than stable codelist codes were stored.
+  resolve_legacy_tree_values_to_codes <- function(
+    saved_values,
+    meta
+  ) {
+    
+    saved_values <- clean_non_empty_codes(
+      saved_values
+    )
+    
+    if (length(saved_values) == 0L) {
+      return(character(0))
+    }
+    
+    if (is.null(meta$codelist)) {
+      return(saved_values)
+    }
+    
+    codes <- tryCatch(
+      as.data.table(
+        get_codelist_codes(
+          meta$codelist
+        )
+      ),
+      error = function(e) NULL
+    )
+    
+    if (is.null(codes) || nrow(codes) == 0L) {
+      return(character(0))
+    }
+    
+    codes[, id := as.character(id)]
+    
+    display_labels <- make_tree_display_labels(
+      codes
+    )
+    
+    resolved <- vapply(
+      saved_values,
+      function(value_i) {
+        
+        # Already a valid code.
+        if (value_i %in% codes$id) {
+          return(value_i)
+        }
+        
+        # Exact match to a current display label.
+        label_match <- which(
+          unname(display_labels) == value_i
+        )
+        
+        if (length(label_match) == 1L) {
+          return(
+            names(display_labels)[label_match]
+          )
+        }
+        
+        # Legacy labels were commonly "CODE - label".
+        prefix <- trimws(
+          sub(
+            "\\s+-.*$",
+            "",
+            value_i
+          )
+        )
+        
+        if (prefix %in% codes$id) {
+          return(prefix)
+        }
+        
+        # Support formatting changes such as 1 -> 001 for numeric codes.
+        if (grepl("^[0-9]+$", prefix)) {
+          
+          numeric_matches <- codes$id[
+            grepl("^[0-9]+$", codes$id) &
+              suppressWarnings(
+                as.numeric(codes$id)
+              ) == suppressWarnings(
+                as.numeric(prefix)
+              )
+          ]
+          
+          numeric_matches <- unique(
+            numeric_matches
+          )
+          
+          if (length(numeric_matches) == 1L) {
+            return(numeric_matches)
+          }
+        }
+        
+        NA_character_
+      },
+      character(1)
+    )
+    
+    clean_non_empty_codes(
+      resolved
+    )
+  }
+  
+  
+  # Apply preset selections to the R tree object BEFORE renderTree().
+  mark_tree_codes_selected <- function(
+    tree,
+    selected_codes,
+    meta
+  ) {
+    
+    selected_codes <- clean_non_empty_codes(
+      selected_codes
+    )
+    
+    if (
+      is.null(tree) ||
+      !is.list(tree) ||
+      length(tree) == 0L
+    ) {
+      return(tree)
+    }
+    
+    selected_labels <- selected_codes
+    
+    if (!is.null(meta$codelist)) {
+      
+      codes <- tryCatch(
+        as.data.table(
+          get_codelist_codes(
+            meta$codelist
+          )
+        ),
+        error = function(e) NULL
+      )
+      
+      if (!is.null(codes) && nrow(codes) > 0L) {
+        
+        codes[, id := as.character(id)]
+        
+        display_labels <- make_tree_display_labels(
+          codes
+        )
+        
+        matched_labels <- unname(
+          display_labels[selected_codes]
+        )
+        
+        valid <- !is.na(matched_labels) &
+          nzchar(matched_labels)
+        
+        selected_labels[valid] <-
+          matched_labels[valid]
+      }
+    }
+    
+    selected_labels <- clean_non_empty_codes(
+      selected_labels
+    )
+    
+    recurse <- function(x) {
+      
+      if (!is.list(x) || length(x) == 0L) {
+        return(x)
+      }
+      
+      node_names <- names(x)
+      
+      if (is.null(node_names)) {
+        node_names <- rep("", length(x))
+      }
+      
+      for (i in seq_along(x)) {
+        
+        child <- x[[i]]
+        
+        if (is.list(child) && length(child) > 0L) {
+          child <- recurse(child)
+        }
+        
+        selected_i <- node_names[[i]] %in%
+          selected_labels
+        
+        attr(child, "stselected") <-
+          isTRUE(selected_i)
+        
+        attr(child, "stchecked") <-
+          isTRUE(selected_i)
+        
+        x[[i]] <- child
+      }
+      
+      x
+    }
+    
+    recurse(tree)
+  }
+  
+  
+  get_preset_restore_codes <- function(tree_id) {
+    
+    restore_map <- isolate(
+      preset_tree_restore_codes()
+    )
+    
+    clean_non_empty_codes(
+      restore_map[[tree_id]] %||%
+        character(0)
     )
   }
   
@@ -8987,7 +9235,7 @@ server <- function(input, output, session) {
       )
     ]
     
-    filter_tree_labels <- setNames(
+    filter_tree_codes <- setNames(
       lapply(
         names(active_filter_dims),
         function(dim_id) {
@@ -9001,7 +9249,7 @@ server <- function(input, output, session) {
           
           meta <- active_filter_dims[[dim_id]]
           
-          get_tree_labels_for_preset(
+          get_tree_codes_for_preset(
             tree_id = paste0(
               "filter_tree_",
               dim_id
@@ -9044,14 +9292,14 @@ server <- function(input, output, session) {
       names(AGGREGATION_DIMENSIONS)
     )
     
-    classification_tree_labels <- setNames(
+    classification_tree_codes <- setNames(
       lapply(
         names(AGGREGATION_DIMENSIONS),
         function(dim_id) {
           
           meta <- AGGREGATION_DIMENSIONS[[dim_id]]
           
-          get_tree_labels_for_preset(
+          get_tree_codes_for_preset(
             tree_id = paste0(
               "aggregation_classification_tree_",
               dim_id
@@ -9064,14 +9312,14 @@ server <- function(input, output, session) {
       names(AGGREGATION_DIMENSIONS)
     )
     
-    custom_tree_labels <- setNames(
+    custom_tree_codes <- setNames(
       lapply(
         names(AGGREGATION_DIMENSIONS),
         function(dim_id) {
           
           meta <- AGGREGATION_DIMENSIONS[[dim_id]]
           
-          get_tree_labels_for_preset(
+          get_tree_codes_for_preset(
             tree_id = paste0(
               "aggregation_custom_tree_",
               dim_id
@@ -9091,7 +9339,7 @@ server <- function(input, output, session) {
     # ---------------------------------------------------------------
     
     list(
-      schema_version = 1L,
+      schema_version = 2L,
       
       name = preset_name,
       
@@ -9108,8 +9356,8 @@ server <- function(input, output, session) {
           character(0)
       ),
       
-      filter_tree_labels =
-        filter_tree_labels,
+      filter_tree_codes =
+        filter_tree_codes,
       
       # ASFIS search selections are independent from the ASFIS hierarchy tree.
       asfis_search_values =
@@ -9118,11 +9366,11 @@ server <- function(input, output, session) {
       aggregation_modes =
         aggregation_modes,
       
-      classification_tree_labels =
-        classification_tree_labels,
+      classification_tree_codes =
+        classification_tree_codes,
       
-      custom_tree_labels =
-        custom_tree_labels,
+      custom_tree_codes =
+        custom_tree_codes,
       
       apply_observation_flag =
         isTRUE(
@@ -9197,6 +9445,14 @@ server <- function(input, output, session) {
       
       layout_columns(
         
+        textInput(
+          "new_preset_name",
+          "Save current configuration as",
+          value = "",
+          placeholder =
+            "Enter a preset name"
+        ),
+        
         selectizeInput(
           "saved_preset_name",
           "Saved preset",
@@ -9206,14 +9462,6 @@ server <- function(input, output, session) {
             placeholder =
               "Choose a saved preset"
           )
-        ),
-        
-        textInput(
-          "new_preset_name",
-          "Save current configuration as",
-          value = "",
-          placeholder =
-            "Enter a preset name"
         ),
         
         col_widths = c(6, 6)
@@ -9285,19 +9533,19 @@ server <- function(input, output, session) {
         presets[[preset_name]]$aggregation_modes
       )
       
-      cat("\nClassification tree labels:\n")
+      cat("\nClassification tree codes:\n")
       print(
-        presets[[preset_name]]$classification_tree_labels
+        presets[[preset_name]]$classification_tree_codes
       )
       
-      cat("\nCustom tree labels:\n")
+      cat("\nCustom tree codes:\n")
       print(
-        presets[[preset_name]]$custom_tree_labels
+        presets[[preset_name]]$custom_tree_codes
       )
       
-      cat("\nFilter tree labels:\n")
+      cat("\nFilter tree codes:\n")
       print(
-        presets[[preset_name]]$filter_tree_labels
+        presets[[preset_name]]$filter_tree_codes
       )
       
       cat("\n=======================================\n\n")
@@ -9310,7 +9558,7 @@ server <- function(input, output, session) {
         session,
         "saved_preset_name",
         choices = get_matching_preset_names(),
-        selected = preset_name
+        selected = character(0)
       )
       
       updateTextInput(
@@ -9389,13 +9637,10 @@ server <- function(input, output, session) {
     ignoreInit = TRUE
   )
   
-  
   # -------------------------------------------------------------------------
   # Restore the selected preset.
   #
-  # Standard Shiny controls are restored here. Tree selections are restored
-  # by the browser-side handler added below because shinyTree does not provide
-  # the same kind of update function as ordinary Shiny inputs.
+  # Standard Shiny controls and shinyTree selections are restored here.
   # -------------------------------------------------------------------------
   
   observeEvent(
@@ -9423,6 +9668,17 @@ server <- function(input, output, session) {
         return(NULL)
       }
       
+      loading_notification <- showNotification(
+        paste0(
+          "Preset '",
+          preset_name,
+          "' is loading. Please wait..."
+        ),
+        type = "message",
+        duration = NULL,
+        closeButton = FALSE
+      )
+      
       presets <- read_user_presets()
       preset <- presets[[preset_name]]
       cat("\n\n========== PRESET LOAD DEBUG ==========\n")
@@ -9432,19 +9688,19 @@ server <- function(input, output, session) {
         preset$aggregation_modes
       )
       
-      cat("\nClassification tree labels:\n")
+      cat("\nClassification tree codes:\n")
       print(
-        preset$classification_tree_labels
+        preset$classification_tree_codes %||% preset$classification_tree_labels
       )
       
-      cat("\nCustom tree labels:\n")
+      cat("\nCustom tree codes:\n")
       print(
-        preset$custom_tree_labels
+        preset$custom_tree_codes %||% preset$custom_tree_labels
       )
       
-      cat("\nFilter tree labels:\n")
+      cat("\nFilter tree codes:\n")
       print(
-        preset$filter_tree_labels
+        preset$filter_tree_codes %||% preset$filter_tree_labels
       )
       
       cat("\n=======================================\n\n")
@@ -9682,119 +9938,201 @@ server <- function(input, output, session) {
       
       
       # -------------------------------------------------------------
-      # Prepare every tree that needs its explicit checked nodes restored.
-      # The JavaScript handler retries while dynamic trees are rebuilding,
-      # so aggregation trees can update after the restored filters.
+      # Restore shinyTree selections from stable saved codes.
+      #
+      # Save the codes in a reactive store and force the existing renderTree()
+      # outputs to rebuild. The renderers apply stselected/stchecked directly
+      # to the normal tree objects before they are sent to the browser.
       # -------------------------------------------------------------
       
-      tree_restore_entries <- list()
+      preset_schema <- as.integer(
+        preset$schema_version %||%
+          1L
+      )
       
-      filter_labels <-
-        preset$filter_tree_labels %||%
-        list()
-      
-      for (
-        dim_id in names(filter_labels)
+      get_saved_codes <- function(
+    new_field,
+    legacy_field,
+    dimensions
       ) {
         
         if (
-          !identical(
-            dim_id,
-            "measured_element"
-          )
+          preset_schema >= 2L &&
+          !is.null(preset[[new_field]])
         ) {
+          return(
+            preset[[new_field]]
+          )
+        }
+        
+        legacy_values <-
+          preset[[legacy_field]] %||%
+          list()
+        
+        out <- setNames(
+          vector(
+            "list",
+            length(dimensions)
+          ),
+          names(dimensions)
+        )
+        
+        for (dim_id in names(dimensions)) {
           
-          tree_restore_entries[[
-            length(tree_restore_entries) +
-              1L
-          ]] <- list(
-            id = paste0(
-              "filter_tree_",
-              dim_id
-            ),
-            labels = as.character(
-              filter_labels[[dim_id]] %||%
-                character(0)
+          out[[dim_id]] <-
+            resolve_legacy_tree_values_to_codes(
+              saved_values =
+                legacy_values[[dim_id]] %||%
+                character(0),
+              meta = dimensions[[dim_id]]
             )
+        }
+        
+        out
+      }
+      
+      filter_codes <- get_saved_codes(
+        new_field = "filter_tree_codes",
+        legacy_field = "filter_tree_labels",
+        dimensions = FILTER_DIMENSIONS
+      )
+      
+      classification_codes <- get_saved_codes(
+        new_field = "classification_tree_codes",
+        legacy_field = "classification_tree_labels",
+        dimensions = AGGREGATION_DIMENSIONS
+      )
+      
+      custom_codes <- get_saved_codes(
+        new_field = "custom_tree_codes",
+        legacy_field = "custom_tree_labels",
+        dimensions = AGGREGATION_DIMENSIONS
+      )
+      
+      restore_map <- list()
+      
+      for (dim_id in names(filter_codes)) {
+        
+        if (identical(
+          dim_id,
+          "measured_element"
+        )) {
+          next
+        }
+        
+        restore_map[[
+          paste0(
+            "filter_tree_",
+            dim_id
+          )
+        ]] <- clean_non_empty_codes(
+          filter_codes[[dim_id]]
+        )
+      }
+      
+      for (dim_id in names(AGGREGATION_DIMENSIONS)) {
+        
+        restore_map[[
+          paste0(
+            "aggregation_classification_tree_",
+            dim_id
+          )
+        ]] <- clean_non_empty_codes(
+          classification_codes[[dim_id]] %||%
+            character(0)
+        )
+        
+        restore_map[[
+          paste0(
+            "aggregation_custom_tree_",
+            dim_id
+          )
+        ]] <- clean_non_empty_codes(
+          custom_codes[[dim_id]] %||%
+            character(0)
+        )
+      }
+      
+      preset_tree_restore_codes(
+        restore_map
+      )
+      
+      panels_to_open <- character(0)
+      
+      for (dim_id in names(filter_codes)) {
+        
+        if (
+          !identical(dim_id, "measured_element") &&
+          length(
+            clean_non_empty_codes(
+              filter_codes[[dim_id]]
+            )
+          ) > 0L
+        ) {
+          panels_to_open <- c(
+            panels_to_open,
+            dim_id
           )
         }
       }
       
-      classification_labels <-
-        preset$classification_tree_labels %||%
-        list()
-      
-      for (
-        dim_id in names(classification_labels)
-      ) {
+      for (dim_id in names(saved_modes)) {
         
-        tree_restore_entries[[
-          length(tree_restore_entries) +
-            1L
-        ]] <- list(
-          id = paste0(
-            "aggregation_classification_tree_",
+        saved_mode <- as.character(
+          saved_modes[[dim_id]] %||%
+            "none"
+        )
+        
+        if (!identical(
+          saved_mode,
+          "none"
+        )) {
+          panels_to_open <- c(
+            panels_to_open,
             dim_id
-          ),
-          labels = as.character(
-            classification_labels[[dim_id]] %||%
-              character(0)
           )
+        }
+      }
+      
+      panels_to_open <- unique(
+        panels_to_open
+      )
+      
+      if (length(panels_to_open) > 0L) {
+        
+        bslib::accordion_panel_open(
+          id = "dimension_accordion",
+          values = panels_to_open,
+          session = session
         )
       }
       
-      custom_labels <-
-        preset$custom_tree_labels %||%
-        list()
+      tree_reset_counter(
+        tree_reset_counter() + 1L
+      )
       
-      for (
-        dim_id in names(custom_labels)
-      ) {
-        
-        tree_restore_entries[[
-          length(tree_restore_entries) +
-            1L
-        ]] <- list(
-          id = paste0(
-            "aggregation_custom_tree_",
-            dim_id
-          ),
-          labels = as.character(
-            custom_labels[[dim_id]] %||%
-              character(0)
-          )
-        )
-      }
-      
-      
-      # Wait until Shiny has sent the rebuilt dynamic UI to the browser.
       session$onFlushed(
         function() {
           
-          session$sendCustomMessage(
-            "restore_shiny_tree_labels",
-            list(
-              trees =
-                tree_restore_entries
-            )
+          removeNotification(
+            loading_notification
+          )
+          
+          showNotification(
+            paste0(
+              "Preset '",
+              preset_name,
+              "' loaded."
+            ),
+            type = "message",
+            duration = 6
           )
         },
         once = TRUE
       )
-      
-      showNotification(
-        paste0(
-          "Preset '",
-          preset_name,
-          "' loaded."
-        ),
-        type = "message",
-        duration = 6
-      )
     },
     ignoreInit = TRUE
   )
-  
   observeEvent(input$reset_filter_page, {
     
     showNotification(
