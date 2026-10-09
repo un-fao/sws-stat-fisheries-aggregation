@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-08">
+<meta name="dcterms.date" content="2026-10-09">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -295,7 +295,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 8, 2026</p>
+      <p class="date">October 9, 2026</p>
     </div>
   </div>
   
@@ -397,9 +397,9 @@ Table&nbsp;1: Application navigation pages
 <div class="cell-output-display">
 <table class="cell caption-top table table-sm table-striped small">
 <colgroup>
-<col style="width: 4%">
+<col style="width: 3%">
 <col style="width: 21%">
-<col style="width: 73%">
+<col style="width: 75%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -411,36 +411,31 @@ Table&nbsp;1: Application navigation pages
 <tbody>
 <tr class="odd">
 <td style="text-align: right;">1</td>
-<td style="text-align: left;">Data selection</td>
-<td style="text-align: left;">Initialize the client and load a dataset</td>
+<td style="text-align: left;">Data selection &amp; dataset summary</td>
+<td style="text-align: left;">Initialize the client and load a dataset; inspect metadata, available years, measured elements and dataset dimensions</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2</td>
-<td style="text-align: left;">Dataset summary</td>
-<td style="text-align: left;">Inspect metadata, available years, measured elements and dataset dimensions</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">3</td>
 <td style="text-align: left;">Filters &amp; aggregation</td>
 <td style="text-align: left;">Select years, apply filters and configure aggregation</td>
 </tr>
-<tr class="even">
-<td style="text-align: right;">4</td>
+<tr class="odd">
+<td style="text-align: right;">3</td>
 <td style="text-align: left;">Dataset table</td>
 <td style="text-align: left;">Review and download aggregation outputs</td>
 </tr>
-<tr class="odd">
-<td style="text-align: right;">5</td>
+<tr class="even">
+<td style="text-align: right;">4</td>
 <td style="text-align: left;">Graphs</td>
 <td style="text-align: left;">Visualize totals and compositions</td>
 </tr>
-<tr class="even">
-<td style="text-align: right;">6</td>
+<tr class="odd">
+<td style="text-align: right;">5</td>
 <td style="text-align: left;">Comparison</td>
 <td style="text-align: left;">Compare the main output with a current, disseminated or tagged dataset</td>
 </tr>
-<tr class="odd">
-<td style="text-align: right;">7</td>
+<tr class="even">
+<td style="text-align: right;">6</td>
 <td style="text-align: left;">Outlier analysis</td>
 <td style="text-align: left;">Screen aggregated outputs for unusual levels or changes</td>
 </tr>
@@ -452,12 +447,11 @@ Table&nbsp;1: Application navigation pages
 </div>
 </div>
 <ol type="1">
-<li><p><strong>Data Selection</strong> page allows the user to connect to SWS by clicking the <strong>Initialise Client</strong> button, with no additional action required. The user can then select the <strong>Dataset group</strong>, with <strong>Current Fisheries dataset</strong> selected by default, and choose a dataset of interest from the supported Fisheries datasets.</p></li>
-<li><p><strong>Dataset Summary</strong> page provides an overview of the main characteristics of the loaded dataset, including the number of records, available year range, configured measured-element roots, measured elements with usable data, and the main dimensions available in the dataset.</p></li>
+<li><p><strong>Data Selection</strong> page allows the user to connect to SWS by clicking the <strong>Initialise Client</strong> button, with no additional action required. The user can then select the <strong>Dataset group</strong>, with <strong>Current Fisheries dataset</strong> selected by default, and choose a dataset of interest from the supported Fisheries datasets. It also provides an overview of the main characteristics of the loaded dataset, including the number of records, available year range, configured measured-element roots, measured elements with usable data, and the main dimensions available in the dataset.</p></li>
 <li><p><strong>Filters &amp; Aggregation</strong> page allows the user to select the time period and measured element(s) of interest, apply filters to the available dataset dimensions, and define the desired aggregation settings.</p></li>
 <li><p><strong>Dataset Table</strong> page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.</p></li>
 <li><p><strong>Graphs</strong> page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.</p></li>
-<li><p><strong>Comparison</strong> page allows the user to compare the aggregation produced from the main loaded dataset with a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged Fisheries dataset</strong>. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison tables for <strong>All comparison rows</strong> and <strong>Differences only</strong>, together with time-series charts for examining the main and comparison datasets visually.</p></li>
+<li><p><strong>Comparison</strong> page allows the user to compare the aggregation produced from the main loaded dataset with a <strong>current Fisheries dataset</strong>, a <strong>previous disseminated dataset</strong>, or a <strong>tagged Fisheries dataset</strong>. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison tables for <strong>All comparison rows</strong> and <strong>Differences only</strong>, together with a <strong>Charts</strong> section containing corresponding <strong>All comparison rows</strong> and <strong>Differences only</strong> time-series views. These charts allow the user to compare the main and comparison datasets over time for a selected measured element and analytical series, and to focus specifically on series for which differences are detected.</p></li>
 <li><p><strong>Outlier Analysis</strong> page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.</p></li>
 </ol>
 </section>
@@ -603,19 +597,9 @@ Figure&nbsp;1: Client initialisation
 <section id="dataset-summary" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="dataset-summary"><span class="header-section-number">6.2</span> Dataset summary</h2>
 <p>After a dataset is loaded, the application displays a summary of its main characteristics.</p>
-<p>The summary includes:</p>
-<ul>
-<li>the selected dataset and dataset group;</li>
-<li>the number of records under the configured measured-element roots;</li>
-<li>the available year range;</li>
-<li>the number of configured measured-element roots;</li>
-<li>the configured measured-element roots;</li>
-<li>the number of configured roots with usable data;</li>
-<li>the configured roots with usable data;</li>
-<li>the main dimensions available in the dataset.</li>
-</ul>
+<p>The summary provides the main characteristics of the loaded dataset, including the selected dataset and source, available years, usable measured elements, number of records, and main dimensions.</p>
 <p>The displayed dataset group reflects the source that was actually loaded: <strong>Current Fisheries dataset</strong>, <strong>Disseminated / previous dataset</strong>, or <strong>Tagged Fisheries dataset</strong>.</p>
-<p>The summary is restricted to the measured-element roots configured for the base dataset in SWS. Only effective measured elements that belong to those configured roots and are actually present in the loaded observations are included in the summary. Consequently, a raw current or tagged dataset may physically contain additional measured-element codes that are outside the configured roots; those codes are not treated as available measured elements by the application.</p>
+<p>The summary is restricted to the configured roots defined for the base dataset in SWS. Only codes that belong to those configured roots and are actually present in the loaded observations are treated as available by the application. This applies to the relevant dataset dimensions, including measured elements, geographical area, species / ASFIS, fishing area and production source where available. Consequently, a raw current or tagged dataset may physically contain additional codes outside the configured roots; those codes are not treated as available by the application.</p>
 <div id="fig-dataset-summary" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-dataset-summary-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -675,13 +659,13 @@ Figure&nbsp;3: Filters &amp; Aggregation page
 </section>
 <section id="measured-element-filter" class="level2" data-number="7.3">
 <h2 data-number="7.3" class="anchored" data-anchor-id="measured-element-filter"><span class="header-section-number">7.3</span> Measured-element filter</h2>
-<p>The measured-element selector shows only measured-element roots that satisfy both conditions:</p>
-<ol type="1">
-<li>the root is configured for the dataset in SWS metadata;</li>
-<li>the loaded dataset contains at least one usable row for that root.</li>
-</ol>
+<p>The measured-element selector is based on the measured-element roots configured for the dataset in SWS.</p>
+<p>When a configured root is itself a measured element with no children, that measured element is shown directly in the selector.</p>
+<p>When a configured root is a parent node, the application identifies the measured elements underneath that parent and shows the effective measured elements that are actually present in the loaded dataset.</p>
+<p>Therefore, the selector is not limited to displaying the configured root codes themselves. A single configured parent root may correspond to several selectable measured elements.</p>
+<p>Only measured elements that both belong to the configured roots and have usable observations in the loaded dataset are shown.</p>
 <p>The selected measured elements are processed independently during aggregation.</p>
-<p>For example, selecting <code>FI_001</code> and <code>FI_002</code> produces two separate output tabs rather than summing the two measured elements together.</p>
+<p>For example, if two effective measured elements such as <code>FI_001</code> and <code>FI_002</code> are selected, the application produces two separate output tabs rather than summing them together.</p>
 </section>
 <section id="hierarchical-filters" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="hierarchical-filters"><span class="header-section-number">7.4</span> Hierarchical filters</h2>
