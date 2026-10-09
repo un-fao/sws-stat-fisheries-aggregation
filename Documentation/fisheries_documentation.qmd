@@ -119,8 +119,7 @@ The user interface contains seven principal pages.
 app_pages <- data.frame(
   Page = 1:7,
   Name = c(
-    "Data selection",
-    "Dataset summary",
+    "Data selection & dataset summary",
     "Filters & aggregation",
     "Dataset table",
     "Graphs",
@@ -128,8 +127,7 @@ app_pages <- data.frame(
     "Outlier analysis"
   ),
   Purpose = c(
-    "Initialize the client and load a dataset",
-    "Inspect metadata, available years, measured elements and dataset dimensions",
+    "Initialize the client and load a dataset; inspect metadata, available years, measured elements and dataset dimensions",
     "Select years, apply filters and configure aggregation",
     "Review and download aggregation outputs",
     "Visualize totals and compositions",
@@ -142,19 +140,17 @@ knitr::kable(app_pages)
 ```
 
 
-1. **Data Selection** page allows the user to connect to SWS by clicking the **Initialise Client** button, with no additional action required. The user can then select the **Dataset group**, with **Current Fisheries dataset** selected by default, and choose a dataset of interest from the supported Fisheries datasets.
+1. **Data Selection** page allows the user to connect to SWS by clicking the **Initialise Client** button, with no additional action required. The user can then select the **Dataset group**, with **Current Fisheries dataset** selected by default, and choose a dataset of interest from the supported Fisheries datasets. It also provides an overview of the main characteristics of the loaded dataset, including the number of records, available year range, configured measured-element roots, measured elements with usable data, and the main dimensions available in the dataset.
 
-2. **Dataset Summary** page provides an overview of the main characteristics of the loaded dataset, including the number of records, available year range, configured measured-element roots, measured elements with usable data, and the main dimensions available in the dataset.
+2. **Filters & Aggregation** page allows the user to select the time period and measured element(s) of interest, apply filters to the available dataset dimensions, and define the desired aggregation settings.
 
-3. **Filters & Aggregation** page allows the user to select the time period and measured element(s) of interest, apply filters to the available dataset dimensions, and define the desired aggregation settings.
+3. **Dataset Table** page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.
 
-4. **Dataset Table** page displays the aggregation results and allows them to be downloaded. If more than one measured element is selected, a separate output is provided for each measured element.
+4. **Graphs** page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.
 
-5. **Graphs** page allows the user to visualise the aggregation results using the available dataset dimensions and different graphical representations.
+5. **Comparison** page allows the user to compare the aggregation produced from the main loaded dataset with a **current Fisheries dataset**, a **previous disseminated dataset**, or a **tagged Fisheries dataset**. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison tables for **All comparison rows** and **Differences only**, together with a **Charts** section containing corresponding **All comparison rows** and **Differences only** time-series views. These charts allow the user to compare the main and comparison datasets over time for a selected measured element and analytical series, and to focus specifically on series for which differences are detected.
 
-6. **Comparison** page allows the user to compare the aggregation produced from the main loaded dataset with a **current Fisheries dataset**, a **previous disseminated dataset**, or a **tagged Fisheries dataset**. The main dataset may be either a current Fisheries dataset or a tagged version of a current Fisheries dataset. The page provides downloadable comparison tables for **All comparison rows** and **Differences only**, together with time-series charts for examining the main and comparison datasets visually.
-
-7. **Outlier Analysis** page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.
+6. **Outlier Analysis** page provides graphical tools for identifying and exploring potential outliers, including the distribution of values by year and the largest records according to each available dimension. In this application, outlier analysis is used as a screening tool to inspect unusually large values and year-on-year changes in the aggregated output. It does not apply a formal statistical outlier-detection rule.
 
 
 # Supported datasets
@@ -271,20 +267,11 @@ This prevents later filtering or aggregation operations from silently using an i
 
 After a dataset is loaded, the application displays a summary of its main characteristics.
 
-The summary includes:
-
-- the selected dataset and dataset group;
-- the number of records under the configured measured-element roots;
-- the available year range;
-- the number of configured measured-element roots;
-- the configured measured-element roots;
-- the number of configured roots with usable data;
-- the configured roots with usable data;
-- the main dimensions available in the dataset.
+The summary provides the main characteristics of the loaded dataset, including the selected dataset and source, available years, usable measured elements, number of records, and main dimensions.
 
 The displayed dataset group reflects the source that was actually loaded: **Current Fisheries dataset**, **Disseminated / previous dataset**, or **Tagged Fisheries dataset**.
 
-The summary is restricted to the measured-element roots configured for the base dataset in SWS. Only effective measured elements that belong to those configured roots and are actually present in the loaded observations are included in the summary. Consequently, a raw current or tagged dataset may physically contain additional measured-element codes that are outside the configured roots; those codes are not treated as available measured elements by the application.
+The summary is restricted to the configured roots defined for the base dataset in SWS. Only codes that belong to those configured roots and are actually present in the loaded observations are treated as available by the application. This applies to the relevant dataset dimensions, including measured elements, geographical area, species / ASFIS, fishing area and production source where available. Consequently, a raw current or tagged dataset may physically contain additional codes outside the configured roots; those codes are not treated as available by the application.
 
 ![Dataset summary](./images/data_summary_loaded_dataset.png){#fig-dataset-summary width="50%"}
 
@@ -334,14 +321,19 @@ The page also provides shortcuts for:
 
 ## Measured-element filter
 
-The measured-element selector shows only measured-element roots that satisfy both conditions:
-  
-1. the root is configured for the dataset in SWS metadata;
-2. the loaded dataset contains at least one usable row for that root.
+The measured-element selector is based on the measured-element roots configured for the dataset in SWS.
+
+When a configured root is itself a measured element with no children, that measured element is shown directly in the selector.
+
+When a configured root is a parent node, the application identifies the measured elements underneath that parent and shows the effective measured elements that are actually present in the loaded dataset.
+
+Therefore, the selector is not limited to displaying the configured root codes themselves. A single configured parent root may correspond to several selectable measured elements.
+
+Only measured elements that both belong to the configured roots and have usable observations in the loaded dataset are shown.
 
 The selected measured elements are processed independently during aggregation.
 
-For example, selecting `FI_001` and `FI_002` produces two separate output tabs rather than summing the two measured elements together.
+For example, if two effective measured elements such as `FI_001` and `FI_002` are selected, the application produces two separate output tabs rather than summing them together.
 
 ## Hierarchical filters
 
