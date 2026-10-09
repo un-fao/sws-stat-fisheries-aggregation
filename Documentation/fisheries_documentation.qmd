@@ -117,7 +117,7 @@ The user interface contains seven principal pages.
 #| tbl-cap: "Application navigation pages"
 #| echo: false
 app_pages <- data.frame(
-  Page = 1:7,
+  Page = 1:6,
   Name = c(
     "Data selection & dataset summary",
     "Filters & aggregation",
