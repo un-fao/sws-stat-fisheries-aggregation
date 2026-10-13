@@ -443,6 +443,26 @@ For example, selecting observation flags `A` and `E` retains rows whose observat
 
 The **Reset page** button clears the current filters, aggregation settings and generated results, restoring the page to its initial state.
 
+## Saved presets
+
+The **Filters & Aggregation** page allows users to save the current filtering and aggregation configuration as a preset and reuse it later.
+
+A preset stores the configuration selected for the current dataset, including:
+
+- selected year range;
+- selected measured elements;
+- dimension-filter selections;
+- aggregation mode selected for each dimension;
+- selections made in the aggregation trees;
+- year-aggregation setting;
+- observation-flag aggregation setting.
+
+To create a preset, the user enters a name and clicks **Save current**. A previously saved configuration can be restored by selecting it under **Saved preset** and clicking **Load preset**. Presets that are no longer required can be removed using **Delete preset**.
+
+Presets are **user-specific and dataset-specific**. A preset is therefore available only to the user who created it and only when the corresponding dataset is selected.
+
+When loading a preset, the application restores the saved filtering and aggregation controls. The codelists should be allowed to finish loading before a preset is loaded.
+
 # Aggregation methodology
 
 ## Aggregation dimensions
