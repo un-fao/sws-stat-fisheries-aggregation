@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-09">
+<meta name="dcterms.date" content="2026-10-13">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -160,6 +160,7 @@ window.Quarto = {
   <li><a href="#example-1" id="toc-example-1" class="nav-link" data-scroll-target="#example-1"><span class="header-section-number">7.5.1</span> Example</a></li>
   </ul></li>
   <li><a href="#flat-filters" id="toc-flat-filters" class="nav-link" data-scroll-target="#flat-filters"><span class="header-section-number">7.6</span> Flat filters</a></li>
+  <li><a href="#saved-presets" id="toc-saved-presets" class="nav-link" data-scroll-target="#saved-presets"><span class="header-section-number">7.7</span> Saved presets</a></li>
   </ul></li>
   <li><a href="#aggregation-methodology" id="toc-aggregation-methodology" class="nav-link" data-scroll-target="#aggregation-methodology"><span class="header-section-number">8</span> Aggregation methodology</a>
   <ul>
@@ -295,7 +296,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 9, 2026</p>
+      <p class="date">October 13, 2026</p>
     </div>
   </div>
   
@@ -817,6 +818,23 @@ Figure&nbsp;7: Observation flag filter
 <p>They do not have descendant expansion.</p>
 <p>For example, selecting observation flags <code>A</code> and <code>E</code> retains rows whose observation-status flag is exactly <code>A</code> or <code>E</code>.</p>
 <p>The <strong>Reset page</strong> button clears the current filters, aggregation settings and generated results, restoring the page to its initial state.</p>
+</section>
+<section id="saved-presets" class="level2" data-number="7.7">
+<h2 data-number="7.7" class="anchored" data-anchor-id="saved-presets"><span class="header-section-number">7.7</span> Saved presets</h2>
+<p>The <strong>Filters &amp; Aggregation</strong> page allows users to save the current filtering and aggregation configuration as a preset and reuse it later.</p>
+<p>A preset stores the configuration selected for the current dataset, including:</p>
+<ul>
+<li>selected year range;</li>
+<li>selected measured elements;</li>
+<li>dimension-filter selections;</li>
+<li>aggregation mode selected for each dimension;</li>
+<li>selections made in the aggregation trees;</li>
+<li>year-aggregation setting;</li>
+<li>observation-flag aggregation setting.</li>
+</ul>
+<p>To create a preset, the user enters a name and clicks <strong>Save current</strong>. A previously saved configuration can be restored by selecting it under <strong>Saved preset</strong> and clicking <strong>Load preset</strong>. Presets that are no longer required can be removed using <strong>Delete preset</strong>.</p>
+<p>Presets are <strong>user-specific and dataset-specific</strong>. A preset is therefore available only to the user who created it and only when the corresponding dataset is selected.</p>
+<p>When loading a preset, the application restores the saved filtering and aggregation controls. The codelists should be allowed to finish loading before a preset is loaded.</p>
 </section>
 </section>
 <section id="aggregation-methodology" class="level1" data-number="8">
