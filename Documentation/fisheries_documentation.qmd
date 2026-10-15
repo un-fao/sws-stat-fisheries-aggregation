@@ -549,14 +549,6 @@ Species C
 ```
 
 With species set to **Keep filtered codes separate**, all three species codes remain distinct.
-
-::: {.callout-warning}
-#### Current execution requirement
-
-This option operates at the dimension level. In the current implementation, the Run button still requires at least one aggregation action overall.
-
-When every dimension is set to “Keep filtered codes separate” and neither year aggregation nor observation-flag aggregation is selected, the application stops and asks the user to select at least one aggregation dimension.
-:::
   
 ### Mode 2: Combine all filtered values into one output
   
@@ -1572,7 +1564,7 @@ After applying the filters, the application checks whether the current and compa
 For example, suppose the species categories remaining in the two datasets are:
 
 ```text
-MAin dataset:      1501, 1502
+Main dataset:      1501, 1502
 Comparison dataset:   1501, 1503
 ```
 
