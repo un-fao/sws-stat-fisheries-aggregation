@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-13">
+<meta name="dcterms.date" content="2026-10-15">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -296,7 +296,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 13, 2026</p>
+      <p class="date">October 15, 2026</p>
     </div>
   </div>
   
@@ -959,20 +959,6 @@ Table&nbsp;5: Aggregation modes available for each hierarchical dimension
 Species B
 Species C</code></pre>
 <p>With species set to <strong>Keep filtered codes separate</strong>, all three species codes remain distinct.</p>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span>Current execution requirement
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>This option operates at the dimension level. In the current implementation, the Run button still requires at least one aggregation action overall.</p>
-<p>When every dimension is set to “Keep filtered codes separate” and neither year aggregation nor observation-flag aggregation is selected, the application stops and asks the user to select at least one aggregation dimension.</p>
-</div>
-</div>
 </section>
 <section id="mode-2-combine-all-filtered-values-into-one-output" class="level3" data-number="8.2.2">
 <h3 data-number="8.2.2" class="anchored" data-anchor-id="mode-2-combine-all-filtered-values-into-one-output"><span class="header-section-number">8.2.2</span> Mode 2: Combine all filtered values into one output</h3>
@@ -2062,7 +2048,7 @@ Table&nbsp;15: Illustrative comparison output
 <h2 data-number="16.7" class="anchored" data-anchor-id="differences-in-category-coverage"><span class="header-section-number">16.7</span> Differences in category coverage</h2>
 <p>After applying the filters, the application checks whether the current and comparison datasets contain the same categories for the dimensions that were aggregated.</p>
 <p>For example, suppose the species categories remaining in the two datasets are:</p>
-<pre class="text"><code>MAin dataset:      1501, 1502
+<pre class="text"><code>Main dataset:      1501, 1502
 Comparison dataset:   1501, 1503</code></pre>
 <p>In this case:</p>
 <ul>
