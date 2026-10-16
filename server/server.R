@@ -47,8 +47,6 @@ server <- function(input, output, session) {
   filter_debug <- reactiveVal(NULL)
   tree_reset_counter <- reactiveVal(0)
   
-  # Keep the user's current aggregation-tree selections when a tree rerenders.
-  aggregation_tree_selections <- reactiveVal(list())
   
   
   
@@ -5490,9 +5488,6 @@ server <- function(input, output, session) {
         rows_discarded_without_values <-
           rows_before_value_cleaning - nrow(dt)
         
-        aggregation_tree_selections(
-          list()
-        )
         dataset_data(dt)
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
@@ -8306,90 +8301,58 @@ server <- function(input, output, session) {
     )
   }
   
-  get_stored_aggregation_tree_codes <- function(tree_id) {
+  
+  # Preserve the current live selection when an aggregation tree rerenders.
+  # The tree input is isolated so checking/unchecking nodes does not itself
+  # trigger renderTree(). Preset codes are used only before a live tree input exists.
+  get_aggregation_tree_codes_for_rerender <- function(
+    tree_id,
+    meta,
+    preset_fallback_tree_id = tree_id
+  ) {
     
-    selection_map <- isolate(
-      aggregation_tree_selections()
+    tree_input <- isolate(
+      input[[tree_id]]
     )
     
-    clean_non_empty_codes(
-      selection_map[[tree_id]] %||%
-        character(0)
+    if (!is.null(tree_input)) {
+      
+      selected_labels <- tryCatch(
+        shinyTree::get_selected(
+          tree_input,
+          format = "names"
+        ),
+        error = function(e) {
+          character(0)
+        }
+      )
+      
+      codes <- NULL
+      
+      if (!is.null(meta$codelist)) {
+        codes <- tryCatch(
+          get_codelist_codes(
+            meta$codelist
+          ),
+          error = function(e) NULL
+        )
+      }
+      
+      return(
+        clean_non_empty_codes(
+          tree_display_labels_to_codes(
+            selected_labels = selected_labels,
+            codes = codes
+          )
+        )
+      )
+    }
+    
+    get_preset_restore_codes(
+      preset_fallback_tree_id
     )
   }
   
-  
-  
-  # Keep the current aggregation-tree selections independently
-  # from tree rerendering.
-  for (dim_id in names(AGGREGATION_DIMENSIONS)) {
-    local({
-      
-      current_dim <- dim_id
-      meta <- AGGREGATION_DIMENSIONS[[current_dim]]
-      
-      classification_tree_id <- paste0(
-        "aggregation_classification_tree_",
-        current_dim
-      )
-      
-      custom_tree_id <- paste0(
-        "aggregation_custom_tree_",
-        current_dim
-      )
-      
-      
-      observeEvent(
-        input[[classification_tree_id]],
-        {
-          
-          selected_codes <- get_tree_codes_for_preset(
-            tree_id = classification_tree_id,
-            meta = meta,
-            selection_rule = "most_specific"
-          )
-          
-          selection_map <- isolate(
-            aggregation_tree_selections()
-          )
-          
-          selection_map[[classification_tree_id]] <-
-            selected_codes
-          
-          aggregation_tree_selections(
-            selection_map
-          )
-        },
-        ignoreInit = TRUE
-      )
-      
-      
-      observeEvent(
-        input[[custom_tree_id]],
-        {
-          
-          selected_codes <- get_tree_codes_for_preset(
-            tree_id = custom_tree_id,
-            meta = meta,
-            selection_rule = "most_specific"
-          )
-          
-          selection_map <- isolate(
-            aggregation_tree_selections()
-          )
-          
-          selection_map[[custom_tree_id]] <-
-            selected_codes
-          
-          aggregation_tree_selections(
-            selection_map
-          )
-        },
-        ignoreInit = TRUE
-      )
-      
-    })
-  }
   
   # Classification aggregation displays only hierarchy branches
   # that overlap the currently filtered data.
@@ -8424,13 +8387,17 @@ server <- function(input, output, session) {
           tree_purpose = "classification"
         )
         
-        selected_codes <- get_stored_aggregation_tree_codes(
-          tree_id
-        )
-        
         mark_tree_codes_selected(
           tree = tree,
-          selected_codes = selected_codes,
+          selected_codes =
+            get_aggregation_tree_codes_for_rerender(
+              tree_id = tree_id,
+              meta = meta,
+              preset_fallback_tree_id = paste0(
+                "filter_tree_",
+                current_dim
+              )
+            ),
           meta = meta
         )
       })
@@ -8470,13 +8437,17 @@ server <- function(input, output, session) {
           tree_purpose = "custom"
         )
         
-        selected_codes <- get_stored_aggregation_tree_codes(
-          tree_id
-        )
-        
         mark_tree_codes_selected(
           tree = tree,
-          selected_codes = selected_codes,
+          selected_codes =
+            get_aggregation_tree_codes_for_rerender(
+              tree_id = tree_id,
+              meta = meta,
+              preset_fallback_tree_id = paste0(
+                "filter_tree_",
+                current_dim
+              )
+            ),
           meta = meta
         )
       })
@@ -10152,36 +10123,6 @@ server <- function(input, output, session) {
         restore_map
       )
       
-      aggregation_selection_map <- list()
-      
-      for (dim_id in names(AGGREGATION_DIMENSIONS)) {
-        
-        classification_tree_id <- paste0(
-          "aggregation_classification_tree_",
-          dim_id
-        )
-        
-        custom_tree_id <- paste0(
-          "aggregation_custom_tree_",
-          dim_id
-        )
-        
-        aggregation_selection_map[[classification_tree_id]] <-
-          clean_non_empty_codes(
-            restore_map[[classification_tree_id]] %||%
-              character(0)
-          )
-        
-        aggregation_selection_map[[custom_tree_id]] <-
-          clean_non_empty_codes(
-            restore_map[[custom_tree_id]] %||%
-              character(0)
-          )
-      }
-      
-      aggregation_tree_selections(
-        aggregation_selection_map
-      )
       
       panels_to_open <- character(0)
       
@@ -10392,9 +10333,6 @@ server <- function(input, output, session) {
       server = TRUE
     )
     
-    aggregation_tree_selections(
-      list()
-    )
     # Force the filter UI to rebuild.
     tree_reset_counter(isolate(tree_reset_counter()) + 1)
     
@@ -13691,4 +13629,5 @@ server <- function(input, output, session) {
   #   }
   # )
 }
+
 
