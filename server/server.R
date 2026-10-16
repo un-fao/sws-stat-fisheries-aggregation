@@ -8352,7 +8352,8 @@ server <- function(input, output, session) {
         selected_labels <-
           get_explicit_tree_selection_labels(
             tree_input = input[[tree_id]],
-            meta = meta
+            meta = meta,
+            selection_rule = "most_specific"
           )
         
         make_tree_selection_summary_ui(
@@ -8383,7 +8384,8 @@ server <- function(input, output, session) {
         selected_labels <-
           get_explicit_tree_selection_labels(
             tree_input = input[[tree_id]],
-            meta = meta
+            meta = meta,
+            selection_rule = "most_specific"
           )
         
         make_tree_selection_summary_ui(
@@ -9305,7 +9307,7 @@ server <- function(input, output, session) {
               dim_id
             ),
             meta = meta,
-            selection_rule = "top"
+            selection_rule = "most_specific"
           )
         }
       ),
@@ -9325,7 +9327,7 @@ server <- function(input, output, session) {
               dim_id
             ),
             meta = meta,
-            selection_rule = "top"
+            selection_rule = "most_specific"
           )
         }
       ),
@@ -10794,7 +10796,7 @@ server <- function(input, output, session) {
           codes = codes,
           tree_dt = tree_dt,
           expand_descendants = FALSE,
-          selection_rule = "top",
+          selection_rule = "most_specific",
           codelist_id = meta$codelist
         )
         
@@ -10907,12 +10909,9 @@ server <- function(input, output, session) {
         tree_input = custom_tree_input,
         codes = codes,
         tree_dt = tree_dt,
-        expand_descendants = FALSE
-      )
-      
-      selected_codes <- keep_top_selected_codes_from_codelist_tree(
-        selected_codes = selected_codes,
-        tree_dt = tree_dt
+        expand_descendants = FALSE,
+        selection_rule = "most_specific",
+        codelist_id = meta$codelist
       )
       
       if (length(selected_codes) == 0) {
