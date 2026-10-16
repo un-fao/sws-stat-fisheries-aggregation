@@ -47,6 +47,9 @@ server <- function(input, output, session) {
   filter_debug <- reactiveVal(NULL)
   tree_reset_counter <- reactiveVal(0)
   
+  # Keep the user's current aggregation-tree selections when a tree rerenders.
+  aggregation_tree_selections <- reactiveVal(list())
+  
   
   
   comparison_is_available <- reactive({
@@ -5487,6 +5490,9 @@ server <- function(input, output, session) {
         rows_discarded_without_values <-
           rows_before_value_cleaning - nrow(dt)
         
+        aggregation_tree_selections(
+          list()
+        )
         dataset_data(dt)
         loaded_dataset_id(input$dataset_id)
         loaded_dataset_info(dataset_info)
@@ -8227,6 +8233,164 @@ server <- function(input, output, session) {
   })
   
   
+  # Read the actual codelist codes explicitly selected in one shinyTree.
+  # Presets store stable codes, never display labels.
+  get_tree_codes_for_preset <- function(
+    tree_id,
+    meta,
+    selection_rule = c(
+      "top",
+      "most_specific",
+      "none"
+    )
+  ) {
+    
+    selection_rule <- match.arg(
+      selection_rule
+    )
+    
+    tree_input <- input[[tree_id]]
+    
+    if (is.null(tree_input)) {
+      return(character(0))
+    }
+    
+    codes <- NULL
+    tree_dt <- NULL
+    
+    if (!is.null(meta$codelist)) {
+      
+      codes <- tryCatch(
+        get_codelist_codes(
+          meta$codelist
+        ),
+        error = function(e) NULL
+      )
+      
+      tree_dt <- tryCatch(
+        get_codelist_tree_cached(
+          meta$codelist
+        ),
+        error = function(e) NULL
+      )
+    }
+    
+    selected_codes <- tryCatch(
+      {
+        get_selected_codes_from_tree(
+          tree_input = tree_input,
+          codes = codes,
+          tree_dt = tree_dt,
+          expand_descendants = FALSE,
+          selection_rule = selection_rule,
+          codelist_id = meta$codelist
+        )
+      },
+      error = function(e) {
+        
+        warning(
+          paste0(
+            "Could not save tree selection for ",
+            tree_id,
+            ": ",
+            e$message
+          )
+        )
+        
+        character(0)
+      }
+    )
+    
+    clean_non_empty_codes(
+      selected_codes
+    )
+  }
+  
+  get_stored_aggregation_tree_codes <- function(tree_id) {
+    
+    selection_map <- isolate(
+      aggregation_tree_selections()
+    )
+    
+    clean_non_empty_codes(
+      selection_map[[tree_id]] %||%
+        character(0)
+    )
+  }
+  
+  
+  
+  # Keep the current aggregation-tree selections independently
+  # from tree rerendering.
+  for (dim_id in names(AGGREGATION_DIMENSIONS)) {
+    local({
+      
+      current_dim <- dim_id
+      meta <- AGGREGATION_DIMENSIONS[[current_dim]]
+      
+      classification_tree_id <- paste0(
+        "aggregation_classification_tree_",
+        current_dim
+      )
+      
+      custom_tree_id <- paste0(
+        "aggregation_custom_tree_",
+        current_dim
+      )
+      
+      
+      observeEvent(
+        input[[classification_tree_id]],
+        {
+          
+          selected_codes <- get_tree_codes_for_preset(
+            tree_id = classification_tree_id,
+            meta = meta,
+            selection_rule = "most_specific"
+          )
+          
+          selection_map <- isolate(
+            aggregation_tree_selections()
+          )
+          
+          selection_map[[classification_tree_id]] <-
+            selected_codes
+          
+          aggregation_tree_selections(
+            selection_map
+          )
+        },
+        ignoreInit = TRUE
+      )
+      
+      
+      observeEvent(
+        input[[custom_tree_id]],
+        {
+          
+          selected_codes <- get_tree_codes_for_preset(
+            tree_id = custom_tree_id,
+            meta = meta,
+            selection_rule = "most_specific"
+          )
+          
+          selection_map <- isolate(
+            aggregation_tree_selections()
+          )
+          
+          selection_map[[custom_tree_id]] <-
+            selected_codes
+          
+          aggregation_tree_selections(
+            selection_map
+          )
+        },
+        ignoreInit = TRUE
+      )
+      
+    })
+  }
+  
   # Classification aggregation displays only hierarchy branches
   # that overlap the currently filtered data.
   for (dim_id in names(AGGREGATION_DIMENSIONS)) {
@@ -8260,15 +8424,13 @@ server <- function(input, output, session) {
           tree_purpose = "classification"
         )
         
+        selected_codes <- get_stored_aggregation_tree_codes(
+          tree_id
+        )
+        
         mark_tree_codes_selected(
           tree = tree,
-          selected_codes =
-            get_preset_restore_codes(
-              paste0(
-                "filter_tree_",
-                current_dim
-              )
-            ),
+          selected_codes = selected_codes,
           meta = meta
         )
       })
@@ -8308,15 +8470,13 @@ server <- function(input, output, session) {
           tree_purpose = "custom"
         )
         
+        selected_codes <- get_stored_aggregation_tree_codes(
+          tree_id
+        )
+        
         mark_tree_codes_selected(
           tree = tree,
-          selected_codes =
-            get_preset_restore_codes(
-              paste0(
-                "filter_tree_",
-                current_dim
-              )
-            ),
+          selected_codes = selected_codes,
           meta = meta
         )
       })
@@ -8920,80 +9080,6 @@ server <- function(input, output, session) {
     )
     
     invisible(presets)
-  }
-  
-  
-  # Read the actual codelist codes explicitly selected in one shinyTree.
-  # Presets store stable codes, never display labels.
-  get_tree_codes_for_preset <- function(
-    tree_id,
-    meta,
-    selection_rule = c(
-      "top",
-      "most_specific",
-      "none"
-    )
-  ) {
-    
-    selection_rule <- match.arg(
-      selection_rule
-    )
-    
-    tree_input <- input[[tree_id]]
-    
-    if (is.null(tree_input)) {
-      return(character(0))
-    }
-    
-    codes <- NULL
-    tree_dt <- NULL
-    
-    if (!is.null(meta$codelist)) {
-      
-      codes <- tryCatch(
-        get_codelist_codes(
-          meta$codelist
-        ),
-        error = function(e) NULL
-      )
-      
-      tree_dt <- tryCatch(
-        get_codelist_tree_cached(
-          meta$codelist
-        ),
-        error = function(e) NULL
-      )
-    }
-    
-    selected_codes <- tryCatch(
-      {
-        get_selected_codes_from_tree(
-          tree_input = tree_input,
-          codes = codes,
-          tree_dt = tree_dt,
-          expand_descendants = FALSE,
-          selection_rule = selection_rule,
-          codelist_id = meta$codelist
-        )
-      },
-      error = function(e) {
-        
-        warning(
-          paste0(
-            "Could not save tree selection for ",
-            tree_id,
-            ": ",
-            e$message
-          )
-        )
-        
-        character(0)
-      }
-    )
-    
-    clean_non_empty_codes(
-      selected_codes
-    )
   }
   
   
@@ -10066,6 +10152,37 @@ server <- function(input, output, session) {
         restore_map
       )
       
+      aggregation_selection_map <- list()
+      
+      for (dim_id in names(AGGREGATION_DIMENSIONS)) {
+        
+        classification_tree_id <- paste0(
+          "aggregation_classification_tree_",
+          dim_id
+        )
+        
+        custom_tree_id <- paste0(
+          "aggregation_custom_tree_",
+          dim_id
+        )
+        
+        aggregation_selection_map[[classification_tree_id]] <-
+          clean_non_empty_codes(
+            restore_map[[classification_tree_id]] %||%
+              character(0)
+          )
+        
+        aggregation_selection_map[[custom_tree_id]] <-
+          clean_non_empty_codes(
+            restore_map[[custom_tree_id]] %||%
+              character(0)
+          )
+      }
+      
+      aggregation_tree_selections(
+        aggregation_selection_map
+      )
+      
       panels_to_open <- character(0)
       
       for (dim_id in names(filter_codes)) {
@@ -10273,6 +10390,10 @@ server <- function(input, output, session) {
       "filter_asfis_search_values",
       selected = character(0),
       server = TRUE
+    )
+    
+    aggregation_tree_selections(
+      list()
     )
     # Force the filter UI to rebuild.
     tree_reset_counter(isolate(tree_reset_counter()) + 1)
@@ -10700,14 +10821,24 @@ server <- function(input, output, session) {
         )
         
         aggregation_map <-
-          build_selected_groups_map_with_remainder(
-            tree_dt = tree_dt,
+          with_aggregation_context(
+            
+            build_selected_groups_map_with_remainder(
+              tree_dt = tree_dt,
+              selected_codes = selected_filter_groups,
+              filtered_raw_codes = filtered_raw_codes,
+              codelist_id = meta$codelist,
+              remainder_label =
+                meta$remainder_label %||%
+                "Other filtered records"
+            ),
+            
+            dimension_id = dim_id,
+            label = meta$label,
+            dataset_column = meta$dataset_column,
+            codelist = meta$codelist,
             selected_codes = selected_filter_groups,
-            filtered_raw_codes = filtered_raw_codes,
-            codelist_id = meta$codelist,
-            remainder_label =
-              meta$remainder_label %||%
-              "Other filtered records"
+            stage = "selected filter groups aggregation setup"
           )
         
         if (nrow(aggregation_map) == 0L) {
@@ -11204,7 +11335,7 @@ server <- function(input, output, session) {
                 showNotification(
                   paste0("Aggregation setup error: ", e$message),
                   type = "error",
-                  duration = 10
+                  duration = 20
                 )
                 return(NULL)
               }
@@ -11405,7 +11536,7 @@ server <- function(input, output, session) {
             showNotification(
               paste0("Aggregation failed: ", e$message),
               type = "error",
-              duration = 10
+              duration = 20
             )
           }
         )
