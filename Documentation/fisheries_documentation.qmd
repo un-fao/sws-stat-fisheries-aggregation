@@ -2196,22 +2196,6 @@ A quantity-weighted average for unit-price datasets is not currently applied.
 Price-output interpretation must therefore account for this implementation rule.
 :::
   
-::: {.callout-warning}
-## Filter-only execution
-
-The current Run handler requires at least one aggregation specification, year aggregation or observation-flag aggregation.
-
-A run in which every dimension is set to **Keep filtered codes separate**, with no other aggregation option selected, is currently rejected.
-:::
-  
-::: {.callout-note}
-## Comparison direction
-
-A current dataset must be the main dataset.
-
-A disseminated or tagged dataset is used as the comparison side.
-:::
-  
 ::: {.callout-note}
 ## Direct-child overlap
 
