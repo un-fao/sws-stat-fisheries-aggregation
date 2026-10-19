@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Lyubov Doroshenko">
-<meta name="dcterms.date" content="2026-10-16">
+<meta name="dcterms.date" content="2026-10-19">
 
 <title>Fisheries Aggregation Shiny App</title>
 <style>
@@ -27,41 +27,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -242,7 +207,7 @@ window.Quarto = {
   <li><a href="#year-on-year-percentage-change" id="toc-year-on-year-percentage-change" class="nav-link" data-scroll-target="#year-on-year-percentage-change"><span class="header-section-number">17.3.3</span> Year-on-year percentage change</a></li>
   </ul></li>
   <li><a href="#distribution-by-year" id="toc-distribution-by-year" class="nav-link" data-scroll-target="#distribution-by-year"><span class="header-section-number">17.4</span> Distribution by year</a></li>
-  <li><a href="#largest-strongest-records" id="toc-largest-strongest-records" class="nav-link" data-scroll-target="#largest-strongest-records"><span class="header-section-number">17.5</span> Largest / strongest records</a>
+  <li><a href="#largest-records" id="toc-largest-records" class="nav-link" data-scroll-target="#largest-records"><span class="header-section-number">17.5</span> Largest records</a>
   <ul class="collapse">
   <li><a href="#value-1" id="toc-value-1" class="nav-link" data-scroll-target="#value-1"><span class="header-section-number">17.5.1</span> Value</a></li>
   <li><a href="#year-on-year-absolute-change-1" id="toc-year-on-year-absolute-change-1" class="nav-link" data-scroll-target="#year-on-year-absolute-change-1"><span class="header-section-number">17.5.2</span> Year-on-year absolute change</a></li>
@@ -296,7 +261,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 16, 2026</p>
+      <p class="date">October 19, 2026</p>
     </div>
   </div>
   
@@ -1887,25 +1852,6 @@ Figure&nbsp;13: Tagged dataset upload
 <section id="comparison-statuses" class="level2" data-number="16.6">
 <h2 data-number="16.6" class="anchored" data-anchor-id="comparison-statuses"><span class="header-section-number">16.6</span> Comparison statuses</h2>
 <div class="cell">
-<details class="code-fold">
-<summary>Show R code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>comparison_statuses <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Status =</span> <span class="fu">c</span>(</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Same value"</span>,</span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Different value"</span>,</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in current output"</span>,</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Only in comparison output"</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">Meaning =</span> <span class="fu">c</span>(</span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist and their rounded values are equal"</span>,</span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Both rows exist but their values differ"</span>,</span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the current result"</span>,</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"The analytical combination exists only in the comparison result"</span></span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_statuses)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
 <div id="tbl-comparison-statuses" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-statuses-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -1950,33 +1896,6 @@ Table&nbsp;14: Comparison status categories
 </div>
 <p><strong>Numerical example</strong></p>
 <div class="cell">
-<details class="code-fold">
-<summary>Show R code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>comparison_example <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">"1501"</span>, <span class="st">"1502"</span>, <span class="st">"1503"</span>, <span class="st">"1504"</span>),</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">current_value =</span> <span class="fu">c</span>(<span class="dv">120</span>, <span class="dv">80</span>, <span class="dv">50</span>, <span class="dv">40</span>),</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">comparison_value =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">80</span>, <span class="cn">NA</span>, <span class="dv">60</span>)</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>absolute_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
-<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  current_value <span class="sc">-</span> comparison_value</span>
-<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>percentage_difference <span class="ot">&lt;-</span> <span class="fu">with</span>(</span>
-<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>  comparison_example,</span>
-<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>  <span class="dv">100</span> <span class="sc">*</span> absolute_difference <span class="sc">/</span> comparison_value</span>
-<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a>comparison_example<span class="sc">$</span>status <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span>,</span>
-<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Same value"</span>,</span>
-<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Only in current output"</span>,</span>
-<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Different value"</span></span>
-<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(comparison_example)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
 <div id="tbl-comparison-example" class="cell quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-comparison-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -2148,7 +2067,7 @@ Figure&nbsp;15: Differences only table
 <p>The page contains two views:</p>
 <ul>
 <li><strong>Distribution by year</strong>;</li>
-<li><strong>Largest / strongest records</strong>.</li>
+<li><strong>Largest records</strong>.</li>
 </ul>
 <p>The same selections made in the sidebar are applied to both views.</p>
 <section id="measured-element-for-outlier-analysis" class="level2" data-number="17.1">
@@ -2307,9 +2226,9 @@ Current value: 150</code></pre>
 <p>If the analysis has been restricted using <strong>Analyse outliers for</strong> and <strong>Selected group value</strong>, the distribution is calculated only for that selected group.</p>
 <p>The plot can also be opened using the full-screen option.</p>
 </section>
-<section id="largest-strongest-records" class="level2" data-number="17.5">
-<h2 data-number="17.5" class="anchored" data-anchor-id="largest-strongest-records"><span class="header-section-number">17.5</span> Largest / strongest records</h2>
-<p>The <strong>Largest / strongest records</strong> tab provides a table of the observations with the largest values or strongest changes.</p>
+<section id="largest-records" class="level2" data-number="17.5">
+<h2 data-number="17.5" class="anchored" data-anchor-id="largest-records"><span class="header-section-number">17.5</span> Largest records</h2>
+<p>The <strong>Largest records</strong> tab provides a table of the observations with the largest values or strongest changes.</p>
 <p>The way records are ranked depends on the selected metric.</p>
 <section id="value-1" class="level3" data-number="17.5.1">
 <h3 data-number="17.5.1" class="anchored" data-anchor-id="value-1"><span class="header-section-number">17.5.1</span> Value</h3>
@@ -2363,13 +2282,13 @@ Figure&nbsp;18: Largest records table
 </section>
 <section id="number-of-top-records-to-display" class="level2" data-number="17.6">
 <h2 data-number="17.6" class="anchored" data-anchor-id="number-of-top-records-to-display"><span class="header-section-number">17.6</span> Number of top records to display</h2>
-<p>The <strong>Number of top records to display</strong> control appears when the <strong>Largest / strongest records</strong> tab is selected. The user can choose to display between <strong>10 and 200 records</strong>, in increments of 10. The default is <strong>50 records</strong>.</p>
+<p>The <strong>Number of top records to display</strong> control appears when the <strong>Largest records</strong> tab is selected. The user can choose to display between <strong>10 and 200 records</strong>, in increments of 10. The default is <strong>50 records</strong>.</p>
 <p>For the <strong>Value</strong> metric, these are the records with the largest values.</p>
 <p>For the two change metrics, these are the records with the largest absolute changes, regardless of whether the change is positive or negative.</p>
 </section>
 <section id="download-outlier-csv" class="level2" data-number="17.7">
 <h2 data-number="17.7" class="anchored" data-anchor-id="download-outlier-csv"><span class="header-section-number">17.7</span> Download outlier CSV</h2>
-<p>The table shown in the <strong>Largest / strongest records</strong> tab can be downloaded using the <strong>Download outlier CSV</strong> button.</p>
+<p>The table shown in the <strong>Largest records</strong> tab can be downloaded using the <strong>Download outlier CSV</strong> button.</p>
 <p>The downloaded CSV corresponds to:</p>
 <ul>
 <li>the selected measured element;</li>
