@@ -5250,7 +5250,9 @@ server <- function(input, output, session) {
         title = plot_title,
         subtitle = plot_subtitle
       ) +
-      
+      scale_y_continuous(
+        labels = scales::label_number()
+      ) +
       scale_x_continuous(
         breaks = sort(
           unique(
@@ -5293,6 +5295,13 @@ server <- function(input, output, session) {
         ),
         
         axis.text = element_text(
+          size = 10
+        ),
+        
+        axis.text.x = element_text(
+          angle = 90,
+          vjust = 0.5,
+          hjust = 1,
           size = 10
         )
       ) +
